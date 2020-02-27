@@ -1,27 +1,112 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
+'use strict';
 import * as vscode from 'vscode';
+import { Server, Device } from './touchsprite';
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
+let server: any = new Server(1209);
+let recentDevice: any = null;
+
+server
+	.on('connect',
+		() => {
+			vscode.window.showInformationMessage('server running');
+		})
+	.on('new_device',
+		(device: Device) => {
+			var messageShown = false;
+			var showMessage = () => {
+				if (messageShown)
+					return;
+				vscode.window.showInformationMessage('New device attached: ' + device);
+				messageShown = true;
+			};
+			setTimeout(showMessage, 1000);
+			device.on('data:device_name', showMessage);
+		});
+
+class Extension {
+
+	startServer(): void {
+		server.listen();
+	}
+
+	stopServer() {
+		server.disconnect();
+		vscode.window.showInformationMessage('Auto.js server stopped');
+	}
+
+	run() {
+		this.runOn(server);
+	}
+
+	stop() {
+		server.send({
+			'type': 'command',
+			'view_id': vscode.window.activeTextEditor.document.fileName,
+			'command': 'stop',
+		})
+	}
+
+	stopAll() {
+		server.send({
+			'type': 'command',
+			'command': 'stopAll'
+		})
+	}
+
+	rerun() {
+		let editor = vscode.window.activeTextEditor;
+		server.send({
+			'type': 'command',
+			'command': 'rerun',
+			'view_id': editor.document.fileName,
+			'name': editor.document.fileName,
+			'script': editor.document.getText()
+		});
+	}
+
+	runOnDevice() {
+		let devices = server.devices;
+		if (recentDevice) {
+			let i = devices.indexOf(recentDevice);
+			if (i > 0) {
+				devices = devices.slice(0);
+				devices[i] = devices[0];
+				devices[0] = recentDevice;
+			}
+		}
+		let names = devices.map(device => device.toString());
+		vscode.window.showQuickPick(names)
+			.then(select => {
+				let device = devices[names.indexOf(select)];
+				recentDevice = device;
+				this.runOn(device);
+			});
+	}
+
+	runOn(target: AutoJs | Device) {
+		let editor = vscode.window.activeTextEditor;
+		target.send({
+			'type': 'command',
+			'command': 'run',
+			'view_id': editor.document.fileName,
+			'name': editor.document.fileName,
+			'script': editor.document.getText()
+		})
+	}
+};
+
+
+const commands = ['startServer', 'stopServer', 'run', 'runOnDevice', 'stop', 'stopAll', 'rerun'];
+let extension = new Extension();
+
 export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "touchsprite-extension" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World!');
-	});
-
-	context.subscriptions.push(disposable);
+	console.log('extension "auto-js-vscodeext" is now active.');
+	commands.forEach((command) => {
+		let action: Function = extension[command];
+		context.subscriptions.push(vscode.commands.registerCommand('extension.' + command, action.bind(extension)));
+	})
 }
 
-// this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+	server.disconnect();
+}

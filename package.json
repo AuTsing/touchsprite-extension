@@ -16,6 +16,7 @@
         "Other"
     ],
     "activationEvents": [
+        "onCommand:extension.startServer",
         "onCommand:extension.helloWorld"
     ],
     "main": "./out/extension.js",
@@ -37,15 +38,14 @@
             }
         },
         "commands": [{
-            "command": "extension.helloWorld",
-            "title": "Hello World"
-        }],
-        "keybindings": [{
-            "command": "extension.helloWorld",
-            "key": "ctrl+f10",
-            "mac": "cmd+f10",
-            "when": "editorTextFocus"
-        }],
+                "command": "extension.helloWorld",
+                "title": "Hello World"
+            },
+            {
+                "command": "extension.startServer",
+                "title": "StartServer"
+            }
+        ],
         "menus": {
             "editor/context": [{
                 "command": "extension.helloWorld",
