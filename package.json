@@ -16,8 +16,8 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.startServer",
-        "onCommand:extension.helloWorld"
+        "onCommand:extension.TsStartServer",
+        "onLanguage:lua"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -25,12 +25,12 @@
             "type": "object",
             "title": "touchsprite-extension",
             "properties": {
-                "vscodePluginDemo.devAccess": {
+                "vscodePlugin-ts.devAccess": {
                     "type": "string",
                     "default": "",
                     "description": "开发者Access"
                 },
-                "vscodePluginDemo.showTip": {
+                "vscodePlugin-ts.showTip": {
                     "type": "boolean",
                     "default": true,
                     "description": "是否在每次启动时显示欢迎提示！"
@@ -38,37 +38,30 @@
             }
         },
         "commands": [{
-                "command": "extension.helloWorld",
-                "title": "Hello World"
+                "command": "extension.TsStartServer",
+                "title": "Ts: StartServer"
             },
             {
-                "command": "extension.startServer",
-                "title": "StartServer"
+                "command": "extension.TsConnect",
+                "title": "Ts: Connect"
+            },
+            {
+                "command": "extension.TsGetStatus",
+                "title": "Ts: GetStatus"
+            },
+            {
+                "command": "extension.TsGetPicture",
+                "title": "Ts: GetPicture"
+            },
+            {
+                "command": "extension.TsRunProject",
+                "title": "Ts: RunProject"
+            },
+            {
+                "command": "extension.TsStopProject",
+                "title": "Ts: StopProject"
             }
         ],
-        "menus": {
-            "editor/context": [{
-                "command": "extension.helloWorld",
-                "group": "navigation"
-            }],
-            "editor/title": [{
-                "command": "extension.helloWorld",
-                "group": "navigation"
-            }],
-            "editor/title/context": [{
-                "command": "extension.helloWorld",
-                "group": "navigation"
-            }],
-            "explorer/context": [{
-                    "command": "extension.helloWorld",
-                    "group": "navigation"
-                },
-                {
-                    "command": "extension.helloWorld",
-                    "group": "navigation"
-                }
-            ]
-        },
         "viewsContainers": {
             "activitybar": [{
                 "id": "deviceManager",
