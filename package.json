@@ -1,7 +1,7 @@
 {
     "name": "touchsprite-extension",
-    "displayName": "touchsprite-extension",
-    "description": "extension for touchsprite",
+    "displayName": "TouchSprite-Extension",
+    "description": "一个给触动精灵开发者使用的插件",
     "keywords": [
         "touchsprite",
         "触动精灵",
@@ -23,17 +23,22 @@
     "contributes": {
         "configuration": {
             "type": "object",
-            "title": "touchsprite-extension",
+            "title": "触动精灵扩展",
             "properties": {
-                "vscodePlugin-ts.devAccess": {
+                "touchsprite-extension.accessKey": {
                     "type": "string",
                     "default": "",
-                    "description": "开发者Access"
+                    "description": "开发者AccessKey"
                 },
-                "vscodePlugin-ts.showTip": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "是否在每次启动时显示欢迎提示！"
+                "touchsprite-extension.snapshotOrient": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "截图方向"
+                },
+                "touchsprite-extension.snapshotDir": {
+                    "type": "string",
+                    "default": "",
+                    "description": "截图保存文件夹"
                 }
             }
         },
@@ -60,6 +65,17 @@
             {
                 "command": "extension.TsStopProject",
                 "title": "Ts: StopProject"
+            }
+        ],
+        "keybindings": [{
+                "command": "extension.TsRunProject",
+                "key": "ctrl+shift+f9",
+                "when": "editorTextFocus"
+            },
+            {
+                "command": "extension.TsStopProject",
+                "key": "ctrl+shift+f10",
+                "when": "editorTextFocus"
             }
         ],
         "viewsContainers": {

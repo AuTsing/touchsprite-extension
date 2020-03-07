@@ -16,20 +16,22 @@ export class Device {
     public init(key: string | undefined): Promise<Device> {
         if (key) {
             return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    reject("连接超时")
+                }, 3000)
                 Ts.GetDeviceId(this)
                     .then(value => {
-                        // console.log(value);
+                        console.log("成功获取设备ID");
                         this.deviceId = value
                         return Ts.GetAuth(this, key);
                     }).then(value => {
                         let json = JSON.parse(value);
-                        // console.log(json);
                         this.auth = json.auth;
+                        console.log("成功获取Auth");
                         this.expire = json.time + json.valid;
                     }).then(() => {
                         resolve(this);
                     }).catch(err => {
-                        console.log(err);
                         reject(err);
                     });
             })
@@ -44,7 +46,7 @@ export class Server {
     public key: string | undefined;
 
     constructor() {
-        let key: string | undefined = vscode.workspace.getConfiguration().get('vscodePlugin-ts.devAccess');
+        let key: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.accessKey');
         if (key && key != "") {
             this.key = key;
             vscode.window.showInformationMessage("触动服务已启动");
@@ -64,6 +66,7 @@ export class Server {
                                     vscode.window.showWarningMessage('开发者key未填写将导致插件无法正常使用');
                                     return new Server();
                                 };
+                                vscode.workspace.getConfiguration().update('touchsprite-extension.accessKey', inputValue, true)
                                 this.key = inputValue;
                             })
                     } else if (result === "否") {
@@ -79,10 +82,25 @@ export class Server {
         // console.log(vscode.workspace.workspaceFolders);
         // console.log(vscode.workspace.textDocuments);
         // console.log(vscode.workspace.rootPath);
-        console.log(vscode.window.activeTextEditor?.document);
+        // console.log(vscode.window.activeTextEditor?.document);
         // console.log(process.cwd());
     }
 
+    public ReceiveIp() {
+        return new Promise<string>((resolve, reject) => {
+            vscode.window.showInputBox({
+                prompt: "请输入设备IP地址",
+                value: "",
+                placeHolder: "?.?.?.?"
+            }).then(inputValue => {
+                if (typeof inputValue === undefined) {
+                    reject();
+                } else {
+                    resolve(inputValue);
+                };
+            })
+        })
+    }
     public Connect(ip: string) {
         let dev = new Device(ip);
         dev.init(this.key)
@@ -90,68 +108,111 @@ export class Server {
                 this.attachingDev = value;
                 vscode.window.showInformationMessage(`设备:${dev.ip}连接成功`);
             })
-            .catch(err => console.log(err));
+            .catch(err => {
+                vscode.window.showWarningMessage(`设备:${dev.ip}连接失败`);
+                console.log(err);
+            });
     }
-    public GetAttachedDevice() {
+    private IsConnected() {
         if (this.attachingDev) {
             console.log("已连接设备:");
             console.log(this.attachingDev);
+            return true;
         } else {
             vscode.window.showErrorMessage('未连接设备！');
+            return false;
         }
     }
     public GetStatus() {
-        if (this.attachingDev) {
-            return Ts.GetStatus(this.attachingDev).then(value => console.log("手机状态:" + value), err => console.log(err));
-        } else {
-            vscode.window.showErrorMessage('未连接设备！');
+        if (this.IsConnected()) {
+            return Ts.GetStatus(this.attachingDev)
+                .then(value => {
+                    if (value == "f00") {
+                        vscode.window.showInformationMessage(`设备:${this.attachingDev.ip}空闲`)
+                    } else if (value == "f01") {
+                        vscode.window.showInformationMessage(`设备:${this.attachingDev.ip}运行中`)
+                    }
+                }, err => console.log(err));
         }
     }
     public GetPicture() {
-        if (this.attachingDev) {
+        if (this.IsConnected()) {
             return Ts.GetPicture(this.attachingDev).then(value => {
-                fs.writeFile("snapshot.png", value, "binary", (err) => {
-                    if (err) {
-                        console.log("截图失败");
+                return new Promise((resolve, reject) => {
+                    let saveName: string;
+                    let snapshotDir: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir');
+                    if (snapshotDir) {
+                        saveName = `${snapshotDir}\\PIC_${Date.now()}.png`;
+                        fs.writeFile(saveName, value, "binary", (err) => {
+                            if (err) {
+                                console.log("截图失败" + err.message);
+                                vscode.window.showWarningMessage("截图失败");
+                            } else {
+                                console.log("截图成功");
+                                vscode.window.showInformationMessage("截图成功");
+                            }
+                        });
                     } else {
-                        console.log("截图成功");
+                        let name = vscode.window.activeTextEditor?.document;
+                        if (name) {
+                            saveName = path.dirname(name.fileName) + "\\snapshot.png";
+                            fs.writeFile(saveName, value, "binary", (err) => {
+                                if (err) {
+                                    console.log("截图失败" + err.message);
+                                    vscode.window.showWarningMessage("截图失败");
+                                } else {
+                                    console.log("截图成功");
+                                    vscode.window.showInformationMessage("截图成功");
+                                }
+                            });
+                        } else {
+                            vscode.window.showInformationMessage("未选择保存路径");
+                        }
                     }
-                });
+
+
+                })
             }, err => console.log(err));
-        } else {
-            vscode.window.showErrorMessage('未连接设备！');
         }
     }
     public LogServer() {
-        if (this.attachingDev) {
+        if (this.IsConnected()) {
             return Ts.LogServer(this.attachingDev).then(value => console.log("远程日志:" + value), err => console.log(err));
-        } else {
-            vscode.window.showErrorMessage('未连接设备！');
         }
     }
     public SetLuaPath() {
-        if (this.attachingDev) {
+        if (this.IsConnected()) {
             return Ts.SetLuaPath(this.attachingDev).then(value => console.log("设置运行路径:" + value), err => console.log(err));
-        } else {
-            vscode.window.showErrorMessage('未连接设备！');
         }
     }
     public RunLua() {
-        if (this.attachingDev) {
-            return Ts.RunLua(this.attachingDev).then(value => console.log("运行脚本:" + value), err => console.log(err));
-        } else {
-            vscode.window.showErrorMessage('未连接设备！');
+        if (this.IsConnected()) {
+            return Ts.RunLua(this.attachingDev)
+                .then(value => {
+                    console.log("运行脚本:" + value);
+                    if (value == "ok") {
+                        vscode.window.showInformationMessage("运行脚本成功");
+                    } else if (value == "fail") {
+                        vscode.window.showInformationMessage("运行脚本失败");
+                    }
+                }, err => console.log(err));
         }
     }
     public StopLua() {
-        if (this.attachingDev) {
-            return Ts.StopLua(this.attachingDev).then(value => console.log("停止脚本:" + value), err => console.log(err));
-        } else {
-            vscode.window.showErrorMessage('未连接设备！');
+        if (this.IsConnected()) {
+            return Ts.StopLua(this.attachingDev)
+                .then(value => {
+                    console.log("停止脚本:" + value);
+                    if (value == "ok") {
+                        vscode.window.showInformationMessage("运行停止成功");
+                    } else if (value == "fail") {
+                        vscode.window.showInformationMessage("运行停止失败");
+                    }
+                }, err => console.log(err));
         }
     }
     public Upload() {
-        if (this.attachingDev) {
+        if (this.IsConnected()) {
             let name = vscode.window.activeTextEditor?.document;
             if (name) {
                 let pathName: string = path.dirname(name.fileName);
@@ -165,25 +226,10 @@ export class Server {
                             Ts.Upload(this.attachingDev, f, pathName).then(null, (err: any) => console.log(err));
                         }
                     })
-                    // Promise.all([fileArr.map(item => {
-
-                    // })])
-                    // new Promise((resolve, reject) => {
-                    //     for (let i = 0; i < fileArr.length; i++) {
-                    //         let f = fileArr[i];
-                    //         Ts.Upload(this.attachingDev, f, pathName).then(null, (err: any) => { reject(err) });
-                    //         if (i == fileArr.length - 1) {
-                    //             resolve("上传成功");
-                    //         }
-                    //     }
-                    // })
-                    // .catch ((err) => { console.log(err); })
                 } else {
                     vscode.window.showErrorMessage('所选工程必须包含main.lua文件');
                 }
             }
-        } else {
-            vscode.window.showErrorMessage('未连接设备！');
         }
     }
 }
@@ -285,13 +331,19 @@ class Ts {
         return this.MyHttpGet(options);
     }
     public static GetPicture(dev: Device): Promise<string> {
+        let ori: number | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir');
+        if (ori == 0 || ori == 1) {
+            ori = ori;
+        } else {
+            ori = 0;
+        }
         let options = {
             hostname: dev.ip,
             port: 50005,
             path: '/snapshot',
             method: 'GET',
             ext: "png",
-            orient: 0,
+            orient: ori,
             headers: {
                 'auth': dev.auth
             }

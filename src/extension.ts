@@ -6,10 +6,14 @@ let server = new Server();
 
 class Extension {
 	TsStartServer() {
-		console.log("hello");
+		console.log("手动启动服务");
 	}
-	TsConnect(ip: string = "192.168.6.111") {
-		server.Connect(ip);
+	TsConnect() {
+		server.ReceiveIp()
+			.then((ip) => {
+				return server.Connect(ip);
+			}, () => { console.log("用户取消连接") })
+
 	}
 	TsGetStatus() {
 		server.GetStatus();
@@ -20,11 +24,9 @@ class Extension {
 	TsRunProject() {
 		Promise.resolve(server.Upload())
 			.then(() => {
-				console.log("准备设置路径");
 				return server.SetLuaPath();
 			})
 			.then(() => {
-				console.log("准备运行脚本")
 				return server.RunLua()
 			})
 			.catch(err => console.log(err));
