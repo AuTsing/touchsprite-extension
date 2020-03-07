@@ -77,13 +77,6 @@ export class Server {
                     }
                 });
         }
-        // this.key = "IvjV5W5ps1BlzG9sTVDQgWZ7MFGhwZ1FZzshlhiUwo7sE5TKgKhBBcZk9xPpJ91S";
-
-        // console.log(vscode.workspace.workspaceFolders);
-        // console.log(vscode.workspace.textDocuments);
-        // console.log(vscode.workspace.rootPath);
-        // console.log(vscode.window.activeTextEditor?.document);
-        // console.log(process.cwd());
     }
 
     public ReceiveIp() {
@@ -115,8 +108,8 @@ export class Server {
     }
     private IsConnected() {
         if (this.attachingDev) {
-            console.log("已连接设备:");
-            console.log(this.attachingDev);
+            // console.log("已连接设备:");
+            // console.log(this.attachingDev);
             return true;
         } else {
             vscode.window.showErrorMessage('未连接设备！');
@@ -211,21 +204,19 @@ export class Server {
                 }, err => console.log(err));
         }
     }
-    public Upload() {
+    public async Upload() {
         if (this.IsConnected()) {
             let name = vscode.window.activeTextEditor?.document;
             if (name) {
                 let pathName: string = path.dirname(name.fileName);
-                let fileArr: string[] = fs.readdirSync(pathName)
+                let fileArr: string[] = fs.readdirSync(pathName);
+                let newArr = fileArr.filter(str => {
+                    return str.indexOf(".lua") >= 0 || str.indexOf(".png") >= 0 || str.indexOf(".txt") >= 0;
+                });
                 if (fileArr.includes("main.lua")) {
-                    return new Promise((resolve) => {
-                        resolve();
-                    }).then(() => {
-                        for (let i = 0; i < fileArr.length; i++) {
-                            let f = fileArr[i]
-                            Ts.Upload(this.attachingDev, f, pathName).then(null, (err: any) => console.log(err));
-                        }
-                    })
+                    for (let f of newArr) {
+                        await Ts.Upload(this.attachingDev, f, pathName).then(null, (err: any) => console.log(err));
+                    }
                 } else {
                     vscode.window.showErrorMessage('所选工程必须包含main.lua文件');
                 }
@@ -420,7 +411,7 @@ class Ts {
     }
     public static async Upload(dev: Device, filename: string, filepath: string): Promise<any> {
         try {
-            // console.log(`准备上传${filename}`)
+            console.log(`${filepath}\\${filename}`)
             let postData: Buffer = await new Promise((resolve, reject) => {
                 fs.readFile(`${filepath}\\${filename}`, (err, data) => {
                     if (err) {
