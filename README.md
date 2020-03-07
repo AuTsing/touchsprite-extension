@@ -1,65 +1,47 @@
-# touchsprite-extension README
+# touchsprite-extension
 
-This is the README for your extension "touchsprite-extension". After writing up a brief description, we recommend including the following sections.
+这是一个给触动精灵(TouchSprite)开发者开发提供帮助的扩展。
 
-## Features
+## 使用说明
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+使用扩展前请先输入开发者AccessKey。
 
-For example if there is an image subfolder under your extension project workspace:
+快捷键 **Ctrl+Shift+P** 调出输入框，以下输入命令均在此处输入。
 
-\!\[feature X\]\(images/feature-x.png\)
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### 激活扩展
 
-## Requirements
+> 打开工程文件夹的lua将自动激活扩展  
+> Ts: StartServer
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+### 连接设备
 
-## Extension Settings
+> Ts: Connect
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### 获取设备状态
 
-For example:
+> Ts: GetStatus
 
-This extension contributes the following settings:
+### 屏幕截图
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+> Ts: GetPicture
 
-## Known Issues
+### 运行项目
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+> Ts: RunProject  
+快捷键 Ctrl+Shift+F9
 
-## Release Notes
+### 停止运行
 
-Users appreciate release notes as you update your extension.
+> Ts: StopProject  
+快捷键 Ctrl+Shift+F10
 
-### 1.0.0
+## 获取更多帮助
 
-Initial release of ...
+* [我的个人主页](http://atscript.tk)
+* [QQ群：1040367696](http://shang.qq.com/wpa/qunwpa?idkey=4568016974574bb1af0fa76337d4d55dd9f16509238b1ff7c6f0e79655654d1b)
+* QQ：763025696
+* 微信：b763025696
 
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
+**Power by @AuTsing**  
 **Enjoy!**

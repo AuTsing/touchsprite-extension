@@ -13,7 +13,6 @@ class Extension {
 			.then((ip) => {
 				return server.Connect(ip);
 			}, () => { console.log("用户取消连接") })
-
 	}
 	TsGetStatus() {
 		server.GetStatus();
@@ -36,9 +35,11 @@ class Extension {
 	}
 };
 
+type K = keyof Extension;
 
-let commands: string[];
+let commands: K[];
 commands = ['TsStartServer', "TsConnect", "TsGetStatus", "TsGetPicture", "TsRunProject", "TsStopProject"];
+
 let extension = new Extension();
 
 export function activate(context: vscode.ExtensionContext) {

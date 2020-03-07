@@ -11,7 +11,7 @@
     "engines": {
         "vscode": "^1.42.0"
     },
-    "publisher": "AuTsing",
+    "publisher": "autsing",
     "categories": [
         "Other"
     ],
@@ -19,7 +19,7 @@
         "onCommand:extension.TsStartServer",
         "onLanguage:lua"
     ],
-    "main": "./out/extension.js",
+    "main": "./out/extension",
     "contributes": {
         "configuration": {
             "type": "object",
