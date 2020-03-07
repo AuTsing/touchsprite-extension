@@ -7,7 +7,7 @@
         "触动精灵",
         "触动"
     ],
-    "version": "0.0.2",
+    "version": "0.0.3",
     "engines": {
         "vscode": "^1.42.0"
     },
@@ -42,7 +42,8 @@
                 }
             }
         },
-        "commands": [{
+        "commands": [
+            {
                 "command": "extension.TsStartServer",
                 "title": "Ts: StartServer"
             },
@@ -67,7 +68,8 @@
                 "title": "Ts: StopProject"
             }
         ],
-        "keybindings": [{
+        "keybindings": [
+            {
                 "command": "extension.TsRunProject",
                 "key": "ctrl+shift+f9",
                 "when": "editorTextFocus"
@@ -79,14 +81,17 @@
             }
         ],
         "viewsContainers": {
-            "activitybar": [{
-                "id": "deviceManager",
-                "title": "设备管理",
-                "icon": "images/phone.svg"
-            }]
+            "activitybar": [
+                {
+                    "id": "deviceManager",
+                    "title": "设备管理",
+                    "icon": "images/phone.svg"
+                }
+            ]
         },
         "views": {
-            "deviceManager": [{
+            "deviceManager": [
+                {
                     "id": "device1",
                     "name": "已知设备"
                 },
