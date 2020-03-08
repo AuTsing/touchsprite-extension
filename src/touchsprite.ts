@@ -22,14 +22,16 @@ export class Device {
                 Ts.GetDeviceId(this)
                     .then(value => {
                         console.log("成功获取设备ID");
-                        this.deviceId = value
+                        this.deviceId = value;
                         return Ts.GetAuth(this, key);
                     }).then(value => {
                         let json = JSON.parse(value);
                         this.auth = json.auth;
                         console.log("成功获取Auth");
                         this.expire = json.time + json.valid;
-                    }).then(() => {
+                        return Ts.GetDeviceName(this);
+                    }).then((value) => {
+                        this.name = value;
                         resolve(this);
                     }).catch(err => {
                         reject(err);
@@ -84,7 +86,7 @@ export class Server {
             vscode.window.showInputBox({
                 prompt: "请输入设备IP地址",
                 value: "",
-                placeHolder: "?.?.?.?"
+                placeHolder: "x.x.x.x"
             }).then(inputValue => {
                 if (typeof inputValue === undefined) {
                     reject();
@@ -108,8 +110,8 @@ export class Server {
     }
     private IsConnected() {
         if (this.attachingDev) {
-            // console.log("已连接设备:");
-            // console.log(this.attachingDev);
+            console.log("已连接设备:");
+            console.log(this.attachingDev);
             return true;
         } else {
             vscode.window.showErrorMessage('未连接设备！');
@@ -223,6 +225,28 @@ export class Server {
             }
         }
     }
+    public async UploadInclude() {
+        if (this.IsConnected()) {
+            let pathArr: Array<string> | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath');
+            if (pathArr && pathArr.length > 0) {
+                return Promise.all(pathArr.map(async (value) => {
+                    let pathName: string = value;
+                    let fileArr: string[] = fs.readdirSync(pathName);
+                    let newArr = fileArr.filter(str => {
+                        return str.indexOf(".lua") >= 0 || str.indexOf(".png") >= 0 || str.indexOf(".txt") >= 0;
+                    });
+                    for (let f of newArr) {
+                        await Ts.Upload(this.attachingDev, f, pathName).then(null, (err: any) => console.log(err));
+                    }
+                }))
+            } else {
+                return Promise.resolve()
+            }
+        }
+    }
+    public MyTest() {
+        
+    }
 }
 
 class Ts {
@@ -304,7 +328,8 @@ class Ts {
             method: 'GET',
             headers: {
                 'Connection': 'close',
-                'Content-Length': 0
+                'Content-Length': 0,
+                'auth': dev.auth
             }
         };
         return this.MyHttpGet(options);
@@ -363,14 +388,22 @@ class Ts {
             path: '/logServer',
             method: 'GET',
             headers: {
-                'auth': dev.auth
+                'auth': dev.auth,
+                'server': '192.168.6.100',
+                'port': 14088
             }
         }
         return this.MyHttpGet(options);
     }
     public static SetLuaPath(dev: Device): Promise<string> {
+        let luaPath: string;
+        if (dev.name == "iPhone") {
+            luaPath = "/var/mobile/Media/TouchSprite/lua/main.lua"
+        } else {
+            luaPath = "/storage/emulated/0/TouchSprite/lua/main.lua"
+        }
         let postData = JSON.stringify({
-            "path": "/var/mobile/Media/TouchSprite/lua/main.lua"
+            "path": luaPath
         });
         let options = {
             hostname: dev.ip,

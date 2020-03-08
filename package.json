@@ -33,17 +33,29 @@
                 "touchsprite-extension.snapshotOrient": {
                     "type": "number",
                     "default": 0,
+                    "enum": [
+                        0,
+                        1
+                    ],
+                    "enumDescriptions": [
+                        "home键在下",
+                        "home键在右"
+                    ],
                     "description": "截图方向"
                 },
                 "touchsprite-extension.snapshotDir": {
                     "type": "string",
                     "default": "",
                     "description": "截图保存文件夹"
+                },
+                "touchsprite-extension.includePath": {
+                    "type": "array",
+                    "default": "",
+                    "description": "项目包含文件夹(运行项目时会将目录下文件与工程目录文件一起传送至设备)"
                 }
             }
         },
-        "commands": [
-            {
+        "commands": [{
                 "command": "extension.TsStartServer",
                 "title": "Ts: StartServer"
             },
@@ -66,10 +78,13 @@
             {
                 "command": "extension.TsStopProject",
                 "title": "Ts: StopProject"
+            },
+            {
+                "command": "extension.TsTest",
+                "title": "Ts: Test"
             }
         ],
-        "keybindings": [
-            {
+        "keybindings": [{
                 "command": "extension.TsRunProject",
                 "key": "ctrl+shift+f9",
                 "when": "editorTextFocus"
@@ -81,17 +96,14 @@
             }
         ],
         "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "deviceManager",
-                    "title": "设备管理",
-                    "icon": "images/phone.svg"
-                }
-            ]
+            "activitybar": [{
+                "id": "deviceManager",
+                "title": "设备管理",
+                "icon": "images/phone.svg"
+            }]
         },
         "views": {
-            "deviceManager": [
-                {
+            "deviceManager": [{
                     "id": "device1",
                     "name": "已知设备"
                 },

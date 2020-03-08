@@ -23,22 +23,28 @@ class Extension {
 	TsRunProject() {
 		Promise.resolve(server.Upload())
 			.then(() => {
+				return server.UploadInclude();
+			})
+			.then(() => {
 				return server.SetLuaPath();
 			})
 			.then(() => {
-				return server.RunLua()
+				return server.RunLua();
 			})
 			.catch(err => console.log(err));
 	}
 	TsStopProject() {
 		server.StopLua();
 	}
+	TsTest() {
+		server.MyTest()
+	}
 };
 
 type K = keyof Extension;
 
 let commands: K[];
-commands = ['TsStartServer', "TsConnect", "TsGetStatus", "TsGetPicture", "TsRunProject", "TsStopProject"];
+commands = ['TsStartServer', "TsConnect", "TsGetStatus", "TsGetPicture", "TsRunProject", "TsStopProject", "TsTest"];
 
 let extension = new Extension();
 
