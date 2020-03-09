@@ -1,7 +1,7 @@
 {
     "name": "touchsprite-extension",
     "displayName": "TouchSprite-Extension",
-    "description": "一个给触动精灵开发者使用的插件",
+    "description": "一款用于触动精灵脚本开发的插件",
     "keywords": [
         "touchsprite",
         "触动精灵",
@@ -55,8 +55,7 @@
                 }
             }
         },
-        "commands": [
-            {
+        "commands": [{
                 "command": "extension.TsStartServer",
                 "title": "Ts: StartServer"
             },
@@ -81,12 +80,15 @@
                 "title": "Ts: StopProject"
             },
             {
+                "command": "extension.TsZip",
+                "title": "Ts: ZipProject"
+            },
+            {
                 "command": "extension.TsTest",
                 "title": "Ts: Test"
             }
         ],
-        "keybindings": [
-            {
+        "keybindings": [{
                 "command": "extension.TsRunProject",
                 "key": "ctrl+shift+f9",
                 "when": "editorTextFocus"
@@ -98,17 +100,14 @@
             }
         ],
         "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "deviceManager",
-                    "title": "设备管理",
-                    "icon": "images/phone.svg"
-                }
-            ]
+            "activitybar": [{
+                "id": "deviceManager",
+                "title": "设备管理",
+                "icon": "images/phone.svg"
+            }]
         },
         "views": {
-            "deviceManager": [
-                {
+            "deviceManager": [{
                     "id": "device1",
                     "name": "已知设备"
                 },
@@ -128,16 +127,22 @@
         "test": "node ./out/test/runTest.js"
     },
     "devDependencies": {
+        "@types/file-saver": "^2.0.1",
         "@types/glob": "^7.1.1",
+        "@types/jszip": "^3.1.7",
         "@types/mocha": "^7.0.1",
         "@types/node": "^12.11.7",
         "@types/vscode": "^1.42.0",
-        "eslint": "^6.8.0",
-        "@typescript-eslint/parser": "^2.18.0",
         "@typescript-eslint/eslint-plugin": "^2.18.0",
+        "@typescript-eslint/parser": "^2.18.0",
+        "eslint": "^6.8.0",
         "glob": "^7.1.6",
         "mocha": "^7.0.1",
         "typescript": "^3.7.5",
         "vscode-test": "^1.3.0"
+    },
+    "dependencies": {
+        "file-saver": "^2.0.2",
+        "jszip": "^3.2.2"
     }
 }

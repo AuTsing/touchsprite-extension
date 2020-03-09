@@ -1,6 +1,6 @@
 'use strict';
 import * as vscode from 'vscode';
-import { Server, Device } from './touchsprite';
+import { Server } from './touchsprite';
 
 let server = new Server();
 
@@ -21,7 +21,10 @@ class Extension {
 		server.GetPicture();
 	}
 	TsRunProject() {
-		Promise.resolve(server.Upload())
+		Promise.resolve(server.SetLogServer())
+			.then(() => {
+				return server.Upload()
+			})
 			.then(() => {
 				return server.UploadInclude();
 			})
@@ -36,6 +39,9 @@ class Extension {
 	TsStopProject() {
 		server.StopLua();
 	}
+	TsZip() {
+		server.ZipProject();
+	}
 	TsTest() {
 		server.MyTest()
 	}
@@ -44,7 +50,7 @@ class Extension {
 type K = keyof Extension;
 
 let commands: K[];
-commands = ['TsStartServer', "TsConnect", "TsGetStatus", "TsGetPicture", "TsRunProject", "TsStopProject", "TsTest"];
+commands = ['TsStartServer', "TsConnect", "TsGetStatus", "TsGetPicture", "TsRunProject", "TsStopProject", "TsZip", "TsTest"];
 
 let extension = new Extension();
 

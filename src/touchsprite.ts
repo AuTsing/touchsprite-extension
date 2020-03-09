@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
+import * as JSZip from "jszip";
 
 export class Device {
     public ip: string;
@@ -24,16 +26,24 @@ export class Device {
                         console.log("成功获取设备ID");
                         this.deviceId = value;
                         return Ts.GetAuth(this, key);
-                    }).then(value => {
+                    })
+                    .then(value => {
+                        console.log("成功获取Auth");
                         let json = JSON.parse(value);
                         this.auth = json.auth;
-                        console.log("成功获取Auth");
                         this.expire = json.time + json.valid;
                         return Ts.GetDeviceName(this);
-                    }).then((value) => {
+                    })
+                    .then(value => {
+                        console.log("成功获取设备名");
                         this.name = value;
+                        return Ts.LogServer(this);
+                    })
+                    .then((value) => {
+                        console.log("设置日志服务器:" + value)
                         resolve(this);
-                    }).catch(err => {
+                    })
+                    .catch(err => {
                         reject(err);
                     });
             })
@@ -44,6 +54,8 @@ export class Device {
 }
 
 export class Server {
+    public tsChannel = vscode.window.createOutputChannel("触动精灵日志")
+    public logServer: net.Server;
     public attachingDev!: Device;
     public key: string | undefined;
 
@@ -79,6 +91,23 @@ export class Server {
                     }
                 });
         }
+        this.logServer = net.createServer((socket: net.Socket) => {
+            socket.on('data', (data) => {
+                this.tsChannel.append(`[${new Date().toLocaleString('chinese', { hour12: false })}] `);
+                this.tsChannel.appendLine(data.toString('utf8', 4, data.length - 2));
+                this.tsChannel.show(true);
+            });
+            // socket.on('end', () => {
+            //     this.logServer.close(() => console.log("日志服务器已关闭"));
+            // })
+        });
+        this.logServer.on('error', (err: any) => {
+            throw err;
+        });
+        this.logServer.listen(14088, () => {
+            this.tsChannel.appendLine("日志服务器已启用");
+            this.tsChannel.show(true);
+        })
     }
 
     public ReceiveIp() {
@@ -170,7 +199,7 @@ export class Server {
             }, err => console.log(err));
         }
     }
-    public LogServer() {
+    public SetLogServer() {
         if (this.IsConnected()) {
             return Ts.LogServer(this.attachingDev).then(value => console.log("远程日志:" + value), err => console.log(err));
         }
@@ -244,8 +273,83 @@ export class Server {
             }
         }
     }
+
+    public ZipProject() {
+        let ziper = new Ziper();
+        this.GetProjectFileList()
+            .then((arr) => {
+                // console.log(arr);
+                for (let value of arr) {
+                    ziper.addFile(value.f, value.dir);
+                }
+                return arr.pop();
+            })
+            .then((value) => {
+                ziper.zipFiles(value.dir);
+            })
+            .catch(reason => vscode.window.showErrorMessage(reason));
+    }
     public MyTest() {
-        
+        Ts.LogServer(this.attachingDev).then(value => console.log(value), err => console.log(err));
+    }
+    private GetProjectFileList(): Promise<Array<any>> {
+        return new Promise((resolve, reject) => {
+            let ret = new Array();
+
+            let includePathArr: Array<string> | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath');
+            if (includePathArr && includePathArr.length > 0) {
+                Promise.all(includePathArr.map((value) => {
+                    let pathName: string = value;
+                    let fileArr: string[] = fs.readdirSync(pathName);
+                    let newArr = fileArr.filter(str => {
+                        return str.indexOf(".lua") >= 0 || str.indexOf(".png") >= 0 || str.indexOf(".txt") >= 0;
+                    });
+                    for (let f of newArr) {
+                        ret.push({ dir: pathName, f: f });
+                    }
+                }))
+            }
+
+            let name = vscode.window.activeTextEditor?.document;
+            if (name) {
+                let pathName: string = path.dirname(name.fileName);
+                let fileArr: string[] = fs.readdirSync(pathName);
+                let newArr = fileArr.filter(str => {
+                    return str.indexOf(".lua") >= 0 || str.indexOf(".png") >= 0 || str.indexOf(".txt") >= 0;
+                });
+                if (fileArr.includes("main.lua")) {
+                    for (let f of newArr) {
+                        ret.push({ dir: pathName, f: f });
+                    }
+                    resolve(ret);
+                } else {
+                    reject('所选工程必须包含main.lua文件')
+                }
+            } else {
+                reject('请先选择工程');
+            }
+        })
+    }
+    private GetIncludeFileList(): Promise<Array<any>> {
+        return new Promise((resolve, reject) => {
+            let ret = new Array();
+            let pathArr: Array<string> | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath');
+            if (pathArr && pathArr.length > 0) {
+                Promise.all(pathArr.map((value) => {
+                    let pathName: string = value;
+                    let fileArr: string[] = fs.readdirSync(pathName);
+                    let newArr = fileArr.filter(str => {
+                        return str.indexOf(".lua") >= 0 || str.indexOf(".png") >= 0 || str.indexOf(".txt") >= 0;
+                    });
+                    for (let f of newArr) {
+                        ret.push({ dir: pathName, f: f });
+                    }
+                }))
+                    .then(() => { resolve(ret); })
+            } else {
+                reject();
+            }
+        })
     }
 }
 
@@ -474,5 +578,25 @@ class Ts {
         catch (err) {
             console.log("上传失败:" + err);
         }
+    }
+}
+
+class Ziper extends JSZip {
+    public addFiles(files: string[], pathName: string) {
+        return Promise.all(files.map(file => {
+            let data = fs.readFileSync(pathName + "\\" + file);
+            this.file(file, data);
+        }))
+    }
+    public addFile(fileName: string, pathName: string) {
+        let data = fs.readFileSync(pathName + "\\" + fileName);
+        this.file(fileName, data);
+    }
+    public zipFiles(pathName: string) {
+        this.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+            .pipe(fs.createWriteStream(pathName + '.zip'))
+            .on('finish', function () {
+                vscode.window.showInformationMessage("项目已打包完成");
+            })
     }
 }
