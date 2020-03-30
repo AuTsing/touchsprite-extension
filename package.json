@@ -18,7 +18,8 @@
     "icon": "images/logo.png",
     "activationEvents": [
         "onCommand:extension.TsStartServer",
-        "onLanguage:lua"
+        "onLanguage:lua",
+        "onView:known-devices"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -105,20 +106,63 @@
             {
                 "command": "extension.TsTest",
                 "title": "Ts: Test"
+            },
+            {
+                "command": "tree.Search",
+                "title": "搜索设备",
+                "icon": "images/refresh.png"
+            },
+            {
+                "command": "tree.Connect",
+                "title": "连接设备"
             }
         ],
         "keybindings": [
             {
                 "command": "extension.TsRunProject",
                 "key": "ctrl+shift+f9",
+                "mac": "cmd+shift+f9",
                 "when": "editorTextFocus"
             },
             {
                 "command": "extension.TsStopProject",
                 "key": "ctrl+shift+f10",
+                "mac": "cmd+shift+f10",
                 "when": "editorTextFocus"
             }
-        ]
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "device-manager",
+                    "title": "触动精灵",
+                    "icon": "images/phone.png"
+                }
+            ]
+        },
+        "views": {
+            "device-manager": [
+                {
+                    "id": "known-devices",
+                    "name": "已知设备"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "tree.Search",
+                    "when": "view == known-devices",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "tree.Connect",
+                    "when": "view == known-devices && viewItem == knownDevice"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",

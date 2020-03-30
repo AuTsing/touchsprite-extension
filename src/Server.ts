@@ -233,26 +233,31 @@ export class Server {
             );
         }
     }
-    public async Upload() {
+    public Upload() {
         if (this.IsConnected()) {
-            let focusFile = vscode.window.activeTextEditor?.document;
-            if (focusFile) {
-                let rootPath = path.dirname(focusFile.fileName);
-                let rootPathFiles: string[] = fs.readdirSync(rootPath);
-                if (rootPathFiles.includes('main.lua')) {
-                    let pj = new Project(rootPath);
-                    for (let pjf of pj.list) {
-                        await TsRequset.Upload(this.attachingDevice, pjf).then(
-                            value => console.log(`上传文件${pjf.uploadFileName}:${value}`),
-                            (err: any) => console.log(err)
-                        );
+            return new Promise(async (resolve, reject) => {
+                let focusFile = vscode.window.activeTextEditor?.document;
+                if (focusFile) {
+                    let rootPath = path.dirname(focusFile.fileName);
+                    let rootPathFiles: string[] = fs.readdirSync(rootPath);
+                    if (rootPathFiles.includes('main.lua')) {
+                        let pj = new Project(rootPath);
+                        for (let pjf of pj.list) {
+                            await TsRequset.Upload(this.attachingDevice, pjf).then(
+                                value => console.log(`上传文件${pjf.uploadFileName}:${value}`),
+                                (err: any) => console.log(err)
+                            );
+                        }
+                        resolve();
+                    } else {
+                        vscode.window.showErrorMessage('所选目录必须包含main.lua文件');
+                        reject();
                     }
                 } else {
-                    vscode.window.showErrorMessage('所选目录必须包含main.lua文件');
+                    vscode.window.showErrorMessage('请先选择工程');
+                    reject();
                 }
-            } else {
-                vscode.window.showErrorMessage('请先选择工程');
-            }
+            });
         }
     }
     public async UploadInclude() {

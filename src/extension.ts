@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import { Server } from './Server';
+import { DeviceSearcher, KnownDevice } from './DeviceSearcher';
 
-let server = new Server();
+const server = new Server();
+const provider = new DeviceSearcher();
 
 class Extension {
     TsStartServer() {
@@ -65,6 +67,9 @@ export function activate(context: vscode.ExtensionContext) {
         let action: Function = extension[command];
         context.subscriptions.push(vscode.commands.registerCommand('extension.' + command, action.bind(extension)));
     });
+    vscode.window.registerTreeDataProvider('known-devices', provider);
+    vscode.commands.registerCommand('tree.Search', () => provider.Search());
+    vscode.commands.registerCommand('tree.Connect', (node: KnownDevice) => provider.Connect(node, server));
 }
 
 export function deactivate() {}
