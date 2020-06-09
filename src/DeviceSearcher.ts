@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as dgram from 'dgram';
-import { Server } from './Server';
+import * as os from 'os';
+import Server from './Server';
 
 export class KnownDevice extends vscode.TreeItem {
     info: any;
@@ -44,16 +45,16 @@ export class DeviceSearcher implements vscode.TreeDataProvider<KnownDevice> {
     private _onDidChangeTreeData: vscode.EventEmitter<KnownDevice | undefined> = new vscode.EventEmitter<KnownDevice | undefined>();
     readonly onDidChangeTreeData: vscode.Event<KnownDevice | undefined> = this._onDidChangeTreeData.event;
 
-    getTreeItem(element: KnownDevice): vscode.TreeItem | Thenable<vscode.TreeItem> {
+    public getTreeItem(element: KnownDevice): vscode.TreeItem | Thenable<vscode.TreeItem> {
         return element;
     }
-    getChildren(element?: KnownDevice | undefined): vscode.ProviderResult<KnownDevice[]> {
+    public getChildren(element?: KnownDevice | undefined): vscode.ProviderResult<KnownDevice[]> {
         return this.list;
     }
-    refresh(): void {
+    public refresh(): void {
         this._onDidChangeTreeData.fire();
     }
-    isInArray(device: any) {
+    public isInArray(device: any) {
         for (var i = 0; i < this.list.length; i++) {
             if (device.ip === this.list[i].label) {
                 return true;
@@ -62,16 +63,35 @@ export class DeviceSearcher implements vscode.TreeDataProvider<KnownDevice> {
         return false;
     }
 
-    Search() {
-        this.sender.send('{ "ip": "192.168.6.100", "port": 14088 }', 14099, '255.255.255.255', err => {
-            if (err) {
-                console.log(err);
-                this.sender.close();
+    private getLogIp(): Promise<string> {
+        let interfaces = os.networkInterfaces();
+        return new Promise<string>(resolve => {
+            for (let devName in interfaces) {
+                let iface = interfaces[devName];
+                for (let i = 0; i < iface.length; i++) {
+                    let alias = iface[i];
+                    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                        resolve(alias.address);
+                    }
+                }
             }
         });
     }
-    Connect(element: KnownDevice, server: Server) {
-        console.log(element);
-        server.Connect(element.label);
+    public search() {
+        this.getLogIp().then(ip => {
+            this.sender.send(`{ "ip": "${ip}", "port": 14088 }`, 14099, '255.255.255.255', err => {
+                if (err) {
+                    console.log(err);
+                    this.sender.close();
+                }
+            });
+        });
+    }
+    public connect(element: KnownDevice, server: Server) {
+        // console.log(element);
+        server
+            .connect(element.label)
+            .then(msg => server.logging(msg))
+            .catch(err => vscode.window.showErrorMessage(err));
     }
 }

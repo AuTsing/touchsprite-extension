@@ -1,52 +1,39 @@
 # 触动精灵开发扩展
 
-触动精灵开发扩展(TouchSprite-Extension)是一款给触动精灵(TouchSprite)开发者开发脚本提供帮助的扩展。扩展完全基于触动精灵提供的 API 进行开发，结合 Lua 相关插件使用，使用体验优于官方 IDE。
+触动精灵开发扩展(TouchSprite-Extension)是基于触动官方的 API 库进行开发的第三方插件，旨在为开发者开发脚本提供便利，插件完全免费。如过你有意见、建议或是愿意捐赠作者，请加群或者联系作者。
 
-**_扩展仍然处于开发阶段，如有任何疑问或者建议，欢迎加群畅所欲言，群号及联系方式在本文底部_**
+如果你发现了任何错误，或者愿意协助我开发插件，请[告诉我](https://github.com/AuTsing/touchsprite-extension/issues)或使用[Pull Requests](https://github.com/AuTsing/touchsprite-extension/pulls)来直接修复。
 
-## 使用说明
+## 特性
+
+-   [x] 一键运行工程
+-   [x] 一键运行测试工程\*new
+-   [x] 一键停止工程
+-   [x] 屏幕截图
+-   [x] 打包工程
+-   [ ] 触动函数补全
+-   [ ] 格式化文件
+-   [ ] 生成脚手架
+
+## 使用
 
 使用扩展前请先输入开发者 AccessKey。
 
-快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，以下输入命令均在此处输入。
+快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，输入 Ts ，以 Ts 开头的命令均为本扩展提供的便捷指令。
 
-### 激活扩展
+## 快捷键
 
--   打开工程文件夹的 lua 将自动激活扩展
--   Ts: StartServer
-
-### 连接设备
-
--   Ts: Connect
-
-### 获取设备状态
-
--   Ts: GetStatus
-
-### 屏幕截图
-
--   Ts: GetPicture
-
-### 运行项目
-
--   Ts: RunProject
--   快捷键 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F9</kbd>
-
-### 停止运行
-
--   Ts: StopProject
--   快捷键 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd>
-
-### 打包工程
-
--   Ts: ZipProject
+-   <kbd>F5</kbd> 运行测试工程
+-   <kbd>F6</kbd> 运行工程
+-   <kbd>Ctrl</kbd>+<kbd>F5</kbd> 停止工程
 
 ## 反馈与帮助
 
--   [我的个人主页](http://atscript.tk)
+-   [我的个人主页(暂时停止对外开放)](http://atscript.tk)
 -   [QQ 群：1040367696](http://shang.qq.com/wpa/qunwpa?idkey=4568016974574bb1af0fa76337d4d55dd9f16509238b1ff7c6f0e79655654d1b)
 -   QQ：763025696
 -   微信：b763025696
 
+**扩展仅供学习交流使用，使用过程中请遵守相关法律法规，如你对此有异议，请立即停止使用并删除扩展**
 **Power by @AuTsing**  
 **Enjoy!**

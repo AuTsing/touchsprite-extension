@@ -3,13 +3,13 @@ import * as JSZip from 'jszip';
 import * as fs from 'fs';
 import { ProjectFile } from './Project';
 
-export class Ziper extends JSZip {
+class Zipper extends JSZip {
     public addFiles(list: Array<ProjectFile>) {
         return Promise.all(
             list.map(file => {
                 let data = fs.readFileSync(file.uploadUrl);
                 let p = file.uploadPath.substr(1, file.uploadPath.length);
-                if (p == '') {
+                if (p === '') {
                     p = file.uploadFileName;
                 } else {
                     p = p + '/' + file.uploadFileName;
@@ -23,11 +23,15 @@ export class Ziper extends JSZip {
         let data = fs.readFileSync(pathName + '\\' + fileName);
         this.file(fileName, data);
     }
-    public zipFiles(pathName: string) {
-        this.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
-            .pipe(fs.createWriteStream(pathName + '.zip'))
-            .on('finish', function() {
-                vscode.window.showInformationMessage('项目已打包完成：' + pathName + '.zip');
-            });
+    public zipFiles(pathName: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+                .pipe(fs.createWriteStream(pathName + '.zip'))
+                .on('finish', () => {
+                    resolve('项目已打包完成：' + pathName + '.zip');
+                });
+        });
     }
 }
+
+export default Zipper;

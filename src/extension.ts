@@ -1,63 +1,89 @@
 import * as vscode from 'vscode';
-import { Server } from './Server';
+import Server from './Server';
 import { DeviceSearcher, KnownDevice } from './DeviceSearcher';
 
 const server = new Server();
-const provider = new DeviceSearcher();
+const deviceSearcher = new DeviceSearcher();
 
 class Extension {
     TsStartServer() {
-        vscode.window.showInformationMessage('触动服务已启动');
+        server.logging('触动服务已启动');
     }
     TsConnect() {
-        server.ReceiveIp().then(
-            ip => {
-                return server.Connect(ip);
-            },
-            () => {
-                console.log('用户取消连接');
-            }
-        );
-    }
-    TsGetStatus() {
-        server.GetStatus();
+        server
+            .inputIp()
+            .then(ip => server.connect(ip))
+            .then(msg => server.logging(msg))
+            .catch(err => vscode.window.showErrorMessage(err));
     }
     TsGetPicture() {
-        server.GetPicture();
+        server
+            .getPicture()
+            .then(msg => vscode.window.showInformationMessage(msg))
+            .catch(err => vscode.window.showErrorMessage(err));
+    }
+    private TsRun() {
+        server
+            .setLogServer()
+            .then(msg => {
+                console.log(msg);
+                return server.upload();
+            })
+            .then(msg => {
+                console.log(msg);
+                return server.uploadIncludes();
+            })
+            .then(msg => {
+                console.log(msg);
+                return server.setLuaPath();
+            })
+            .then(msg => {
+                console.log(msg);
+                return server.runLua();
+            })
+            .then(msg => {
+                server.logging(msg);
+            })
+            .catch(err => vscode.window.showErrorMessage(err));
     }
     TsRunProject() {
-        Promise.resolve(server.SetLogServer())
-            .then(() => {
-                return server.Upload();
-            })
-            .then(() => {
-                return server.UploadInclude();
-            })
-            .then(() => {
-                return server.SetLuaPath();
-            })
-            .then(() => {
-                return server.RunLua();
-            })
-            .catch(err => console.log(err));
+        server.setRunFile('prod');
+        return this.TsRun();
+    }
+    TsRunTest() {
+        server.setRunFile('dev');
+        return this.TsRun();
     }
     TsStopProject() {
-        server.StopLua();
+        server
+            .stopLua()
+            .then(msg => {
+                server.logging(msg);
+            })
+            .catch(err => vscode.window.showErrorMessage(err));
     }
     TsZip() {
-        server.ZipProject();
+        server
+            .zipProject()
+            .then(msg => vscode.window.showInformationMessage(msg))
+            .catch(err => vscode.window.showErrorMessage(err));
     }
     TsTest() {
-        Promise.resolve(server.Connect('192.168.6.110')).then(() => {
-            return server.MyTest();
-        });
+        server
+            .connect('192.168.6.111')
+            .then(msg => {
+                server.logging(msg);
+                return server.upload();
+            })
+            .then(msg => console.log(msg))
+            .catch(err => console.log(err));
     }
 }
 
 type K = keyof Extension;
 
 let commands: K[];
-commands = ['TsStartServer', 'TsConnect', 'TsGetStatus', 'TsGetPicture', 'TsRunProject', 'TsStopProject', 'TsZip', 'TsTest'];
+commands = ['TsStartServer', 'TsConnect', 'TsGetPicture', 'TsRunProject', 'TsRunTest', 'TsStopProject', 'TsZip', 'TsTest'];
 
 let extension = new Extension();
 
@@ -67,9 +93,9 @@ export function activate(context: vscode.ExtensionContext) {
         let action: Function = extension[command];
         context.subscriptions.push(vscode.commands.registerCommand('extension.' + command, action.bind(extension)));
     });
-    vscode.window.registerTreeDataProvider('known-devices', provider);
-    vscode.commands.registerCommand('tree.Search', () => provider.Search());
-    vscode.commands.registerCommand('tree.Connect', (node: KnownDevice) => provider.Connect(node, server));
+    vscode.window.registerTreeDataProvider('known-devices', deviceSearcher);
+    vscode.commands.registerCommand('tree.search', () => deviceSearcher.search());
+    vscode.commands.registerCommand('tree.connect', (node: KnownDevice) => deviceSearcher.connect(node, server));
 }
 
 export function deactivate() {}

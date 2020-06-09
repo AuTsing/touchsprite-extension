@@ -34,20 +34,23 @@
                 },
                 "touchsprite-extension.snapshotOrient": {
                     "type": "number",
-                    "default": 0,
+                    "default": 1,
                     "enum": [
                         0,
-                        1
+                        1,
+                        2
                     ],
                     "enumDescriptions": [
                         "home键在下",
-                        "home键在右"
+                        "home键在右",
+                        "home键在左"
                     ],
                     "description": "截图方向"
                 },
                 "touchsprite-extension.snapshotDir": {
                     "type": "string",
                     "default": "",
+                    "scope": "resource",
                     "description": "截图保存文件夹"
                 },
                 "touchsprite-extension.osType": {
@@ -68,66 +71,94 @@
                     "description": "设备系统类型"
                 },
                 "touchsprite-extension.includePath": {
+                    "items": {
+                        "type": "string"
+                    },
                     "type": "array",
-                    "default": "",
+                    "scope": "resource",
                     "description": "项目包含文件夹(运行项目时会将目录下文件与工程目录文件一起传送至设备)"
+                },
+                "touchsprite-extension.ignorePath": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        ".git",
+                        ".gitignore",
+                        ".vscode"
+                    ],
+                    "type": "array",
+                    "scope": "resource",
+                    "description": "项目忽略文件(夹)"
+                },
+                "touchsprite-extension.testRunFile": {
+                    "type": "string",
+                    "default": "main.test.lua",
+                    "scope": "resource",
+                    "description": "测试工程引导文件"
                 }
             }
         },
         "commands": [
             {
                 "command": "extension.TsStartServer",
-                "title": "Ts: StartServer"
+                "title": "Ts: 启动服务"
             },
             {
                 "command": "extension.TsConnect",
-                "title": "Ts: Connect"
-            },
-            {
-                "command": "extension.TsGetStatus",
-                "title": "Ts: GetStatus"
+                "title": "Ts: 连接设备"
             },
             {
                 "command": "extension.TsGetPicture",
-                "title": "Ts: GetPicture"
+                "title": "Ts: 截取屏幕"
             },
             {
                 "command": "extension.TsRunProject",
-                "title": "Ts: RunProject"
+                "title": "Ts: 运行工程"
+            },
+            {
+                "command": "extension.TsRunTest",
+                "title": "Ts: 运行测试"
             },
             {
                 "command": "extension.TsStopProject",
-                "title": "Ts: StopProject"
+                "title": "Ts: 停止工程"
             },
             {
                 "command": "extension.TsZip",
-                "title": "Ts: ZipProject"
+                "title": "Ts: 打包工程"
             },
             {
                 "command": "extension.TsTest",
                 "title": "Ts: Test"
             },
             {
-                "command": "tree.Search",
+                "command": "tree.search",
                 "title": "搜索设备",
                 "icon": "images/refresh.png"
             },
             {
-                "command": "tree.Connect",
+                "command": "tree.connect",
                 "title": "连接设备"
             }
         ],
         "keybindings": [
             {
+                "command": "extension.TsRunTest",
+                "key": "f5",
+                "mac": "f5",
+                "when": "editorTextFocus"
+            },
+            {
                 "command": "extension.TsRunProject",
-                "key": "ctrl+shift+f9",
-                "mac": "cmd+shift+f9",
+                "key": "f6",
+                "mac": "f6",
                 "when": "editorTextFocus"
             },
             {
                 "command": "extension.TsStopProject",
-                "key": "ctrl+shift+f10",
-                "mac": "cmd+shift+f10",
+                "key": "shift+f5",
+                "mac": "shift+f5",
                 "when": "editorTextFocus"
             }
         ],
@@ -151,14 +182,14 @@
         "menus": {
             "view/title": [
                 {
-                    "command": "tree.Search",
+                    "command": "tree.search",
                     "when": "view == known-devices",
                     "group": "navigation"
                 }
             ],
             "view/item/context": [
                 {
-                    "command": "tree.Connect",
+                    "command": "tree.connect",
                     "when": "view == known-devices && viewItem == knownDevice"
                 }
             ]
@@ -188,6 +219,7 @@
         "vscode-test": "^1.3.0"
     },
     "dependencies": {
+        "axios": "^0.19.2",
         "file-saver": "^2.0.2",
         "jszip": "^3.2.2"
     }
