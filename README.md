@@ -1,8 +1,8 @@
-# 触动精灵开发扩展
+# 触动精灵开发插件
 
-触动精灵开发扩展(TouchSprite-Extension)是基于触动官方的 API 库进行开发的第三方插件，旨在为开发者开发脚本提供便利，插件完全免费。如过你有意见、建议或是愿意捐赠作者，请加群或者联系作者。
+触动精灵开发插件(TouchSprite-Extension)是基于触动官方的 API 库进行开发的第三方插件，旨在为开发者开发脚本提供便利，插件完全免费。如过你有意见、建议或是愿意捐赠作者，请加群或者联系作者。
 
-如果你发现了任何错误，或者愿意协助我开发插件，请[告诉我](https://github.com/AuTsing/touchsprite-extension/issues)或使用[Pull Requests](https://github.com/AuTsing/touchsprite-extension/pulls)来直接修复。
+如果你发现了任何错误，或者愿意协助我开发插件，请[告诉我](https://github.com/AuTsing/touchsprite-extension/issues)或使用[Pull Requests](https://github.com/AuTsing/touchsprite-extension/pulls)来提交。
 
 ## 特性
 
@@ -17,9 +17,9 @@
 
 ## 使用
 
-使用扩展前请先输入开发者 AccessKey。
+使用插件前请先输入开发者 AccessKey。
 
-快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，输入 Ts ，以 Ts 开头的命令均为本扩展提供的便捷指令。
+快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，输入 Ts ，以 Ts 开头的命令均为本插件提供的便捷指令。
 
 ## 快捷键
 
@@ -34,6 +34,6 @@
 -   QQ：763025696
 -   微信：b763025696
 
-**扩展仅供学习交流使用，使用过程中请遵守相关法律法规，如你对此有异议，请立即停止使用并删除扩展**
+**插件仅供学习交流使用，使用过程中请遵守相关法律法规，如你对此有异议，请立即停止使用并删除插件**  
 **Power by @AuTsing**  
 **Enjoy!**

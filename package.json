@@ -1,17 +1,18 @@
 {
     "name": "touchsprite-extension",
     "displayName": "TouchSprite-Extension",
-    "description": "一款用于触动精灵脚本开发的插件",
+    "description": "用于触动精灵脚本开发的插件",
     "keywords": [
         "touchsprite",
         "触动精灵",
         "触动"
     ],
-    "version": "0.0.7",
+    "version": "0.1.0",
     "engines": {
         "vscode": "^1.42.0"
     },
     "publisher": "autsing",
+    "repository": "https://github.com/AuTsing/touchsprite-extension",
     "categories": [
         "Other"
     ],
@@ -25,7 +26,7 @@
     "contributes": {
         "configuration": {
             "type": "object",
-            "title": "触动精灵扩展",
+            "title": "触动精灵开发插件",
             "properties": {
                 "touchsprite-extension.accessKey": {
                     "type": "string",
