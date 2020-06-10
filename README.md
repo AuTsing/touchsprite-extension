@@ -25,7 +25,7 @@
 
 -   <kbd>F5</kbd> 运行测试工程
 -   <kbd>F6</kbd> 运行工程
--   <kbd>Ctrl</kbd>+<kbd>F5</kbd> 停止工程
+-   <kbd>Shift</kbd>+<kbd>F5</kbd> 停止工程
 
 ## 反馈与帮助
 
