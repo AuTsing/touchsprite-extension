@@ -16,7 +16,7 @@
     "categories": [
         "Other"
     ],
-    "icon": "images/logo.png",
+    "icon": "assets/images/logo.png",
     "activationEvents": [
         "onCommand:extension.TsStartServer",
         "onLanguage:lua",
@@ -136,11 +136,15 @@
             {
                 "command": "tree.search",
                 "title": "搜索设备",
-                "icon": "images/refresh.png"
+                "icon": "assets/images/refresh.png"
             },
             {
                 "command": "tree.connect",
                 "title": "连接设备"
+            },
+            {
+                "command": "extension.snapshotor",
+                "title": "Ts: Snapshoter"
             }
         ],
         "keybindings": [
@@ -157,6 +161,11 @@
                 "when": "editorTextFocus"
             },
             {
+                "command": "extension.snapshotor",
+                "key": "f8",
+                "mac": "f8"
+            },
+            {
                 "command": "extension.TsStopProject",
                 "key": "shift+f5",
                 "mac": "shift+f5",
@@ -168,7 +177,7 @@
                 {
                     "id": "device-manager",
                     "title": "触动精灵",
-                    "icon": "images/phone.png"
+                    "icon": "assets/images/phone.png"
                 }
             ]
         },

@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import Server from './Server';
 import { DeviceSearcher, KnownDevice } from './DeviceSearcher';
+import Snapshoter from './Snapshoter';
 
 const server = new Server();
 const deviceSearcher = new DeviceSearcher();
+const snapshoter = new Snapshoter();
 
 class Extension {
     TsStartServer() {
@@ -13,7 +15,7 @@ class Extension {
         server
             .inputIp()
             .then(ip => server.connect(ip))
-            .then(msg => server.logging(msg))
+            .then(msg => vscode.window.setStatusBarMessage(msg))
             .catch(err => vscode.window.showErrorMessage(err));
     }
     TsGetPicture() {
@@ -69,14 +71,8 @@ class Extension {
             .catch(err => vscode.window.showErrorMessage(err));
     }
     TsTest() {
-        server
-            .connect('192.168.6.111')
-            .then(msg => {
-                server.logging(msg);
-                return server.upload();
-            })
-            .then(msg => console.log(msg))
-            .catch(err => console.log(err));
+        let config = vscode.workspace.getConfiguration();
+        console.log(config);
     }
 }
 
@@ -96,6 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider('known-devices', deviceSearcher);
     vscode.commands.registerCommand('tree.search', () => deviceSearcher.search());
     vscode.commands.registerCommand('tree.connect', (node: KnownDevice) => deviceSearcher.connect(node, server));
+    vscode.commands.registerCommand('extension.snapshotor', () => snapshoter.snap(context, server));
 }
 
 export function deactivate() {}

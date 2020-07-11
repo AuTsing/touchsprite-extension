@@ -10,7 +10,7 @@ export class KnownDevice extends vscode.TreeItem {
         super(label);
         this.info = info;
     }
-    iconPath = path.join(__filename, '..', '..', 'images', 'phone_known_device.png');
+    iconPath = path.join(__filename, '..', '..', 'assets', 'images', 'phone_known_device.png');
     contextValue = 'knownDevice';
 }
 
@@ -91,7 +91,7 @@ export class DeviceSearcher implements vscode.TreeDataProvider<KnownDevice> {
         // console.log(element);
         server
             .connect(element.label)
-            .then(msg => server.logging(msg))
+            .then(msg => vscode.window.setStatusBarMessage(msg))
             .catch(err => vscode.window.showErrorMessage(err));
     }
 }
