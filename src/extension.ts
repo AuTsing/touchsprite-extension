@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import Server from './Server';
 import { DeviceSearcher, KnownDevice } from './DeviceSearcher';
-import Snapshoter from './Snapshoter';
+// import Snapshoter from './Snapshoter';
 
 const server = new Server();
 const deviceSearcher = new DeviceSearcher();
-const snapshoter = new Snapshoter();
+// const snapshoter = new Snapshoter();
 
 class Extension {
     TsStartServer() {
@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider('known-devices', deviceSearcher);
     vscode.commands.registerCommand('tree.search', () => deviceSearcher.search());
     vscode.commands.registerCommand('tree.connect', (node: KnownDevice) => deviceSearcher.connect(node, server));
-    vscode.commands.registerCommand('extension.snapshotor', () => snapshoter.snap(context, server));
+    // vscode.commands.registerCommand('extension.snapshotor', () => snapshoter.snap(context, server));
 }
 
 export function deactivate() {}
