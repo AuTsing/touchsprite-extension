@@ -1,0 +1,47 @@
+@import '~antd/dist/antd.dark.css';
+
+body {
+    padding: 0;
+}
+
+.img {
+    max-width: none;
+    max-height: none;
+    margin-right: 15px;
+    margin-left: 15px;
+}
+
+.imgContainer {
+    overflow-x: scroll;
+}
+
+.zoom {
+    height: 300px;
+    width: 300px;
+}
+
+.sider {
+    height: 100vh;
+    overflow: auto;
+    position: fixed;
+    right: 0;
+}
+
+.content {
+    margin-right: 315px;
+}
+
+.header {
+    width: 100%;
+    padding: 0;
+    padding-left: 10px;
+}
+
+.zoomRow2 {
+    margin: 15px;
+    width: 300px;
+}
+
+.zoomRow3 {
+    width: 300px;
+}

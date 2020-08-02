@@ -17,7 +17,7 @@ class Server {
 
     constructor() {
         this.setKey();
-        this.tsChannel = vscode.window.createOutputChannel('触动精灵日志');
+        this.tsChannel = vscode.window.createOutputChannel('触动服务');
         this.setLogger();
     }
     private setKey() {
@@ -60,7 +60,7 @@ class Server {
         });
         this.logger.on('error', (err: any) => {
             this.logger ? this.logger.close() : null;
-            this.logging('发生错误，很可能是端口已被占用：' + err.message + ' 日志服务器已关闭');
+            this.logging('日志服务器启用失败，很可能是端口已被占用：' + err.message);
         });
         this.logger.listen(14088, () => {
             this.logging('日志服务器已启用');
@@ -115,7 +115,7 @@ class Server {
             dev.init(this.key, this)
                 .then((device: Device) => {
                     this.attachingDevice = device;
-                    resolve(`设备:${dev.ip}连接成功`);
+                    resolve(`触动服务: ${dev.ip} 已连接`);
                     return;
                 })
                 .catch((err: any) => {

@@ -25,17 +25,16 @@ export class DeviceSearcher implements vscode.TreeDataProvider<KnownDevice> {
             this.finder.close();
         });
         this.finder.on('message', msg => {
-            // console.log(`服务器接收到来自 ${rinfo.address}:${rinfo.port} 的 ${msg}`);
             let device = JSON.parse(msg.toString());
             if (!this.isInArray(device)) {
                 this.list.push(new KnownDevice(device.ip, device));
             }
             this.refresh();
         });
-        this.finder.on('listening', () => {
-            const address = this.finder.address();
-            console.log(`服务器监听 ${address.address}:${address.port}`);
-        });
+        // this.finder.on('listening', () => {
+        //     const address = this.finder.address();
+        //     console.log(`服务器监听 ${address.address}:${address.port}`);
+        // });
         this.finder.bind(14088);
         this.sender.bind(() => {
             this.sender.setBroadcast(true);
@@ -88,7 +87,6 @@ export class DeviceSearcher implements vscode.TreeDataProvider<KnownDevice> {
         });
     }
     public connect(element: KnownDevice, server: Server) {
-        // console.log(element);
         server
             .connect(element.label)
             .then(msg => vscode.window.setStatusBarMessage(msg))

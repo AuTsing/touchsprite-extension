@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as JSZip from 'jszip';
 import * as fs from 'fs';
 import { ProjectFile } from './Project';

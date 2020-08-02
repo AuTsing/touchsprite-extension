@@ -1,24 +1,22 @@
 import * as vscode from 'vscode';
 import Server from './Server';
 import { DeviceSearcher, KnownDevice } from './DeviceSearcher';
-// import Snapshoter from './Snapshoter';
+import Snapshoter from './view/Snapshoter';
 
 const server = new Server();
-const deviceSearcher = new DeviceSearcher();
-// const snapshoter = new Snapshoter();
 
 class Extension {
-    TsStartServer() {
+    public TsStartServer() {
         server.logging('触动服务已启动');
     }
-    TsConnect() {
+    public TsConnect() {
         server
             .inputIp()
             .then(ip => server.connect(ip))
             .then(msg => vscode.window.setStatusBarMessage(msg))
             .catch(err => vscode.window.showErrorMessage(err));
     }
-    TsGetPicture() {
+    public TsGetPicture() {
         server
             .getPicture()
             .then(msg => vscode.window.showInformationMessage(msg))
@@ -48,15 +46,15 @@ class Extension {
             })
             .catch(err => vscode.window.showErrorMessage(err));
     }
-    TsRunProject() {
+    public TsRunProject() {
         server.setRunFile('prod');
         return this.TsRun();
     }
-    TsRunTest() {
+    public TsRunTest() {
         server.setRunFile('dev');
         return this.TsRun();
     }
-    TsStopProject() {
+    public TsStopProject() {
         server
             .stopLua()
             .then(msg => {
@@ -64,13 +62,13 @@ class Extension {
             })
             .catch(err => vscode.window.showErrorMessage(err));
     }
-    TsZip() {
+    public TsZip() {
         server
             .zipProject()
             .then(msg => vscode.window.showInformationMessage(msg))
             .catch(err => vscode.window.showErrorMessage(err));
     }
-    TsTest() {
+    public TsTest() {
         let config = vscode.workspace.getConfiguration();
         console.log(config);
     }
@@ -78,21 +76,24 @@ class Extension {
 
 type K = keyof Extension;
 
-let commands: K[];
-commands = ['TsStartServer', 'TsConnect', 'TsGetPicture', 'TsRunProject', 'TsRunTest', 'TsStopProject', 'TsZip', 'TsTest'];
-
-let extension = new Extension();
+const commands: K[] = ['TsStartServer', 'TsConnect', 'TsRunProject', 'TsRunTest', 'TsStopProject', 'TsZip', 'TsTest'];
 
 export function activate(context: vscode.ExtensionContext) {
-    vscode.window.showInformationMessage('触动扩展已启用');
+    const extension = new Extension();
     commands.forEach(command => {
         let action: Function = extension[command];
         context.subscriptions.push(vscode.commands.registerCommand('extension.' + command, action.bind(extension)));
     });
-    vscode.window.registerTreeDataProvider('known-devices', deviceSearcher);
-    vscode.commands.registerCommand('tree.search', () => deviceSearcher.search());
-    vscode.commands.registerCommand('tree.connect', (node: KnownDevice) => deviceSearcher.connect(node, server));
-    // vscode.commands.registerCommand('extension.snapshotor', () => snapshoter.snap(context, server));
+
+    const deviceSearcher = new DeviceSearcher();
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('known-devices', deviceSearcher));
+    context.subscriptions.push(vscode.commands.registerCommand('tree.search', () => deviceSearcher.search()));
+    context.subscriptions.push(vscode.commands.registerCommand('tree.connect', (node: KnownDevice) => deviceSearcher.connect(node, server)));
+
+    const snapshoter = new Snapshoter(context, server);
+    context.subscriptions.push(vscode.commands.registerCommand('extension.snapshotor', () => snapshoter.showSnapshoter()));
+
+    vscode.window.setStatusBarMessage('触动服务已启用：未连接设备');
 }
 
 export function deactivate() {}

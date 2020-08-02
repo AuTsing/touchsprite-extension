@@ -26,22 +26,22 @@ class Device implements IDevice {
         return new Promise((resolve, reject) => {
             TsMessager.getDeviceId(this)
                 .then(res => {
-                    console.log('成功获取设备ID');
                     this.id = res.data;
                     return TsMessager.getAuth(this, key);
                 })
                 .then(res => {
-                    console.log('成功获取Auth');
-                    let data = res.data;
+                    const { data } = res;
                     if (data.status === 403) {
                         return Promise.reject('连接设备数超过最大设备数，请前往开发者后台清空设备，稍后再尝试');
+                    }
+                    if (data.status !== 200) {
+                        return Promise.reject('获取身份验证失败');
                     }
                     this.auth = data.auth;
                     this.expire = data.time + data.valid;
                     return TsMessager.getDeviceName(this);
                 })
                 .then(res => {
-                    console.log('成功获取设备名');
                     this.name = res.data;
                     let osType: number | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.osType');
                     if (osType === 1) {
@@ -61,8 +61,7 @@ class Device implements IDevice {
                     return;
                 })
                 .catch(err => {
-                    server.logging(err);
-                    reject(this);
+                    reject(err);
                     return;
                 });
         });
