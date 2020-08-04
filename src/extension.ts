@@ -69,8 +69,7 @@ class Extension {
             .catch(err => vscode.window.showErrorMessage(err));
     }
     public TsTest() {
-        let config = vscode.workspace.getConfiguration();
-        console.log(config);
+        server.getPicture();
     }
 }
 

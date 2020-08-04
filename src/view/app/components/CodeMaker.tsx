@@ -99,7 +99,7 @@ const CodeMaker: FC = () => {
             switch (msg.command) {
                 case 'loadTemplates':
                     const { data } = msg;
-                    console.log(msg);
+                    // console.log(msg);
                     const preSave = JSON.parse(data);
                     if (preSave && preSave.length > 0) {
                         setTemplates(preSave);

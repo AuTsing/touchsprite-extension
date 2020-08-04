@@ -41,8 +41,22 @@ class TsMessager {
         });
     }
     public static getPicture(device: Device) {
-        let orient: number | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotOrient');
-        orient = orient ? orient : 1;
+        const selected: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotOrient');
+        let orient: number;
+        switch (selected) {
+            case 'home键在下':
+                orient = 0;
+                break;
+            case 'home键在右':
+                orient = 1;
+                break;
+            case 'home键在左':
+                orient = 2;
+                break;
+            default:
+                orient = 1;
+                break;
+        }
         return axios.get(`/snapshot`, {
             baseURL: `http://${device.ip}:50005`,
             headers: {

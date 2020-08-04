@@ -43,19 +43,25 @@ class Device implements IDevice {
                 })
                 .then(res => {
                     this.name = res.data;
-                    let osType: number | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.osType');
-                    if (osType === 1) {
-                        this.osType = 'iOS';
-                    } else if (osType === 2) {
-                        this.osType = 'Android';
-                    } else if (osType === 3) {
-                        this.osType = 'Android_x86';
-                    } else {
-                        if (this.name === 'iPhone') {
+                    const osType: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.osType');
+                    switch (osType) {
+                        case '苹果':
                             this.osType = 'iOS';
-                        } else {
+                            break;
+                        case '安卓':
                             this.osType = 'Android';
-                        }
+                            break;
+                        case '安卓模拟器':
+                            this.osType = 'Android_x86';
+                            break;
+                        case '自动':
+                        default:
+                            if (this.name === 'iPhone') {
+                                this.osType = 'iOS';
+                            } else {
+                                this.osType = 'Android';
+                            }
+                            break;
                     }
                     resolve(this);
                     return;

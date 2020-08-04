@@ -3,6 +3,7 @@ import { FC, useRef, useContext, useEffect } from 'react';
 import { CoordinateContext } from '../contexts/CoordinateContext';
 import { CaptrueContext } from '../contexts/CaptureContext';
 import { RecordContext } from '../contexts/RecordContext';
+import { Dropdown, Menu } from 'antd';
 
 export interface IPicProps {
     base64: string;
@@ -10,7 +11,7 @@ export interface IPicProps {
 
 const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate } = useContext(CoordinateContext);
-    const { activeJimp } = useContext(CaptrueContext);
+    const { activeJimp, rotateJimp } = useContext(CaptrueContext);
     const { records, addRecordByMouse, addRecordByKeyboard, clearRecords } = useContext(RecordContext);
     const imgContainer = useRef<HTMLDivElement>(undefined);
 
@@ -77,9 +78,30 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
     }, [x, y, c, records]);
 
     return (
-        <div className='imgContainer' ref={imgContainer}>
-            <img className='img' src={base64} alt='' draggable='false' onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleClick} />
-        </div>
+        <Dropdown
+            overlay={
+                <Menu>
+                    <Menu.SubMenu title='旋转'>
+                        <Menu.Item onClick={() => rotateJimp(90)}>90°</Menu.Item>
+                        <Menu.Item onClick={() => rotateJimp(180)}>180°</Menu.Item>
+                        <Menu.Item onClick={() => rotateJimp(270)}>270°</Menu.Item>
+                    </Menu.SubMenu>
+                </Menu>
+            }
+            trigger={['contextMenu']}
+        >
+            <div className='imgContainer' ref={imgContainer}>
+                <img
+                    className='img'
+                    src={base64}
+                    alt=''
+                    draggable='false'
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={handleClick}
+                />
+            </div>
+        </Dropdown>
     );
 };
 

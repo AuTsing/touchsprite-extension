@@ -34,14 +34,9 @@
                     "description": "开发者AccessKey"
                 },
                 "touchsprite-extension.snapshotOrient": {
-                    "type": "number",
-                    "default": 1,
+                    "type": "string",
+                    "default": "home键在右",
                     "enum": [
-                        0,
-                        1,
-                        2
-                    ],
-                    "enumDescriptions": [
                         "home键在下",
                         "home键在右",
                         "home键在左"
@@ -55,21 +50,15 @@
                     "description": "截图保存文件夹"
                 },
                 "touchsprite-extension.osType": {
-                    "type": "number",
-                    "default": 0,
+                    "type": "string",
+                    "default": "自动",
                     "enum": [
-                        0,
-                        1,
-                        2,
-                        3
-                    ],
-                    "enumDescriptions": [
-                        "自动判断(如修改过设备名称请自行选择)",
+                        "自动",
                         "苹果",
                         "安卓",
                         "安卓模拟器"
                     ],
-                    "description": "设备系统类型"
+                    "description": "设备系统类型(如修改过设备名请自行选择)"
                 },
                 "touchsprite-extension.includePath": {
                     "items": {
@@ -77,7 +66,7 @@
                     },
                     "type": "array",
                     "scope": "resource",
-                    "description": "项目包含文件夹(运行项目时会将目录下文件与工程目录文件一起传送至设备)"
+                    "description": "项目包含文件夹(运行项目时会将目录下文件与工程目录文件一起发送至设备)"
                 },
                 "touchsprite-extension.ignorePath": {
                     "items": {
