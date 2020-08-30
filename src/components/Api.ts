@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import * as fs from 'fs';
-import Device from './Device';
-import { ProjectFile } from './Project';
+import { IProjectFile } from './Project';
+import { IDevice } from './Server';
 
-class TsMessager {
-    public static getDeviceId(device: Device) {
+axios.defaults.timeout = 3000;
+
+class Api {
+    public getDeviceId(device: IDevice) {
         return axios.get(`/deviceid`, {
             baseURL: `http://${device.ip}:50005`,
             headers: {
@@ -14,23 +16,24 @@ class TsMessager {
             },
         });
     }
-    public static getAuth(device: Device, key: string) {
-        let postData = JSON.stringify({
+    public getAuth(device: IDevice, key: string) {
+        const postData = JSON.stringify({
             action: 'getAuth',
             key: key,
             devices: [device.id],
             valid: 3600,
             time: Math.floor(Date.now() / 1000),
         });
-        return axios.post('/api/openapi', postData, {
-            baseURL: 'http://openapi.touchsprite.com',
+        return axios.post(`/api/openapi`, postData, {
+            baseURL: `http://openapi.touchsprite.com`,
             headers: {
+                Connection: 'close',
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Content-Length': Buffer.byteLength(postData),
             },
         });
     }
-    public static getDeviceName(device: Device) {
+    public getDeviceName(device: IDevice) {
         return axios.get(`/devicename`, {
             baseURL: `http://${device.ip}:50005`,
             headers: {
@@ -40,7 +43,7 @@ class TsMessager {
             },
         });
     }
-    public static getPicture(device: Device) {
+    public getSnapshot(device: IDevice) {
         const selected: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotOrient');
         let orient: number;
         switch (selected) {
@@ -71,17 +74,19 @@ class TsMessager {
             responseType: 'arraybuffer',
         });
     }
-    public static setLogServer(device: Device, logIp: string) {
+    public setLogServer(device: IDevice, logIp: string) {
         return axios.get(`/logServer`, {
             baseURL: `http://${device.ip}:50005`,
             headers: {
+                Connection: 'close',
+                'Content-Length': 0,
                 auth: device.auth,
                 port: 14088,
                 server: logIp,
             },
         });
     }
-    public static setLuaPath(device: Device, filename: string) {
+    public setLuaPath(device: IDevice, filename: string) {
         let filepath: string;
         if (device.osType === 'iOS') {
             filepath = '/var/mobile/Media/TouchSprite/lua/';
@@ -95,13 +100,14 @@ class TsMessager {
         return axios.post(`/setLuaPath`, postData, {
             baseURL: `http://${device.ip}:50005`,
             headers: {
+                Connection: 'close',
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(postData),
                 auth: device.auth,
             },
         });
     }
-    public static runLua(device: Device) {
+    public runLua(device: IDevice) {
         return axios.get(`/runLua`, {
             baseURL: `http://${device.ip}:50005`,
             headers: {
@@ -111,7 +117,7 @@ class TsMessager {
             },
         });
     }
-    public static stopLua(device: Device) {
+    public stopLua(device: IDevice) {
         return axios.get(`/stopLua`, {
             baseURL: `http://${device.ip}:50005`,
             headers: {
@@ -121,22 +127,21 @@ class TsMessager {
             },
         });
     }
-    public static upload(device: Device, projectfile: ProjectFile) {
-        console.log(`准备上传文件：${projectfile.uploadUrl}`);
-        const postData = fs.readFileSync(projectfile.uploadUrl);
+    public upload(device: IDevice, pjf: IProjectFile) {
+        const postData = fs.readFileSync(pjf.url);
         return axios.post('/upload', postData, {
             baseURL: `http://${device.ip}:50005`,
             headers: {
+                Connection: 'close',
                 'Content-Type': 'touchsprite/uploadfile',
                 'Content-Length': Buffer.byteLength(postData),
-                Connection: 'close',
                 auth: device.auth,
-                root: projectfile.uploadRoot,
-                path: projectfile.uploadPath,
-                filename: projectfile.uploadFileName,
+                root: pjf.root,
+                path: pjf.path,
+                filename: encodeURIComponent(pjf.filename),
             },
         });
     }
 }
 
-export default TsMessager;
+export default Api;

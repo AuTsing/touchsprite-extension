@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createContext, useState, useEffect } from 'react';
 import * as Jimp from 'jimp';
+import { message } from 'antd';
 
 export interface IWebviewPostMessage {
     command: string;
@@ -117,9 +118,16 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
         setActiveJimp(jimpCopy);
     };
     const handleMessage = (ev: MessageEvent) => {
-        const message: IWebviewPostMessage = ev.data;
-        if (message.command === 'add') {
-            addCapture(message.data.img);
+        const msg: IWebviewPostMessage = ev.data;
+        switch (msg.command) {
+            case 'add':
+                addCapture(msg.data.img);
+                break;
+            case 'showMessage':
+                message.info(msg.data.message);
+                break;
+            default:
+                break;
         }
     };
     useEffect(() => {

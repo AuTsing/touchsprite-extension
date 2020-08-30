@@ -18,9 +18,8 @@
     ],
     "icon": "assets/images/logo.png",
     "activationEvents": [
-        "onCommand:extension.TsStartServer",
         "onLanguage:lua",
-        "onView:known-devices"
+        "onCommand:extension.startServer"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -91,104 +90,81 @@
         },
         "commands": [
             {
-                "command": "extension.TsStartServer",
-                "title": "Ts: 启动服务"
+                "command": "extension.startServer",
+                "title": "触动插件: 启用服务"
             },
             {
-                "command": "extension.TsConnect",
-                "title": "Ts: 连接设备"
+                "command": "extension.connect",
+                "title": "触动插件: 连接设备"
             },
             {
-                "command": "extension.TsRunProject",
-                "title": "Ts: 运行工程"
+                "command": "extension.disconnect",
+                "title": "触动插件: 断开连接"
             },
             {
-                "command": "extension.TsRunTest",
-                "title": "Ts: 运行测试"
+                "command": "extension.runProject",
+                "title": "触动插件: 运行工程"
             },
             {
-                "command": "extension.TsStopProject",
-                "title": "Ts: 停止工程"
+                "command": "extension.runTestProject",
+                "title": "触动插件: 运行测试工程"
             },
             {
-                "command": "extension.TsZip",
-                "title": "Ts: 打包工程"
+                "command": "extension.runScript",
+                "title": "触动插件: 运行当前脚本"
             },
             {
-                "command": "extension.TsTest",
-                "title": "Ts: Test"
+                "command": "extension.stopScript",
+                "title": "触动插件: 停止运行"
             },
             {
-                "command": "tree.search",
-                "title": "搜索设备",
-                "icon": "assets/images/refresh.png"
+                "command": "extension.zipProject",
+                "title": "触动插件: 打包工程"
             },
             {
-                "command": "tree.connect",
-                "title": "连接设备"
+                "command": "extension.search",
+                "title": "触动插件: 搜索设备"
             },
             {
-                "command": "extension.snapshotor",
-                "title": "Ts: 取点抓色"
+                "command": "extension.snapshoter",
+                "title": "触动插件: 取色器"
+            },
+            {
+                "command": "extension.test",
+                "title": "触动插件: TEST"
             }
         ],
         "keybindings": [
             {
-                "command": "extension.TsRunTest",
+                "command": "extension.runTestProject",
                 "key": "f5",
                 "mac": "f5",
                 "when": "editorTextFocus"
             },
             {
-                "command": "extension.TsRunProject",
+                "command": "extension.runProject",
                 "key": "f6",
                 "mac": "f6",
                 "when": "editorTextFocus"
             },
             {
-                "command": "extension.snapshotor",
+                "command": "extension.runScript",
+                "key": "f7",
+                "mac": "f7",
+                "when": "editorTextFocus"
+            },
+            {
+                "command": "extension.snapshoter",
                 "key": "f8",
                 "mac": "f8"
             },
             {
-                "command": "extension.TsStopProject",
+                "command": "extension.stopScript",
                 "key": "shift+f5",
                 "mac": "shift+f5",
                 "when": "editorTextFocus"
             }
-        ],
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "device-manager",
-                    "title": "触动精灵",
-                    "icon": "assets/images/phone.png"
-                }
-            ]
-        },
-        "views": {
-            "device-manager": [
-                {
-                    "id": "known-devices",
-                    "name": "已知设备"
-                }
-            ]
-        },
-        "menus": {
-            "view/title": [
-                {
-                    "command": "tree.search",
-                    "when": "view == known-devices",
-                    "group": "navigation"
-                }
-            ],
-            "view/item/context": [
-                {
-                    "command": "tree.connect",
-                    "when": "view == known-devices && viewItem == knownDevice"
-                }
-            ]
-        }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",

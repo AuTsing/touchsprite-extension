@@ -31,7 +31,7 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 -   [ ] 触动函数代码补全
 -   [ ] 格式化文件
 -   [ ] 脚手架生成
--   [ ] 代码调试
+-   ~~[ ] 代码调试~~
 
 # 使用
 
@@ -39,14 +39,15 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 
 安装完成后前请先在设置中输入触动提供的开发者 AccessKey。
 
-快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，输入 Ts ，以 Ts 开头的命令均为本插件提供的便捷指令。
+快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，输入 '触动插件' ，以 '触动插件' 开头的命令均为本插件提供的便捷指令。
 
 ## 快捷键
 
 -   <kbd>F5</kbd> 运行测试工程
 -   <kbd>F6</kbd> 运行工程
+-   <kbd>F7</kbd> 运行当前脚本
 -   <kbd>Shift</kbd>+<kbd>F5</kbd> 停止工程
--   <kbd>F8</kbd> 打开抓色器
+-   <kbd>F8</kbd> 打开取色器
 -   (取色界面下) <kbd>w</kbd> <kbd>a</kbd> <kbd>s</kbd> <kbd>d</kbd> 移动光标
 -   (取色界面下) <kbd>1</kbd> - <kbd>9</kbd> / <kbd>鼠标左键</kbd> 抓取颜色
 -   (取色界面下) <kbd>z</kbd> 清空取色记录
