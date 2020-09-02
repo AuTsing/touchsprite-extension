@@ -3,6 +3,8 @@ import { FC, useContext } from 'react';
 import { VscodeContext } from '../contexts/vscodeContext';
 import { Button, Space } from 'antd';
 import CodeMaker from './CodeMaker';
+import PicComparator from './PicComparator';
+import PicBinarization from './PicBinarization';
 
 const Navbar: FC = () => {
     const vscode = useContext(VscodeContext);
@@ -20,6 +22,8 @@ const Navbar: FC = () => {
                     本地打开
                 </Button>
                 <CodeMaker />
+                <PicComparator />
+                <PicBinarization />
             </Space>
         </div>
     );
