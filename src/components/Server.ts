@@ -18,9 +18,9 @@ export interface IDevice {
 
 class Server {
     private readonly _ui: Ui;
+    private readonly _api: Api;
     private _accessKey: string;
     private _hostIp: string;
-    private _api: Api;
     private _attachingDevice: IDevice | undefined;
 
     constructor(ui: Ui) {
@@ -232,7 +232,8 @@ class Server {
                 if (!focusing) {
                     return Promise.reject('未指定工程');
                 }
-                const project = new Project(path.dirname(focusing.fileName));
+                const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath');
+                const project = new Project(path.dirname(focusing.fileName), ignorePath);
                 if (!project.isThereFile(runfile)) {
                     return Promise.reject(`所选工程不包含引导文件 ${runfile}`);
                 }
@@ -253,10 +254,11 @@ class Server {
             })
             .then(async () => {
                 const includePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath');
+                const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath');
                 const miss: string[] = [];
                 if (includePath && includePath.length > 0) {
                     for (const icp of includePath) {
-                        const project = new Project(icp);
+                        const project = new Project(icp, ignorePath);
                         const pjfs = project.getList();
                         for (const pjf of pjfs) {
                             await this._api.upload(this._attachingDevice!, pjf).then(res => {
@@ -385,12 +387,13 @@ class Server {
         this._ui.setStatusBar('$(loading) 打包工程中...');
         const projects: Project[] = [];
         const mainPath = path.dirname(focusing.fileName);
-        const mainProject = new Project(mainPath);
+        const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePathInZip');
+        const mainProject = new Project(mainPath, ignorePath);
         projects.push(mainProject);
-        const includePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath');
+        const includePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePathInZip');
         if (includePath && includePath.length > 0) {
             for (const icp of includePath) {
-                const project = new Project(icp);
+                const project = new Project(icp, ignorePath);
                 projects.push(project);
             }
         }

@@ -65,7 +65,7 @@
                     },
                     "type": "array",
                     "scope": "resource",
-                    "description": "项目包含文件夹(运行项目时会将目录下文件与工程目录文件一起发送至设备)"
+                    "description": "发送工程包含文件(夹)"
                 },
                 "touchsprite-extension.ignorePath": {
                     "items": {
@@ -78,7 +78,29 @@
                     ],
                     "type": "array",
                     "scope": "resource",
-                    "description": "项目忽略文件(夹)"
+                    "description": "发送工程忽略文件(夹)"
+                },
+                "touchsprite-extension.includePathInZip": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array",
+                    "scope": "resource",
+                    "description": "打包工程包含文件(夹)"
+                },
+                "touchsprite-extension.ignorePathInZip": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        ".git",
+                        ".gitignore",
+                        ".vscode",
+                        "main.test.lua"
+                    ],
+                    "type": "array",
+                    "scope": "resource",
+                    "description": "打包工程忽略文件(夹)"
                 },
                 "touchsprite-extension.testRunFile": {
                     "type": "string",

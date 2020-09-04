@@ -19,10 +19,9 @@ class Project {
     private readonly _list: IProjectFile[];
     private readonly _ignores: string[];
 
-    constructor(dir: string) {
-        this._rootPath = dir ;
-        const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath');
-        this._ignores = ignorePath ? ignorePath : [];
+    constructor(dir: string, ignorePath: string[] = []) {
+        this._rootPath = dir;
+        this._ignores = ignorePath;
         const collectedFiles: string[] = [];
         this.collectFiles(this._rootPath, collectedFiles);
         this._list = this.generateProject(collectedFiles);
