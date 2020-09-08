@@ -233,7 +233,12 @@ class Server {
                     return Promise.reject('未指定工程');
                 }
                 const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath');
-                const project = new Project(path.dirname(focusing.fileName), ignorePath);
+                const focusingDir = path.dirname(focusing.fileName);
+                let project = new Project(focusingDir, ignorePath);
+                if (!project.isThereFile(runfile)) {
+                    const upDir = path.dirname(focusingDir);
+                    project = new Project(upDir, ignorePath);
+                }
                 if (!project.isThereFile(runfile)) {
                     return Promise.reject(`所选工程不包含引导文件 ${runfile}`);
                 }
