@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { FC, useState, useEffect, useContext } from 'react';
 import { RecordContext } from '../contexts/RecordContext';
-import { Button, Modal, Form, Input, message } from 'antd';
+import { Button, Modal, Form, Input, message, Table } from 'antd';
 import { VscodeContext } from '../contexts/vscodeContext';
+
+const { Column } = Table;
 
 interface ITemplate {
     key: string;
@@ -11,7 +13,7 @@ interface ITemplate {
 
 const CodeMaker: FC = () => {
     const vscode = useContext(VscodeContext);
-    const { records } = useContext(RecordContext);
+    const { records, p1, p2 } = useContext(RecordContext);
     const [templates, setTemplates] = useState<ITemplate[]>([
         { key: '1', content: "{'untitled',{$pointList}}," },
         { key: '2', content: "{'untitled',{$point[1][c],'$delta'}}," },
@@ -20,6 +22,16 @@ const CodeMaker: FC = () => {
     const [visible, setVisible] = useState<boolean>(false);
     const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
     const [form] = Form.useForm();
+    const dataSource = [
+        { key: '1', keywords: '$pointList', instruction: '颜色列表' },
+        { key: '2', keywords: '$delta', instruction: '找色差值' },
+        { key: '3', keywords: '$p1', instruction: '范围左上角点' },
+        { key: '4', keywords: '$p2', instruction: '范围右下角点' },
+        { key: '5', keywords: '$point[n]', instruction: '点n' },
+        { key: '6', keywords: '$point[n].x', instruction: '点n的x坐标' },
+        { key: '7', keywords: '$point[n].y', instruction: '点n的y坐标' },
+        { key: '8', keywords: '$point[n].c', instruction: '点n的c颜色值' },
+    ];
 
     const handleOk = () => {
         setConfirmLoading(true);
@@ -79,6 +91,8 @@ const CodeMaker: FC = () => {
         const code = template
             .replace(/\$pointList/g, pointStringList.join(','))
             .replace(/\$delta/g, delta.join(','))
+            .replace(/\$p1/g, `${p1.x},${p1.y}`)
+            .replace(/\$p2/g, `${p2.x},${p2.y}`)
             .replace(/\$point\[[1-9]\]\[x\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1].x)
             .replace(/\$point\[[1-9]\]\[y\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1].y)
             .replace(/\$point\[[1-9]\]\[c\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1].c)
@@ -137,27 +151,10 @@ const CodeMaker: FC = () => {
                         <Input />
                     </Form.Item>
                 </Form>
-                <p>
-                    取色过程中使用快捷键生成代码： <br />
-                    模板1(F)，模板2(G)，模板3(H)
-                </p>
-                <p>
-                    模板设置关键字： <br />
-                    $point[x] 取色点x，x填写第x(1-9)个点。 <br />
-                    如：$point[1] 生成代码为{'{123,123,0x000fff}'} <br />
-                </p>
-                <p>
-                    $point[x1]-x2 取色点x1的属性x2，x1填写第x(1-9)个点，x2填写x/y/c分别代表x坐标/y坐标/颜色值。 <br />
-                    如：$point[1]-x 生成代码为 123 <br />
-                </p>
-                <p>
-                    $pointList 比色数据列表。 <br />
-                    如：$pointList 生成代码为 {'{123,123,0x000fff},{321,321,0xfff000},{111,111,0xffffff}'} <br />
-                </p>
-                <p>
-                    $delta 找色颜色差值，首个有效点与后面所有点的颜色差值。 <br />
-                    如：$delta 生成代码为 1|2|0x000fff,3|4|fff000,-5|-6|0xffffff
-                </p>
+                <Table dataSource={dataSource} size='small' bordered={true} pagination={false}>
+                    <Column title='关键字' dataIndex='keywords' width='40%' />
+                    <Column title='说明' dataIndex='instruction' width='60%' />
+                </Table>
             </Modal>
         </div>
     );

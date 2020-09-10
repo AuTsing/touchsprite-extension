@@ -70,9 +70,11 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
         if (captures[keyIndex + 1]) {
             setCaptures(captures.filter(capture => capture.key !== key));
             setActiveKey(captures[keyIndex + 1].key);
+            setActiveJimp(captures[keyIndex + 1].jimp);
         } else {
             setCaptures(captures.filter(capture => capture.key !== key));
             setActiveKey(captures[keyIndex - 1].key);
+            setActiveJimp(captures[keyIndex - 1].jimp);
         }
     };
     const rotateJimp = async (deg: number) => {

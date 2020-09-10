@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FC, useContext } from 'react';
-import { RecordContext, IRecord } from '../contexts/RecordContext';
+import { RecordContext, IRecord, IPoint } from '../contexts/RecordContext';
 import { VscodeContext } from '../contexts/vscodeContext';
 import { Row, Col, Table, Space, message } from 'antd';
 
@@ -8,20 +8,29 @@ const { Column } = Table;
 
 const RecordList: FC = () => {
     const vscode = useContext(VscodeContext);
-    const { records, deleteRecord } = useContext(RecordContext);
+    const { records, deleteRecord, p1, p2 } = useContext(RecordContext);
 
     const copyRecord = (record: IRecord) => {
         const code = `{${record.coordinate},${record.color}}`;
         vscode.postMessage({ command: 'copy', data: code });
         message.info(`${code.slice(0, 30)}${code.length > 30 ? '...' : ''} 已复制到剪贴板`);
     };
+    const copyPoint = (point: IPoint) => {
+        const code = `${point.x},${point.y}`;
+        vscode.postMessage({ command: 'copy', data: code });
+        message.info(`${code} 已复制到剪贴板`);
+    };
+    const copyInfo = (coordinate: string) => {
+        vscode.postMessage({ command: 'copy', data: coordinate });
+        message.info(`${coordinate} 已复制到剪贴板`);
+    };
 
     return (
         <Row>
             <Col className='zoomRow3'>
                 <Table dataSource={records} size='small' bordered={true} pagination={false} locale={{ emptyText: '鼠标左键/数字键1-9开始取色' }}>
-                    <Column title='坐标' dataIndex='coordinate' width='25%' />
-                    <Column title='颜色值' dataIndex='color' width='25%' />
+                    <Column title='坐标' dataIndex='coordinate' width='25%' onCell={(record: IRecord) => ({ onClick: () => copyInfo(record.coordinate) })} />
+                    <Column title='颜色值' dataIndex='color' width='25%' onCell={(record: IRecord) => ({ onClick: () => copyInfo(record.color) })} />
                     <Column
                         title='预览'
                         dataIndex='preview'
@@ -44,6 +53,12 @@ const RecordList: FC = () => {
                             </Space>
                         )}
                     />
+                </Table>
+                <Table dataSource={[{ key: '0' }]} size='small' bordered={true} pagination={false} showHeader={false}>
+                    <Column render={() => '点1'} width='25%'></Column>
+                    <Column render={() => `${p1.x},${p1.y}`} width='25%' onCell={() => ({ onClick: () => copyPoint(p1) })}></Column>
+                    <Column render={() => '点2'} width='25%'></Column>
+                    <Column render={() => `${p2.x},${p2.y}`} width='25%' onCell={() => ({ onClick: () => copyPoint(p2) })}></Column>
                 </Table>
             </Col>
         </Row>

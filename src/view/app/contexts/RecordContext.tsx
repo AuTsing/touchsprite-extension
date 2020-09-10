@@ -9,18 +9,29 @@ export interface IRecord {
     key: string;
 }
 
+export interface IPoint {
+    x: number;
+    y: number;
+}
+
 export interface IRecordContext {
     records: IRecord[];
     addRecordByMouse: (x: number, y: number, c: string) => void;
     addRecordByKeyboard: (key: string, x: number, y: number, c: string) => void;
     deleteRecord: (key: string) => void;
     clearRecords: () => void;
+    p1: IPoint;
+    p2: IPoint;
+    setPoint1: (x: number, y: number) => void;
+    setPoint2: (x: number, y: number) => void;
 }
 
 export const RecordContext = createContext<IRecordContext>(undefined);
 
-const RecordContextProvider = (props: { children: React.ReactNode; }) => {
+const RecordContextProvider = (props: { children: React.ReactNode }) => {
     const [records, setRecords] = useState<IRecord[]>([]);
+    const [p1, setP1] = useState<IPoint>({ x: -1, y: -1 });
+    const [p2, setP2] = useState<IPoint>({ x: -1, y: -1 });
 
     const addRecordByMouse = (x: number, y: number, c: string) => {
         if (records.length >= 9) {
@@ -48,9 +59,13 @@ const RecordContextProvider = (props: { children: React.ReactNode; }) => {
         setRecords(newRecords);
     };
     const clearRecords = () => setRecords([]);
+    const setPoint1 = (x: number, y: number) => setP1({ x, y });
+    const setPoint2 = (x: number, y: number) => setP2({ x, y });
 
     return (
-        <RecordContext.Provider value={{ records, addRecordByMouse, addRecordByKeyboard, deleteRecord, clearRecords }}>{props.children}</RecordContext.Provider>
+        <RecordContext.Provider value={{ records, addRecordByMouse, addRecordByKeyboard, deleteRecord, clearRecords, p1, p2, setPoint1, setPoint2 }}>
+            {props.children}
+        </RecordContext.Provider>
     );
 };
 

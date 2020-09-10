@@ -12,7 +12,7 @@ export interface IPicProps {
 const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate } = useContext(CoordinateContext);
     const { activeJimp, rotateJimp } = useContext(CaptrueContext);
-    const { records, addRecordByMouse, addRecordByKeyboard, clearRecords } = useContext(RecordContext);
+    const { records, addRecordByMouse, addRecordByKeyboard, clearRecords, setPoint1, setPoint2 } = useContext(RecordContext);
     const imgContainer = useRef<HTMLDivElement>(undefined);
 
     const handleMouseLeave = () => {
@@ -69,6 +69,10 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
             handlePixelMove(ev.key);
         } else if (ev.key === 'z') {
             clearRecords();
+        } else if (ev.key === 'q') {
+            setPoint1(x, y);
+        } else if (ev.key === 'e') {
+            setPoint2(x, y);
         }
     };
 
