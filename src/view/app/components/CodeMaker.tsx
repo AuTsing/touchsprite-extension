@@ -61,10 +61,6 @@ const CodeMaker: FC = () => {
     };
     const makeCode = (key: string) => {
         const unEmptyRecords = records.filter(record => record.coordinate !== '');
-        if (unEmptyRecords.length <= 0) {
-            message.warning('取色记录为空');
-            return;
-        }
         let template: string = templates[0].content;
         switch (key) {
             case 'f':
@@ -93,9 +89,9 @@ const CodeMaker: FC = () => {
             .replace(/\$delta/g, delta.join(','))
             .replace(/\$p1/g, `${p1.x},${p1.y}`)
             .replace(/\$p2/g, `${p2.x},${p2.y}`)
-            .replace(/\$point\[[1-9]\]\[x\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1].x)
-            .replace(/\$point\[[1-9]\]\[y\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1].y)
-            .replace(/\$point\[[1-9]\]\[c\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1].c)
+            .replace(/\$point\[[1-9]\]\[x\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.x)
+            .replace(/\$point\[[1-9]\]\[y\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.y)
+            .replace(/\$point\[[1-9]\]\[c\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.c)
             .replace(/\$point\[[1-9]\]/g, str => pointStringList[parseInt(str.slice(7, 8)) - 1]);
 
         vscode.postMessage({ command: 'copy', data: code });
@@ -128,7 +124,7 @@ const CodeMaker: FC = () => {
     useEffect(() => {
         window.addEventListener('keypress', handleKeypress);
         return () => window.removeEventListener('keypress', handleKeypress);
-    }, [records]);
+    }, [records, p1, p2]);
 
     return (
         <div>
