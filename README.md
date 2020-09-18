@@ -50,7 +50,9 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 -   <kbd>F8</kbd> 打开取色器
 -   (取色界面下) <kbd>w</kbd> <kbd>a</kbd> <kbd>s</kbd> <kbd>d</kbd> 移动光标
 -   (取色界面下) <kbd>1</kbd> - <kbd>9</kbd> / <kbd>鼠标左键</kbd> 抓取颜色
+-   (取色界面下) <kbd>q</kbd> <kbd>e</kbd> 选取点 1,2
 -   (取色界面下) <kbd>z</kbd> 清空取色记录
+-   (取色界面下) <kbd>x</kbd> 清空点 1,2
 -   (取色界面下) <kbd>f</kbd> <kbd>g</kbd> <kbd>h</kbd> 生成颜色代码
 
 # 开发计划

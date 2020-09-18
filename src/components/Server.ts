@@ -390,10 +390,23 @@ class Server {
             return;
         }
         this._ui.setStatusBar('$(loading) 打包工程中...');
-        const projects: Project[] = [];
-        const mainPath = path.dirname(focusing.fileName);
+
         const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePathInZip');
-        const mainProject = new Project(mainPath, ignorePath);
+        const focusingDir = path.dirname(focusing.fileName);
+        let mainProject = new Project(focusingDir, ignorePath);
+        let mainDir = focusingDir;
+        if (!mainProject.isThereFile('main.lua')) {
+            const upDir = path.dirname(focusingDir);
+            mainProject = new Project(upDir, ignorePath);
+            mainDir = upDir;
+        }
+        if (!mainProject.isThereFile('main.lua')) {
+            this._ui.setStatusBarTemporary(StatusBarType.failed);
+            this._ui.logging('打包工程失败: 所选工程不包含引导文件 main.lua');
+            return;
+        }
+
+        const projects: Project[] = [];
         projects.push(mainProject);
         const includePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePathInZip');
         if (includePath && includePath.length > 0) {
@@ -405,10 +418,10 @@ class Server {
         const zipper = new Zipper();
         projects.forEach(project => zipper.addFiles(project));
         Promise.all(projects)
-            .then(() => zipper.zipFiles(mainPath))
+            .then(() => zipper.zipFiles(mainDir))
             .then(() => {
                 this._ui.setStatusBarTemporary(StatusBarType.successful);
-                this._ui.logging('打包工程成功: ' + mainPath + '.zip');
+                this._ui.logging('打包工程成功: ' + mainDir + '.zip');
             })
             .catch(err => {
                 this._ui.setStatusBarTemporary(StatusBarType.failed);

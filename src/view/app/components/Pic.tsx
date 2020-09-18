@@ -12,7 +12,7 @@ export interface IPicProps {
 const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate } = useContext(CoordinateContext);
     const { activeJimp, rotateJimp } = useContext(CaptrueContext);
-    const { records, addRecordByMouse, addRecordByKeyboard, clearRecords, setPoint1, setPoint2 } = useContext(RecordContext);
+    const { records, p1, p2, addRecordByMouse, addRecordByKeyboard, clearRecords, setPoint1, setPoint2, clearPoints } = useContext(RecordContext);
     const imgContainer = useRef<HTMLDivElement>(undefined);
 
     const handleMouseLeave = () => {
@@ -69,6 +69,8 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
             handlePixelMove(ev.key);
         } else if (ev.key === 'z') {
             clearRecords();
+        } else if (ev.key === 'x') {
+            clearPoints();
         } else if (ev.key === 'q') {
             setPoint1(x, y);
         } else if (ev.key === 'e') {
@@ -79,7 +81,7 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
     useEffect(() => {
         window.addEventListener('keypress', handleKeypress);
         return () => window.removeEventListener('keypress', handleKeypress);
-    }, [x, y, c, records]);
+    }, [x, y, c, records, p1, p2]);
 
     return (
         <Dropdown

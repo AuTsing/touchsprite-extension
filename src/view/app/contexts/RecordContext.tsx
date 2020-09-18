@@ -24,6 +24,7 @@ export interface IRecordContext {
     p2: IPoint;
     setPoint1: (x: number, y: number) => void;
     setPoint2: (x: number, y: number) => void;
+    clearPoints: () => void;
 }
 
 export const RecordContext = createContext<IRecordContext>(undefined);
@@ -61,9 +62,15 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
     const clearRecords = () => setRecords([]);
     const setPoint1 = (x: number, y: number) => setP1({ x, y });
     const setPoint2 = (x: number, y: number) => setP2({ x, y });
+    const clearPoints = () => {
+        setPoint1(-1, -1);
+        setPoint2(-1, -1);
+    };
 
     return (
-        <RecordContext.Provider value={{ records, addRecordByMouse, addRecordByKeyboard, deleteRecord, clearRecords, p1, p2, setPoint1, setPoint2 }}>
+        <RecordContext.Provider
+            value={{ records, addRecordByMouse, addRecordByKeyboard, deleteRecord, clearRecords, p1, p2, setPoint1, setPoint2, clearPoints }}
+        >
             {props.children}
         </RecordContext.Provider>
     );
