@@ -152,6 +152,14 @@
                 "title": "触动插件: 取色器"
             },
             {
+                "command": "extension.uploadFile",
+                "title": "触动插件: 上传文件"
+            },
+            {
+                "command": "extension.setHostIp",
+                "title": "触动插件: 设置本机IP"
+            },
+            {
                 "command": "extension.test",
                 "title": "触动插件: TEST"
             }

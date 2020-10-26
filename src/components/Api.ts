@@ -137,7 +137,7 @@ class Api {
                 'Content-Length': Buffer.byteLength(postData),
                 auth: device.auth,
                 root: pjf.root,
-                path: pjf.path,
+                path: encodeURIComponent(pjf.path),
                 filename: encodeURIComponent(pjf.filename),
             },
         });

@@ -24,7 +24,7 @@ export interface ICaptureContext {
     activeJimp: Jimp;
     setActiveJimp: (jimp: Jimp) => void;
     rotateJimp: (deg: number) => void;
-    compareJimp: (jimp1: ICapture, jimp2: ICapture) => void;
+    compareJimp: (jimp1: ICapture, jimp2: ICapture, tolerance: string) => void;
     binaryJimp: (color: string, tolerance: string) => void;
 }
 
@@ -125,19 +125,24 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
         );
         setActiveJimp(jimpCopy);
     };
-    const compareJimp = (capture1: ICapture, capture2: ICapture) => {
+    const compareJimp = (capture1: ICapture, capture2: ICapture, tolerance: string = '0') => {
         const jimp1 = capture1.jimp;
         const jimp2 = capture2.jimp;
+        const toleranceNumber = parseInt(tolerance);
         new Jimp(jimp1.bitmap.width, jimp1.bitmap.height, (_, previewJimp) => {
             previewJimp.scan(
                 0,
                 0,
                 previewJimp.bitmap.width,
                 previewJimp.bitmap.height,
-                (x, y) => {
-                    const hex1 = jimp1.getPixelColor(x, y);
-                    const hex2 = jimp2.getPixelColor(x, y);
-                    if (hex1 === hex2) {
+                (x, y, idx) => {
+                    const r1 = jimp1.bitmap.data[idx + 0];
+                    const g1 = jimp1.bitmap.data[idx + 1];
+                    const b1 = jimp1.bitmap.data[idx + 2];
+                    const r2 = jimp2.bitmap.data[idx + 0];
+                    const g2 = jimp2.bitmap.data[idx + 1];
+                    const b2 = jimp2.bitmap.data[idx + 2];
+                    if (Math.abs(r1 - r2) <= toleranceNumber && Math.abs(g1 - g2) <= toleranceNumber && Math.abs(b1 - b2) <= toleranceNumber) {
                         previewJimp.setPixelColor(0xffffffff, x, y);
                     } else {
                         previewJimp.setPixelColor(0xff0000ff, x, y);

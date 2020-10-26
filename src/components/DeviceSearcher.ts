@@ -5,6 +5,7 @@ import Ui, { StatusBarType } from './UI';
 
 export interface IRawDevice {
     ip: string;
+    devname: string;
 }
 
 class DeviceSearcher {
@@ -42,11 +43,12 @@ class DeviceSearcher {
             setTimeout(() => {
                 this._ui.setStatusBarTemporary(StatusBarType.successful);
                 this._ui.logging(`搜索完成: 共搜索到 ${this._list.length} 台设备`);
-                const opts = this._list.map(rowDevice => rowDevice.ip);
-                vscode.window.showQuickPick(opts).then(ip => {
-                    if (!ip) {
+                const opts = this._list.map(rowDevice => rowDevice.devname + ': ' + rowDevice.ip);
+                vscode.window.showQuickPick(opts).then(opt => {
+                    if (!opt) {
                         return;
                     }
+                    const ip = opt.match(/: (\S*)/)![1];
                     this._server.attachDevice(ip);
                 });
             }, 1500);

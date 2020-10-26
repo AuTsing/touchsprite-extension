@@ -102,7 +102,9 @@ class Server {
                 }
             }
         }
-        this._ui.logging(`无法正常检测到本机局域网IP，这可能导致设备搜索器和服务器无法正常使用，请尝试重启、检查防火墙、虚拟网卡等设置`);
+        this._ui.logging(
+            `WARN: 无法正常获取本机局域网IP，这可能导致触动服务无法正常使用，请尝试重启、检查防火墙、卸载虚拟网卡等操作，也可以尝试手动设置本机IP`
+        );
     }
 
     public attachDevice(ip: string) {
@@ -426,6 +428,90 @@ class Server {
             .catch(err => {
                 this._ui.setStatusBarTemporary(StatusBarType.failed);
                 this._ui.logging(`打包工程失败: ${err.toString()}`);
+            });
+    }
+
+    public uploadFile() {
+        if (!this._attachingDevice) {
+            this._ui.setStatusBarTemporary(StatusBarType.failed);
+            this._ui.logging('运行工程失败: 尚未连接设备');
+            return;
+        }
+        let root: ProjectFileRoot = ProjectFileRoot.res;
+        const showQuickPickOptions: vscode.QuickPickOptions = {
+            placeHolder: '上传至...',
+        };
+        vscode.window
+            .showQuickPick(['lua', 'res'], showQuickPickOptions)
+            .then(terminal => {
+                if (!terminal) {
+                    return;
+                }
+                root = terminal === 'lua' ? ProjectFileRoot.lua : ProjectFileRoot.res;
+                const openDialogOptions: vscode.OpenDialogOptions = {
+                    canSelectFiles: true,
+                    canSelectFolders: false,
+                    canSelectMany: true,
+                };
+                return vscode.window.showOpenDialog(openDialogOptions);
+            })
+            .then(async (uri: vscode.Uri[] | undefined) => {
+                if (uri && uri.length > 0) {
+                    const pjfs: IProjectFile[] = uri.map(file => {
+                        const url = file.path.substring(1);
+                        return {
+                            url: url,
+                            path: '/',
+                            filename: path.basename(url),
+                            root: root,
+                        };
+                    });
+                    this._ui.setStatusBar('$(cloud-upload) 上传文件中...');
+                    const miss: string[] = [];
+                    for (const pjf of pjfs) {
+                        await this._api.upload(this._attachingDevice!, pjf).then(res => {
+                            if (res.data !== 'ok') {
+                                miss.push(pjf.filename);
+                            }
+                        });
+                    }
+                    if (miss.length > 0) {
+                        const missInOne = miss.join(', ');
+                        return Promise.reject(`以下文件上传失败[${missInOne}]`);
+                    }
+                    return Promise.resolve(uri.length);
+                } else {
+                    return Promise.reject(`未选择文件`);
+                }
+            })
+            .then(
+                succeed => {
+                    this._ui.setStatusBarTemporary(StatusBarType.successful);
+                    this._ui.logging('上传文件成功: ' + succeed);
+                },
+                err => {
+                    this._ui.setStatusBarTemporary(StatusBarType.failed);
+                    this._ui.logging(`上传文件失败: ${err.toString()}`);
+                }
+            );
+    }
+
+    public setHostIp() {
+        vscode.window
+            .showInputBox({
+                prompt: '请本机IP地址',
+                value: '192.168.',
+                placeHolder: 'x.x.x.x',
+            })
+            .then(inputValue => {
+                inputValue = inputValue ? inputValue : '';
+                inputValue = /^((2[0-4]\d|25[0-5]|[01]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[01]?\d\d?)$/.test(inputValue) ? inputValue : '';
+                if (inputValue) {
+                    this._hostIp = inputValue;
+                    this._ui.logging('设置本机IP地址成功: ' + inputValue);
+                } else {
+                    this._ui.logging('设置本机IP地址失败: IP地址格式错误');
+                }
             });
     }
 

@@ -27,10 +27,10 @@ const CodeMaker: FC = () => {
         { key: '2', keywords: '$delta', instruction: '找色差值' },
         { key: '3', keywords: '$p1', instruction: '范围左上角点' },
         { key: '4', keywords: '$p2', instruction: '范围右下角点' },
-        { key: '5', keywords: '$point[n]', instruction: '点n' },
-        { key: '6', keywords: '$point[n].x', instruction: '点n的x坐标' },
-        { key: '7', keywords: '$point[n].y', instruction: '点n的y坐标' },
-        { key: '8', keywords: '$point[n].c', instruction: '点n的c颜色值' },
+        { key: '5', keywords: '$point[n]', instruction: '点n(n填写第几个点)' },
+        { key: '6', keywords: '$point[n][x]', instruction: '点n的x坐标' },
+        { key: '7', keywords: '$point[n][y]', instruction: '点n的y坐标' },
+        { key: '8', keywords: '$point[n][c]', instruction: '点n的c颜色值' },
     ];
 
     const handleOk = () => {

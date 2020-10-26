@@ -16,6 +16,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('extension.runScript', () => server.runScript()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.stopScript', () => server.stopScript()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.zipProject', () => server.zipProject()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.uploadFile', () => server.uploadFile()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.setHostIp', () => server.setHostIp()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => server.test()));
 
     const dvs = new DeviceSearcher(server, ui);
