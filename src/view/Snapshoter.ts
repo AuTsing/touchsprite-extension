@@ -3,7 +3,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import Server from '../components/Server';
 import Api from '../components/Api';
-import Ui, { StatusBarType } from '../components/UI';
+import Ui from '../components/ui/Ui';
+import { StatusBarType } from '../components/ui/StatusBar';
 
 export interface IWebviewPostMessage {
     command: string;
@@ -16,15 +17,13 @@ class Snapshoter {
     private readonly _extensionPath: string;
     private readonly _disposables: vscode.Disposable[] = [];
     private readonly _server: Server;
-    private readonly _ui: Ui;
     private readonly _api: Api;
 
-    constructor(context: vscode.ExtensionContext, server: Server, ui: Ui) {
+    constructor(context: vscode.ExtensionContext, server: Server) {
         this._extensionPath = context.extensionPath;
         this._extensionGlobalState = context.globalState;
         this._disposables = context.subscriptions;
         this._server = server;
-        this._ui = ui;
         this._api = new Api();
     }
 
@@ -103,11 +102,11 @@ class Snapshoter {
                                 });
                             })
                             .then(() => {
-                                this._ui.setStatusBarTemporary(StatusBarType.successful);
+                                Ui.setStatusBarTemporary(StatusBarType.successful);
                             })
                             .catch(err => {
-                                this._ui.setStatusBarTemporary(StatusBarType.failed);
-                                this._ui.logging(`截图失败: ${err.toString()}`);
+                                Ui.setStatusBarTemporary(StatusBarType.failed);
+                                Ui.logging(`截图失败: ${err.toString()}`);
                             });
                         break;
                     case 'loadImgFromLocal':
@@ -134,10 +133,10 @@ class Snapshoter {
                         break;
                     case 'saveTemplates':
                         this._extensionGlobalState.update('templates', msg.data).then(
-                            () => this._ui.setStatusBarTemporary(`$(check) 代码模板保存成功`, 3000),
+                            () => Ui.setStatusBarTemporary(`$(check) 代码模板保存成功`, 3000),
                             err => {
-                                this._ui.setStatusBarTemporary(`$(issues) 代码模板保存失败`, 3000);
-                                this._ui.logging('代码模板保存失败: ' + err.toString());
+                                Ui.setStatusBarTemporary(`$(issues) 代码模板保存失败`, 3000);
+                                Ui.logging('代码模板保存失败: ' + err.toString());
                             }
                         );
                         break;

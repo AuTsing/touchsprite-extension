@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import Server from './components/Server';
-import Ui from './components/Ui';
 import DeviceSearcher from './components/DeviceSearcher';
 import Snapshoter from './view/Snapshoter';
+import LuaConfigurationProvider from './components/debug/LuaConfigurationProvider';
+import Ui from './components/ui/Ui';
 
 export function activate(context: vscode.ExtensionContext) {
-    const ui = new Ui();
-    const server = new Server(ui);
-    context.subscriptions.push(vscode.commands.registerCommand('extension.startServer', () => ui.logging('触动插件已启用')));
+    const server = new Server();
+    context.subscriptions.push(vscode.commands.registerCommand('extension.startServer', () => Ui.logging('触动插件已启用')));
     context.subscriptions.push(vscode.commands.registerCommand('extension.connect', () => server.attachDeviceThroughInput()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.disconnect', () => server.detachDevice()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.menu', () => server.operationsMenu()));
@@ -20,11 +20,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('extension.setHostIp', () => server.setHostIp()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => server.test()));
 
-    const dvs = new DeviceSearcher(server, ui);
+    const dvs = new DeviceSearcher(server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.search', () => dvs.search()));
 
-    const snapshoter = new Snapshoter(context, server, ui);
+    const snapshoter = new Snapshoter(context, server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.snapshoter', () => snapshoter.show()));
+
+    const provider = new LuaConfigurationProvider();
+    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('lua', provider));
+    context.subscriptions.push(provider);
 }
 
 export function deactivate() {}

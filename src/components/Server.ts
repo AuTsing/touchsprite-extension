@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
-import Ui, { StatusBarType } from './Ui';
+import Ui from './ui/Ui';
+import { StatusBarType } from './ui/StatusBar';
 import Api from './Api';
 import Project, { IProjectFile, ProjectFileRoot } from './Project';
 import Zipper from './Zipper';
@@ -17,14 +18,12 @@ export interface IDevice {
 }
 
 class Server {
-    private readonly _ui: Ui;
     private readonly _api: Api;
     private _accessKey: string;
     private _hostIp: string;
     private _attachingDevice: IDevice | undefined;
 
-    constructor(ui: Ui) {
-        this._ui = ui;
+    constructor() {
         this._accessKey = '';
         this._hostIp = '';
         this.checkAccessKey();
@@ -74,19 +73,19 @@ class Server {
     private checkLogger() {
         const logger = net.createServer((socket: net.Socket) => {
             socket.on('data', data => {
-                this._ui.logging(data.toString('utf8', 4, data.length - 2));
+                Ui.logging(data.toString('utf8', 4, data.length - 2));
             });
         });
         logger.on('error', (err: any) => {
             logger ? logger.close() : null;
-            this._ui.logging(
+            Ui.logging(
                 '日志服务器启用失败，有可能是端口已被占用，请尝试重启、检查防火墙、虚拟网卡等设置，错误代码：' +
                     err.message +
                     ' 如无法解决，请将错误代码发送给开发者获取帮助'
             );
         });
         logger.listen(14088, () => {
-            this._ui.logging('日志服务器已启用');
+            Ui.logging('日志服务器已启用');
         });
     }
 
@@ -102,9 +101,7 @@ class Server {
                 }
             }
         }
-        this._ui.logging(
-            `WARN: 无法正常获取本机局域网IP，这可能导致触动服务无法正常使用，请尝试重启、检查防火墙、卸载虚拟网卡等操作，也可以尝试手动设置本机IP`
-        );
+        Ui.logging(`WARN: 无法正常获取本机局域网IP，这可能导致触动服务无法正常使用，请尝试重启、检查防火墙、卸载虚拟网卡等操作，也可以尝试手动设置本机IP`);
     }
 
     public attachDevice(ip: string) {
@@ -117,7 +114,7 @@ class Server {
             osType: undefined,
         };
 
-        this._ui.setStatusBar(`连接设备: ${ip} 中...`);
+        Ui.setStatusBar(`连接设备: ${ip} 中...`);
         this._api
             .getDeviceId(device)
             .then(res => {
@@ -162,11 +159,11 @@ class Server {
             })
             .then(device => {
                 this._attachingDevice = device;
-                this._ui.setStatusBar(`$(device-mobile) 触动插件: ${device.ip} 已连接`);
+                Ui.setStatusBar(`$(device-mobile) 触动插件: ${device.ip} 已连接`);
             })
             .catch(err => {
-                this._ui.resetStatusBar();
-                this._ui.logging(`连接设备失败: ${err.message}`);
+                Ui.resetStatusBar();
+                Ui.logging(`连接设备失败: ${err.message}`);
             });
     }
 
@@ -183,14 +180,14 @@ class Server {
                 if (inputValue) {
                     this.attachDevice(inputValue);
                 } else {
-                    this._ui.logging('连接设备失败: IP地址格式错误');
+                    Ui.logging('连接设备失败: IP地址格式错误');
                 }
             });
     }
 
     public detachDevice() {
         this._attachingDevice = undefined;
-        this._ui.resetStatusBar();
+        Ui.resetStatusBar();
     }
 
     public operationsMenu() {
@@ -213,8 +210,8 @@ class Server {
 
     public runProject(runfile = 'main.lua') {
         if (!this._attachingDevice) {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('运行工程失败: 尚未连接设备');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('运行工程失败: 尚未连接设备');
             return;
         }
         this._api
@@ -229,7 +226,7 @@ class Server {
                 if (res.data !== 'ok') {
                     return Promise.reject('设置引导文件失败');
                 }
-                this._ui.setStatusBar('$(cloud-upload) 上传工程中...');
+                Ui.setStatusBar('$(cloud-upload) 上传工程中...');
                 const focusing = vscode.window.activeTextEditor?.document;
                 if (!focusing) {
                     return Promise.reject('未指定工程');
@@ -283,19 +280,19 @@ class Server {
                 return Promise.resolve('ok');
             })
             .then(() => {
-                this._ui.setStatusBar(StatusBarType.connected);
+                Ui.setStatusBar(StatusBarType.connected);
                 return this._api.runLua(this._attachingDevice!);
             })
             .then(res => {
                 if (res.data !== 'ok') {
                     return Promise.reject('执行引导文件失败');
                 }
-                this._ui.setStatusBarTemporary(StatusBarType.successful);
-                this._ui.logging('运行工程成功');
+                Ui.setStatusBarTemporary(StatusBarType.successful);
+                Ui.logging('运行工程成功');
             })
             .catch(err => {
-                this._ui.setStatusBarTemporary(StatusBarType.failed);
-                this._ui.logging(`运行工程失败: ${err.toString()}`);
+                Ui.setStatusBarTemporary(StatusBarType.failed);
+                Ui.logging(`运行工程失败: ${err.toString()}`);
             });
     }
 
@@ -307,19 +304,19 @@ class Server {
 
     public runScript() {
         if (!this._attachingDevice) {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('运行工程失败: 尚未连接设备');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('运行工程失败: 尚未连接设备');
             return;
         }
         const focusing = vscode.window.activeTextEditor?.document;
         if (!focusing) {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('运行工程失败: 未指定脚本');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('运行工程失败: 未指定脚本');
             return;
         }
         if (path.extname(focusing.fileName) !== '.lua') {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('运行工程失败: 所选文件非Lua脚本');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('运行工程失败: 所选文件非Lua脚本');
             return;
         }
         this._api
@@ -340,33 +337,33 @@ class Server {
                     filename: path.basename(focusing.fileName),
                     root: ProjectFileRoot.lua,
                 };
-                this._ui.setStatusBar('$(cloud-upload) 上传脚本中...');
+                Ui.setStatusBar('$(cloud-upload) 上传脚本中...');
                 return this._api.upload(this._attachingDevice!, pjf);
             })
             .then(res => {
                 if (res.data !== 'ok') {
                     return Promise.reject('上传脚本文件失败');
                 }
-                this._ui.setStatusBar(StatusBarType.connected);
+                Ui.setStatusBar(StatusBarType.connected);
                 return this._api.runLua(this._attachingDevice!);
             })
             .then(res => {
                 if (res.data !== 'ok') {
                     return Promise.reject('执行脚本文件失败');
                 }
-                this._ui.setStatusBarTemporary(StatusBarType.successful);
-                this._ui.logging('运行脚本成功');
+                Ui.setStatusBarTemporary(StatusBarType.successful);
+                Ui.logging('运行脚本成功');
             })
             .catch(err => {
-                this._ui.setStatusBarTemporary(StatusBarType.failed);
-                this._ui.logging(`运行工程失败: ${err.toString()}`);
+                Ui.setStatusBarTemporary(StatusBarType.failed);
+                Ui.logging(`运行工程失败: ${err.toString()}`);
             });
     }
 
     public stopScript() {
         if (!this._attachingDevice) {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('停止工程失败: 尚未连接设备');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('停止工程失败: 尚未连接设备');
             return;
         }
         this._api
@@ -375,23 +372,23 @@ class Server {
                 if (res.data !== 'ok') {
                     return Promise.reject('停止脚本失败');
                 }
-                this._ui.setStatusBarTemporary(StatusBarType.successful);
-                this._ui.logging('停止脚本成功');
+                Ui.setStatusBarTemporary(StatusBarType.successful);
+                Ui.logging('停止脚本成功');
             })
             .catch(err => {
-                this._ui.setStatusBarTemporary(StatusBarType.failed);
-                this._ui.logging(`停止脚本失败: ${err.toString()}`);
+                Ui.setStatusBarTemporary(StatusBarType.failed);
+                Ui.logging(`停止脚本失败: ${err.toString()}`);
             });
     }
 
     public zipProject() {
         const focusing = vscode.window.activeTextEditor?.document;
         if (!focusing) {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('打包工程失败: 未指定工程');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('打包工程失败: 未指定工程');
             return;
         }
-        this._ui.setStatusBar('$(loading) 打包工程中...');
+        Ui.setStatusBar('$(loading) 打包工程中...');
 
         const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePathInZip');
         const focusingDir = path.dirname(focusing.fileName);
@@ -403,8 +400,8 @@ class Server {
             mainDir = upDir;
         }
         if (!mainProject.isThereFile('main.lua')) {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('打包工程失败: 所选工程不包含引导文件 main.lua');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('打包工程失败: 所选工程不包含引导文件 main.lua');
             return;
         }
 
@@ -422,19 +419,19 @@ class Server {
         Promise.all(projects)
             .then(() => zipper.zipFiles(mainDir))
             .then(() => {
-                this._ui.setStatusBarTemporary(StatusBarType.successful);
-                this._ui.logging('打包工程成功: ' + mainDir + '.zip');
+                Ui.setStatusBarTemporary(StatusBarType.successful);
+                Ui.logging('打包工程成功: ' + mainDir + '.zip');
             })
             .catch(err => {
-                this._ui.setStatusBarTemporary(StatusBarType.failed);
-                this._ui.logging(`打包工程失败: ${err.toString()}`);
+                Ui.setStatusBarTemporary(StatusBarType.failed);
+                Ui.logging(`打包工程失败: ${err.toString()}`);
             });
     }
 
     public uploadFile() {
         if (!this._attachingDevice) {
-            this._ui.setStatusBarTemporary(StatusBarType.failed);
-            this._ui.logging('运行工程失败: 尚未连接设备');
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('运行工程失败: 尚未连接设备');
             return;
         }
         let root: ProjectFileRoot = ProjectFileRoot.res;
@@ -466,7 +463,7 @@ class Server {
                             root: root,
                         };
                     });
-                    this._ui.setStatusBar('$(cloud-upload) 上传文件中...');
+                    Ui.setStatusBar('$(cloud-upload) 上传文件中...');
                     const miss: string[] = [];
                     for (const pjf of pjfs) {
                         await this._api.upload(this._attachingDevice!, pjf).then(res => {
@@ -486,12 +483,12 @@ class Server {
             })
             .then(
                 succeed => {
-                    this._ui.setStatusBarTemporary(StatusBarType.successful);
-                    this._ui.logging('上传文件成功: ' + succeed);
+                    Ui.setStatusBarTemporary(StatusBarType.successful);
+                    Ui.logging('上传文件成功: ' + succeed);
                 },
                 err => {
-                    this._ui.setStatusBarTemporary(StatusBarType.failed);
-                    this._ui.logging(`上传文件失败: ${err.toString()}`);
+                    Ui.setStatusBarTemporary(StatusBarType.failed);
+                    Ui.logging(`上传文件失败: ${err.toString()}`);
                 }
             );
     }
@@ -508,9 +505,9 @@ class Server {
                 inputValue = /^((2[0-4]\d|25[0-5]|[01]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[01]?\d\d?)$/.test(inputValue) ? inputValue : '';
                 if (inputValue) {
                     this._hostIp = inputValue;
-                    this._ui.logging('设置本机IP地址成功: ' + inputValue);
+                    Ui.logging('设置本机IP地址成功: ' + inputValue);
                 } else {
-                    this._ui.logging('设置本机IP地址失败: IP地址格式错误');
+                    Ui.logging('设置本机IP地址失败: IP地址格式错误');
                 }
             });
     }
