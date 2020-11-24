@@ -205,7 +205,7 @@
             {
                 "type": "lua",
                 "label": "LuaPanda",
-                "program": "./out/components/debug2/debugAdapter.js",
+                "program": "./out/components/debug/DebugAdapter.js",
                 "runtime": "node",
                 "configurationAttributes": {
                     "attach": {

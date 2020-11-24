@@ -22,7 +22,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
 import { LuaDebugRuntime, LuaBreakpoint } from './luaDebugRuntime';
 import * as Net from 'net';
-import { DataProcessor } from './dataProcessor';
+import { DataProcessor } from './DataProcessor';
 import { LineBreakpoint, ConditionBreakpoint, LogPoint } from './breakpoint';
 import Tools from './Tools';
 import { UpdateManager } from './updateManager';
@@ -41,11 +41,11 @@ interface IBreakpointInfo {
 }
 
 export class LuaDebugSession extends LoggingDebugSession {
-    public TCPPort!: number; //和客户端连接的端口号，通过VScode的设置赋值
-    public connectionIP!: string;
-    public _server: Net.Server | undefined; // adapter 作为server
-    public _client: Net.Socket | undefined; // adapter 作为client
-    private VSCodeAsClient: any;
+    public tcpPort: number; //和客户端连接的端口号，通过VScode的设置赋值
+    public connectionIP?: string;
+    public server?: Net.Server | undefined; // adapter 作为server
+    public client?: Net.Socket | undefined; // adapter 作为client
+    private _vscodeAsClient: boolean | undefined;
     private breakpointsArray: IBreakpointInfo[] = []; //在socket连接前临时保存断点的数组
     private autoReconnect: any;
     private _configurationDone = new Subject();
@@ -89,20 +89,16 @@ export class LuaDebugSession extends LoggingDebugSession {
         this._runtime.on('stopOnStep', () => {
             this.sendEvent(new StoppedEvent('step', this._threadManager.CUR_THREAD_ID));
         });
-
         this._runtime.on('stopOnStepIn', () => {
             this.sendEvent(new StoppedEvent('step', this._threadManager.CUR_THREAD_ID));
         });
-
         this._runtime.on('stopOnStepOut', () => {
             this.sendEvent(new StoppedEvent('step', this._threadManager.CUR_THREAD_ID));
         });
-
         this._runtime.on('stopOnCodeBreakpoint', () => {
             // stopOnCodeBreakpoint 指的是遇到 LuaPanda.BP()，因为是代码中的硬断点，VScode中不会保存这个断点信息，故不做校验
             this.sendEvent(new StoppedEvent('breakpoint', this._threadManager.CUR_THREAD_ID));
         });
-
         this._runtime.on('stopOnBreakpoint', () => {
             // 因为lua端所做的断点命中可能出现同名文件错误匹配，这里要再次校验lua端命中的行列号是否在 breakpointsArray 中
             if (this.checkIsRealHitBreakpoint()) {
@@ -123,7 +119,6 @@ export class LuaDebugSession extends LoggingDebugSession {
         this._runtime.on('breakpointValidated', (bp: LuaBreakpoint) => {
             this.sendEvent(new BreakpointEvent('changed', <DebugProtocol.Breakpoint>{ verified: bp.verified, id: bp.id }));
         });
-
         this._runtime.on('logInDebugConsole', message => {
             this.printLogInDebugConsole(message);
         });
@@ -143,7 +138,7 @@ export class LuaDebugSession extends LoggingDebugSession {
             for (let bkMap of this.breakpointsArray) {
                 if (bkMap.bkPath === steakPath) {
                     for (const node of bkMap.bksArray) {
-                        if (node.line == steakLine) {
+                        if (node.line === steakLine) {
                             return true;
                         }
                     }
@@ -236,9 +231,9 @@ export class LuaDebugSession extends LoggingDebugSession {
         //1. 配置初始化信息
 
         this.copyAttachConfig(args);
-        this.VSCodeAsClient = args.VSCodeAsClient;
+        this._vscodeAsClient = args.VSCodeAsClient;
         this.connectionIP = args.connectionIP;
-        this.TCPPort = args.connectionPort;
+        this.tcpPort = args.connectionPort;
         this._pathManager.CWD = args.cwd;
         this._pathManager.rootFolder = args.rootFolder;
         this._pathManager.useAutoPathMode = !!args.autoPathMode;
@@ -258,7 +253,7 @@ export class LuaDebugSession extends LoggingDebugSession {
         }
 
         // 普通模式下才需要检查升级，单文件调试不用
-        if (args.tag != 'independent_file') {
+        if (args.tag !== 'independent_file') {
             try {
                 new UpdateManager().checkIfLuaPandaNeedUpdate(this._pathManager.LuaPandaPath!, args.cwd);
             } catch (error) {
@@ -295,7 +290,7 @@ export class LuaDebugSession extends LoggingDebugSession {
 
         //2. 初始化内存分析状态栏
 
-        if (this.VSCodeAsClient) {
+        if (this._vscodeAsClient) {
             // VSCode = Client ; Debugger = Server
             this.printLogInDebugConsole('[Connecting] 调试器 VSCode Client 已启动，正在尝试连接。  TargetName:' + args.name + ' Port:' + args.connectionPort);
             this.startClient(sendArgs);
@@ -334,7 +329,7 @@ export class LuaDebugSession extends LoggingDebugSession {
             pathCMD = pathCMD + "'";
             //拼接命令
             pathCMD = ' "package.path = ' + pathCMD + '.. package.path; ';
-            let reqCMD = "require('LuaPanda').start('127.0.0.1'," + this.TCPPort + ');" ';
+            let reqCMD = "require('LuaPanda').start('127.0.0.1'," + this.tcpPort + ');" ';
             let doFileCMD = filePath;
             let runCMD = pathCMD + reqCMD + doFileCMD;
 
@@ -348,7 +343,7 @@ export class LuaDebugSession extends LoggingDebugSession {
             this._debugFileTermianl.show();
         } else {
             // 非单文件调试模式下，拉起program
-            if (args.program != undefined && args.program.trim() != '') {
+            if (args.program !== undefined && args.program.trim() !== '') {
                 if (fs.existsSync(args.program) && fs.statSync(args.program).isFile()) {
                     //program 和 args 分开
                     if (this._programTermianl) {
@@ -380,7 +375,7 @@ export class LuaDebugSession extends LoggingDebugSession {
     private startServer(sendArgs: any) {
         this.connectionFlag = false;
         //3. 启动Adapter的socket   |   VSCode = Server ; Debugger = Client
-        this._server = Net.createServer(socket => {
+        this.server = Net.createServer(socket => {
             //--connect--
             this._dataProcessor._socket = socket;
             //向debugger发送含配置项的初始化协议
@@ -388,7 +383,7 @@ export class LuaDebugSession extends LoggingDebugSession {
                 //之所以使用 connectionFlag 连接成功标志位， 是因为代码进入 Net.createServer 的回调后，仍然可能被client超时断开连接。所以标志位被放入了
                 //_runtime.start 初始化消息发送成功之后。
                 this.connectionFlag = true;
-                this._server?.close(); //_server 已建立连接，不再接受新的连接
+                this.server?.close(); //_server 已建立连接，不再接受新的连接
                 let connectMessage = '[Connected] VSCode Server 已建立连接! Remote device info  ' + socket.remoteAddress + ':' + socket.remotePort;
                 Ui.logging(connectMessage);
                 this.printLogInDebugConsole(connectMessage);
@@ -432,7 +427,7 @@ export class LuaDebugSession extends LoggingDebugSession {
                 Ui.logging('[Get Msg]:' + data);
                 this._dataProcessor.processMsg(data.toString());
             });
-        }).listen(this.TCPPort, 0, () => {
+        }).listen(this.tcpPort, 0, () => {
             Ui.logging('listening...');
             Ui.logging('listening...');
         });
@@ -443,13 +438,13 @@ export class LuaDebugSession extends LoggingDebugSession {
         // 停止循环的时机 :  1建立连接后 2未建立连接，但是用户点击VScode stop按钮
         this.connectInterval = setInterval(
             (instance: LuaDebugSession) => {
-                instance._client = Net.createConnection(instance.TCPPort, instance.connectionIP);
+                instance.client = Net.createConnection(instance.tcpPort, instance.connectionIP);
                 //设置超时时间
-                instance._client.setTimeout(800);
+                instance.client.setTimeout(800);
 
-                instance._client.on('connect', () => {
+                instance.client.on('connect', () => {
                     clearInterval(instance.connectInterval); //连接后清除循环请求
-                    instance._dataProcessor._socket = instance._client;
+                    instance._dataProcessor._socket = instance.client;
                     instance._runtime.start((_: any, info: any) => {
                         let connectMessage = '[Connected] VSCode Client 已建立连接!';
                         Ui.logging(connectMessage);
@@ -476,7 +471,7 @@ export class LuaDebugSession extends LoggingDebugSession {
                     }, sendArgs);
                 });
 
-                instance._client.on('end', () => {
+                instance.client.on('end', () => {
                     // VScode client 主动发起断开连接
                     Ui.logging('client end');
                     vscode.window.showInformationMessage('[LuaPanda] 调试器已断开连接');
@@ -485,12 +480,12 @@ export class LuaDebugSession extends LoggingDebugSession {
                     instance.sendEvent(new TerminatedEvent(instance.autoReconnect));
                 });
 
-                instance._client.on('close', () => {
+                instance.client.on('close', () => {
                     // 可能是连接后断开，也可能是超时关闭socket
                     // Ui.logging('client close!');
                 });
                 //接收消息
-                instance._client.on('data', (data: string) => {
+                instance.client.on('data', (data: string) => {
                     Ui.logging('[Get Msg]:' + data);
                     instance._dataProcessor.processMsg(data.toString());
                 });
@@ -534,7 +529,7 @@ export class LuaDebugSession extends LoggingDebugSession {
         };
 
         // 更新记录数据中的断点
-        if (this.breakpointsArray == undefined) {
+        if (this.breakpointsArray === undefined) {
             this.breakpointsArray = new Array();
         }
 
@@ -601,12 +596,12 @@ export class LuaDebugSession extends LoggingDebugSession {
      */
     protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
         //watch -- 监视窗口
-        if (args.context == 'watch' || args.context == 'hover') {
+        if (args.context === 'watch' || args.context === 'hover') {
             let callbackArgs = new Array();
             callbackArgs.push(this);
             callbackArgs.push(response);
             //把B["A"] ['A'] => B.A形式
-            if (this.UseLoadstring == false) {
+            if (this.UseLoadstring === false) {
                 let watchString = args.expression;
                 watchString = watchString.replace(/\[/g, '.');
                 watchString = watchString.replace(/\"/g, '');
@@ -638,7 +633,7 @@ export class LuaDebugSession extends LoggingDebugSession {
                 args.expression,
                 args.frameId
             );
-        } else if (args.context == 'repl') {
+        } else if (args.context === 'repl') {
             //repl -- 调试控制台
             let callbackArgs = new Array();
             callbackArgs.push(this);
@@ -696,7 +691,7 @@ export class LuaDebugSession extends LoggingDebugSession {
 
         let referenceString = this._variableHandles.get(args.variablesReference);
         let referenceArray: string[] = [];
-        if (referenceString != null) {
+        if (referenceString === null) {
             referenceArray = referenceString.split('_');
             if (referenceArray.length < 2) {
                 Ui.logging('[variablesRequest Error] #referenceArray < 2 , #referenceArray = ' + referenceArray.length);
@@ -741,7 +736,7 @@ export class LuaDebugSession extends LoggingDebugSession {
 
         let referenceString = this._variableHandles.get(args.variablesReference);
         let referenceArray: string[] = [];
-        if (referenceString != null) {
+        if (referenceString !== null) {
             referenceArray = referenceString.split('_');
             if (referenceArray.length < 2) {
                 Ui.logging('[variablesRequest Error] #referenceArray < 2 , #referenceArray = ' + referenceArray.length);
@@ -755,7 +750,7 @@ export class LuaDebugSession extends LoggingDebugSession {
 
         this._runtime.getVariable(
             (arr: any, info: any) => {
-                if (info == undefined) {
+                if (info === undefined) {
                     info = [];
                 }
                 const variables = new Array<DebugProtocol.Variable>();
@@ -863,9 +858,9 @@ export class LuaDebugSession extends LoggingDebugSession {
         this.printLogInDebugConsole(disconnectMessage);
 
         let restart = args.restart;
-        if (this.VSCodeAsClient) {
+        if (this._vscodeAsClient) {
             clearInterval(this.connectInterval); // 在未建立连接的情况下清除循环
-            this._client?.end(); // 结束连接
+            this.client?.end(); // 结束连接
         } else {
             // 给lua发消息，让lua client停止运行
             let callbackArgs = new Array();
@@ -878,7 +873,7 @@ export class LuaDebugSession extends LoggingDebugSession {
                 callbackArgs,
                 'stopRun'
             );
-            this._server?.close(); // 关闭 server, 停止 listen. 放在这里的原因是即使未建立连接，也可以停止listen.
+            this.server?.close(); // 关闭 server, 停止 listen. 放在这里的原因是即使未建立连接，也可以停止listen.
         }
 
         // 删除自身的线程id, 并从LuaDebugSession实例列表中删除自身

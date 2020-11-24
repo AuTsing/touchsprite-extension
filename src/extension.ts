@@ -4,12 +4,13 @@ import DeviceSearcher from './components/DeviceSearcher';
 import Snapshoter from './view/Snapshoter';
 import Ui from './components/ui/Ui';
 
-import LuaConfigurationProvider from './components/debug2/LuaConfigurationProvider';
-import LuaDebugAdapterServerDescriptorFactory from './components/debug2/LuaDebugAdapterServerDescriptorFactory';
-import Tools from './components/lib/Tools';
+// import LuaConfigurationProvider from './components/debug2/LuaConfigurationProvider';
+// import LuaDebugAdapterServerDescriptorFactory from './components/debug2/LuaDebugAdapterServerDescriptorFactory';
+// import Tools from './components/lib/Tools';
 
-// import LuaConfigurationProvider from './components/debug/LuaConfigurationProvider';
-// import Tools from './components/debug/Tools';
+import LuaConfigurationProvider from './components/debug/LuaConfigurationProvider';
+import LuaDebugAdapterServerDescriptorFactory from './components/debug/LuaDebugAdapterServerDescriptorFactory';
+import Tools from './components/debug/Tools';
 
 export function activate(context: vscode.ExtensionContext) {
     const server = new Server();
@@ -32,6 +33,16 @@ export function activate(context: vscode.ExtensionContext) {
     const snapshoter = new Snapshoter(context, server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.snapshoter', () => snapshoter.show()));
 
+    // const provider = new LuaConfigurationProvider();
+    // context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('lua', provider));
+    // const factory = new LuaDebugAdapterServerDescriptorFactory();
+    // context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('lua', factory));
+    // context.subscriptions.push(factory);
+
+    // const pkg = require(context.extensionPath + '/package.json');
+    // Tools.adapterVersion = pkg.version;
+    // Tools.vscodeExtensionPath = context.extensionPath;
+
     const provider = new LuaConfigurationProvider();
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('lua', provider));
     const factory = new LuaDebugAdapterServerDescriptorFactory();
@@ -40,15 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const pkg = require(context.extensionPath + '/package.json');
     Tools.adapterVersion = pkg.version;
-    Tools.vscodeExtensionPath = context.extensionPath;
-
-    // const provider = new LuaConfigurationProvider();
-    // context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('lua', provider));
-    // context.subscriptions.push(provider);
-
-    // const pkg = require(context.extensionPath + '/package.json');
-    // Tools.adapterVersion = pkg.version;
-    // Tools.VSCodeExtensionPath = context.extensionPath;
+    Tools.VSCodeExtensionPath = context.extensionPath;
 }
 
 export function deactivate() {}
