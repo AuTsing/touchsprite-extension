@@ -115,7 +115,7 @@ class Server {
         };
 
         Ui.setStatusBar(`连接设备: ${ip} 中...`);
-        this._api
+        return this._api
             .getDeviceId(device)
             .then(res => {
                 device.id = res.data;
@@ -520,7 +520,10 @@ class Server {
         return this._attachingDevice;
     }
 
-    public test() {}
+    public async test() {
+        await this.attachDevice('192.168.6.110');
+        this.runProject();
+    }
 }
 
 export default Server;
