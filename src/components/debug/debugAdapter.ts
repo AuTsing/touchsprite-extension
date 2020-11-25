@@ -1,3 +1,3 @@
-import { LuaDebugSession } from './luaDebug';
+import { LuaDebugSession } from './LuaDebug';
 
 LuaDebugSession.run(LuaDebugSession);

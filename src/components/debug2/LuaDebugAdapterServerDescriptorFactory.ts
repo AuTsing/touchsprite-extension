@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as Net from 'net';
-import { LuaDebugSession } from './luaDebug';
+import { LuaDebugSession } from './LuaDebug';
 import Ui from '../ui/Ui';
 
 class LuaDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {

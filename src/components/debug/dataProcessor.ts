@@ -1,4 +1,4 @@
-import { LuaDebugRuntime } from './luaDebugRuntime';
+import { LuaDebugRuntime } from './LuaDebugRuntime';
 import { Socket } from 'net';
 import Ui from '../ui/Ui';
 

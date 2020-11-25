@@ -1,5 +1,5 @@
 import { Socket } from 'net';
-import { ICallbackArgs } from './luaDebug';
+import { ICallbackArgs } from './LuaDebug';
 import LuaRuntime from './LuaRuntime';
 import Ui from '../ui/Ui';
 

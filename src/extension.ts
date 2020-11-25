@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const pkg = require(context.extensionPath + '/package.json');
     Tools.adapterVersion = pkg.version;
-    Tools.VSCodeExtensionPath = context.extensionPath;
+    Tools.vscodeExtensionPath = context.extensionPath;
 }
 
 export function deactivate() {}

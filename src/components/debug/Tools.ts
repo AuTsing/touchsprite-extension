@@ -18,25 +18,25 @@ interface IActivityInfo {
 class Tools {
     public static extMap: any; // 可处理的文件后缀列表
     public static adapterVersion: string; //赋值放在了插件初始化时
-    public static VSCodeExtensionPath: string; // VSCode插件所在路径，插件初始化时就会被赋值.
+    public static vscodeExtensionPath: string; // VSCode插件所在路径，插件初始化时就会被赋值.
     public static developmentMode = false;
 
     constructor(context: vscode.ExtensionContext) {
         const pkg = require(context.extensionPath + '/package.json');
         Tools.adapterVersion = pkg.version;
-        Tools.VSCodeExtensionPath = context.extensionPath;
+        Tools.vscodeExtensionPath = context.extensionPath;
     }
 
     // 路径相关函数
     // 获取扩展中预置的lua文件位置
     public static getLuaPathInExtension(): string {
-        let luaPathInVSCodeExtension = this.VSCodeExtensionPath + '/Debugger/LuaPanda.lua';
+        let luaPathInVSCodeExtension = this.vscodeExtensionPath + '/Debugger/LuaPanda.lua';
         return luaPathInVSCodeExtension;
     }
 
     // 获取扩展中预置的lua文件位置
     public static getClibPathInExtension(): string {
-        let ClibPathInVSCodeExtension = this.VSCodeExtensionPath + '/Debugger/debugger_lib/plugins/';
+        let ClibPathInVSCodeExtension = this.vscodeExtensionPath + '/Debugger/debugger_lib/plugins/';
         return ClibPathInVSCodeExtension;
     }
 
@@ -44,7 +44,7 @@ class Tools {
     // @path 文件路径
     // @return 文件内容
     public static readFileContent(path: string): string {
-        if (path === '' || path == undefined) {
+        if (path === '' || path === undefined) {
             return '';
         }
         let data = fs.readFileSync(path);
@@ -56,7 +56,7 @@ class Tools {
     // @path 文件路径
     // @return 文件内容
     public static writeFileContent(path: string, content: string) {
-        if (path === '' || path == undefined) {
+        if (path === '' || path === undefined) {
             return;
         }
         fs.writeFileSync(path, content);
@@ -125,7 +125,7 @@ class Tools {
         Tools.extMap['lua'] = true;
         Tools.extMap['lua.txt'] = true;
         Tools.extMap['lua.bytes'] = true;
-        if (typeof userSetExt == 'string' && userSetExt != '') {
+        if (typeof userSetExt === 'string' && userSetExt !== '') {
             Tools.extMap[userSetExt] = true;
         }
     }
