@@ -100,7 +100,7 @@ class LuaConfigurationProvider implements vscode.DebugConfigurationProvider {
             }
 
             if (config.stopOnEntry === undefined) {
-                config.stopOnEntry = true;
+                config.stopOnEntry = false;
             }
 
             if (config.pathCaseSensitivity === undefined) {

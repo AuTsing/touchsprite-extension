@@ -1,23 +1,25 @@
+/* eslint-disable eqeqeq */
 import { LuaDebugRuntime } from './LuaDebugRuntime';
+import { ICallbackArgs } from './LuaDebug';
 import { Socket } from 'net';
 import Ui from '../ui/Ui';
 
 interface IOrder {
-    timeOut: number | undefined;
-    callback: ((args: any, info?: any) => void) | undefined;
-    callbackArgs: any | undefined;
-    callbackId: number | undefined;
+    callbackId?: number;
+    callback?: (() => void) | ((args: ICallbackArgs) => void) | ((args: ICallbackArgs, info: any) => void);
+    callbackArgs?: ICallbackArgs;
+    timeOut?: number;
 }
 
 //网络收发消息，记录回调
 export class DataProcessor {
-    public _runtime!: LuaDebugRuntime; //RunTime句柄
-    public _socket: Socket | undefined;
+    public runtime!: LuaDebugRuntime; //RunTime句柄
+    public socket: Socket | undefined;
     public isNeedB64EncodeStr: boolean = true;
-    private orderList: { [key: string]: any }[] = []; //记录随机数和它对应的回调
-    private recvMsgQueue: Array<string> = new Array(); //记录粘包的多条指令
-    private cutoffString: string = '';
-    private getDataJsonCatch: string = ''; //解析缓存，防止用户信息中含有分隔符
+    private _orderList: IOrder[] = []; //记录随机数和它对应的回调
+    private _recvMsgQueue: string[] = []; //记录粘包的多条指令
+    private _cutoffString: string = '';
+    private _getDataJsonCatch: string = ''; //解析缓存，防止用户信息中含有分隔符
 
     /**
      * 接收从Debugger发来的消息
@@ -25,41 +27,42 @@ export class DataProcessor {
      */
     public processMsg(orgData: string) {
         let data = orgData.trim();
-        if (this.cutoffString.length > 0) {
-            data = this.cutoffString + data;
-            this.cutoffString = '';
+        if (this._cutoffString.length > 0) {
+            data = this._cutoffString + data;
+            this._cutoffString = '';
         }
 
-        let pos = data.indexOf(this._runtime.TCPSplitChar);
+        let pos = data.indexOf(this.runtime.tcpSplitChar);
         if (pos < 0) {
             //没有分隔符，做截断判断
             this.processCutoffMsg(data);
         } else {
             do {
                 let data_save = data.substring(0, pos); //保存的命令
-                data = data.substring(pos + this._runtime.TCPSplitChar.length, data.length);
-                this.recvMsgQueue.push(data_save);
-                pos = data.indexOf(this._runtime.TCPSplitChar);
+                data = data.substring(pos + this.runtime.tcpSplitChar.length, data.length);
+                this._recvMsgQueue.push(data_save);
+                pos = data.indexOf(this.runtime.tcpSplitChar);
                 if (pos < 0) {
                     //没有分隔符时，剩下的字符串不为空
                     this.processCutoffMsg(data);
                 }
             } while (pos > 0);
 
-            while (this.recvMsgQueue.length > 0) {
-                let dt1 = this.recvMsgQueue.shift(); //从头部取元素，保证是一个队列形式
+            while (this._recvMsgQueue.length > 0) {
+                let dt1 = this._recvMsgQueue.shift(); //从头部取元素，保证是一个队列形式
                 this.getData(String(dt1));
             }
         }
 
         //最后处理一下超时回调
-        for (let index = 0; index < this.orderList.length; index++) {
-            const element = this.orderList[index];
+        for (let index = 0; index < this._orderList.length; index++) {
+            const element = this._orderList[index];
             if (element['timeOut'] && Date.now() > element['timeOut']) {
                 // dataProcessor._runtime.showError(element["callbackId"] + " 请求超时! 详细请求信息可在 LuaPanda Adapter 中搜索此id查看");
-                let cb = element['callback'];
-                cb(element['callbackArgs']);
-                this.orderList.splice(index, 1);
+                const cb = element.callback as (args: ICallbackArgs) => void;
+                const cba = element.callbackArgs!;
+                cb(cba);
+                this._orderList.splice(index, 1);
             }
         }
     }
@@ -71,7 +74,7 @@ export class DataProcessor {
     private processCutoffMsg(orgData: string) {
         let data = orgData.trim();
         if (data.length > 0) {
-            this.cutoffString = this.cutoffString + data; //被截断的部分
+            this._cutoffString = this._cutoffString + data; //被截断的部分
         }
     }
 
@@ -82,8 +85,8 @@ export class DataProcessor {
     private getData(data: string) {
         let cmdInfo;
         try {
-            if (this.getDataJsonCatch != '') {
-                data = this.getDataJsonCatch + data;
+            if (this._getDataJsonCatch != '') {
+                data = this._getDataJsonCatch + data;
             }
             cmdInfo = JSON.parse(data);
             if (this.isNeedB64EncodeStr && cmdInfo.info !== undefined) {
@@ -93,40 +96,43 @@ export class DataProcessor {
                     }
                 }
             }
-            this.getDataJsonCatch = '';
+            this._getDataJsonCatch = '';
         } catch (e) {
             if (this.isNeedB64EncodeStr) {
-                this._runtime.showError(' JSON  解析失败! ' + data);
+                this.runtime.showError(' JSON  解析失败! ' + data);
                 Ui.logging('[Adapter Error]: JSON  解析失败! ' + data);
             } else {
-                this.getDataJsonCatch = data + '|*|';
+                this._getDataJsonCatch = data + '|*|';
             }
             return;
         }
 
-        if (this._runtime != undefined) {
+        if (this.runtime != undefined) {
             if (cmdInfo == undefined) {
-                this._runtime.showError('JSON 解析失败! no cmdInfo:' + data);
+                this.runtime.showError('JSON 解析失败! no cmdInfo:' + data);
                 Ui.logging('[Adapter Error]:JSON解析失败  no cmdInfo:' + data);
                 return;
             }
             if (cmdInfo['cmd'] == undefined) {
-                this._runtime.showError('JSON 解析失败! no cmd:' + data);
+                this.runtime.showError('JSON 解析失败! no cmd:' + data);
                 Ui.logging('[Adapter Warning]:JSON 解析失败 no cmd:' + data);
             }
 
             if (cmdInfo['callbackId'] != undefined && cmdInfo['callbackId'] != '0') {
                 //进入回调（如增加断点）
-                for (let index = 0; index < this.orderList.length; index++) {
-                    const element = this.orderList[index];
+                for (let index = 0; index < this._orderList.length; index++) {
+                    const element = this._orderList[index];
                     if (element['callbackId'] == cmdInfo['callbackId']) {
-                        let cb = element['callback'];
                         if (cmdInfo['info'] != undefined) {
-                            cb(element['callbackArgs'], cmdInfo['info']);
+                            const cb = element.callback as (args: ICallbackArgs, info: any) => void;
+                            const cba = element.callbackArgs!;
+                            cb(cba, cmdInfo['info']);
                         } else {
-                            cb(element['callbackArgs']);
+                            const cb = element.callback as (args: ICallbackArgs) => void;
+                            const cba = element.callbackArgs!;
+                            cb(cba);
                         }
-                        this.orderList.splice(index, 1);
+                        this._orderList.splice(index, 1);
                         return;
                     }
                 }
@@ -134,13 +140,13 @@ export class DataProcessor {
             } else {
                 switch (cmdInfo['cmd']) {
                     case 'refreshLuaMemory':
-                        this._runtime.refreshLuaMemoty(cmdInfo['info']['memInfo']);
+                        this.runtime.refreshLuaMemoty(cmdInfo['info']['memInfo']);
                         break;
                     case 'tip':
-                        this._runtime.showTip(cmdInfo['info']['logInfo']);
+                        this.runtime.showTip(cmdInfo['info']['logInfo']);
                         break;
                     case 'tipError':
-                        this._runtime.showError(cmdInfo['info']['logInfo']);
+                        this.runtime.showError(cmdInfo['info']['logInfo']);
                         break;
                     case 'stopOnCodeBreakpoint':
                     case 'stopOnBreakpoint':
@@ -149,18 +155,18 @@ export class DataProcessor {
                     case 'stopOnStepIn':
                     case 'stopOnStepOut':
                         let stackInfo = cmdInfo['stack'];
-                        this._runtime.stop(stackInfo, cmdInfo['cmd']);
+                        this.runtime.stop(stackInfo, cmdInfo['cmd']);
                         break;
                     case 'output':
                         let outputLog = cmdInfo['info']['logInfo'];
                         if (outputLog != undefined) {
-                            this._runtime.printLog(outputLog);
+                            this.runtime.printLog(outputLog);
                         }
                         break;
                     case 'debug_console':
                         let consoleLog = cmdInfo['info']['logInfo'];
                         if (consoleLog != undefined) {
-                            this._runtime.logInDebugConsole(consoleLog);
+                            this.runtime.logInDebugConsole(consoleLog);
                         }
                         break;
                 }
@@ -175,7 +181,13 @@ export class DataProcessor {
      * @param callbackFunc: 回调函数
      * @param callbackArgs: 回调参数
      */
-    public commandToDebugger(cmd: string, sendObject: Object, callbackFunc = undefined, callbackArgs = undefined, timeOutSec = 0) {
+    public commandToDebugger(
+        cmd: string,
+        sendObject: Object,
+        callbackFunc?: (() => void) | ((args: ICallbackArgs) => void) | ((args: ICallbackArgs, info: any) => void),
+        callbackArgs?: ICallbackArgs,
+        timeOutSec = 0
+    ) {
         //生成随机数
         let max = 999999999;
         let min = 10; //10以内是保留位
@@ -189,7 +201,7 @@ export class DataProcessor {
                 isSame = false;
                 ranNum = Math.floor(Math.random() * (max - min + 1) + min);
                 //检查随机数唯一性
-                this.orderList.forEach(element => {
+                this._orderList.forEach(element => {
                     if (element['callbackId'] == ranNum) {
                         //若遍历后isSame依然是false，说明没有重合
                         isSame = true;
@@ -206,17 +218,17 @@ export class DataProcessor {
             if (callbackArgs != undefined) {
                 dic['callbackArgs'] = callbackArgs;
             }
-            this.orderList.push(dic);
+            this._orderList.push(dic);
             sendObj['callbackId'] = ranNum.toString();
         }
 
         sendObj['cmd'] = cmd;
         sendObj['info'] = sendObject;
-        const str = JSON.stringify(sendObj) + ' ' + this._runtime.TCPSplitChar + '\n';
+        const str = JSON.stringify(sendObj) + ' ' + this.runtime.tcpSplitChar + '\n';
         //记录随机数和回调的对应关系
-        if (this._socket != undefined) {
+        if (this.socket != undefined) {
             Ui.logging('[Send Msg]:' + str);
-            this._socket.write(str);
+            this.socket.write(str);
         } else {
             Ui.logging('[Send Msg but socket deleted]:' + str);
         }

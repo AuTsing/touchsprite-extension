@@ -1,5 +1,3 @@
-// import { DebugLogger } from './logManager';
-
 export class ThreadManager {
     static THREAD_ID_COUNTER = 0; // 线程计数器
     static NEXT_THREAD_ID = 0; // 指示下一个待分配 thread id

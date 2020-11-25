@@ -15,8 +15,12 @@ interface IActivityInfo {
     filePath: string;
 }
 
+interface IExtMap {
+    [key: string]: boolean;
+}
+
 class Tools {
-    public static extMap: any; // 可处理的文件后缀列表
+    public static extMap: IExtMap; // 可处理的文件后缀列表
     public static adapterVersion: string; //赋值放在了插件初始化时
     public static vscodeExtensionPath: string; // VSCode插件所在路径，插件初始化时就会被赋值.
     public static developmentMode = false;

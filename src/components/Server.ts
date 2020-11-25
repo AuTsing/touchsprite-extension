@@ -7,6 +7,7 @@ import { StatusBarType } from './ui/StatusBar';
 import Api from './Api';
 import Project, { IProjectFile, ProjectFileRoot } from './Project';
 import Zipper from './Zipper';
+import * as fs from 'fs';
 
 export interface IDevice {
     ip: string;
@@ -22,14 +23,16 @@ class Server {
     private _accessKey: string;
     private _hostIp: string;
     private _attachingDevice: IDevice | undefined;
+    private readonly _extensionPath: string;
 
-    constructor() {
+    constructor(context: vscode.ExtensionContext) {
         this._accessKey = '';
         this._hostIp = '';
         this.checkAccessKey();
         this.checkLogger();
         this.checkHostIp();
         this._api = new Api();
+        this._extensionPath = context.extensionPath;
     }
 
     private checkAccessKey() {
@@ -214,7 +217,7 @@ class Server {
             Ui.logging('运行工程失败: 尚未连接设备');
             return;
         }
-        this._api
+        return this._api
             .setLogServer(this._attachingDevice, this._hostIp)
             .then(res => {
                 if (res.data !== 'ok') {
@@ -518,6 +521,70 @@ class Server {
 
     public getAttachingDevice() {
         return this._attachingDevice;
+    }
+
+    public async debug() {
+        if (!this._attachingDevice) {
+            Ui.setStatusBarTemporary(StatusBarType.failed);
+            Ui.logging('开启调试失败: 尚未连接设备');
+            return;
+        }
+
+        const luapanda = vscode.Uri.file(path.join(this._extensionPath, 'assets', 'debugger', 'LuaPanda.lua'));
+
+        const bootStr = `require("LuaPanda").start("${this._hostIp}",8818)local a=function(b)LuaPanda.printToVSCode(b,1,2)end;nLog=a;print=a;require("main")`;
+        fs.writeFileSync(path.join(this._extensionPath, 'assets', 'debugger', 'boot.lua'), bootStr);
+        const boot = vscode.Uri.file(path.join(this._extensionPath, 'assets', 'debugger', 'boot.lua'));
+
+        const uris: vscode.Uri[] = [luapanda, boot];
+
+        new Promise<any>(async (resolve, reject) => {
+            if (uris && uris.length > 0) {
+                const pjfs: IProjectFile[] = uris.map(file => {
+                    const url = file.path.substring(1);
+                    return {
+                        url: url,
+                        path: '/',
+                        filename: path.basename(url),
+                        root: ProjectFileRoot.lua,
+                    };
+                });
+                Ui.setStatusBar('$(cloud-upload) 上传文件中...');
+                const miss: string[] = [];
+                for (const pjf of pjfs) {
+                    await this._api.upload(this._attachingDevice!, pjf).then(res => {
+                        if (res.data !== 'ok') {
+                            miss.push(pjf.filename);
+                        }
+                    });
+                }
+                if (miss.length > 0) {
+                    const missInOne = miss.join(', ');
+                    return Promise.reject(`以下文件上传失败[${missInOne}]`);
+                }
+            }
+            return resolve(uris.length);
+        })
+            .then((succeed: number) => {
+                Ui.logging('上传引导文件成功: ' + succeed);
+
+                return vscode.debug.startDebugging(undefined, {
+                    type: 'lua',
+                    request: 'launch',
+                    tag: 'normal',
+                    name: 'LuaPanda',
+                    description: '通用模式,通常调试项目请选择此模式 | launchVer:3.2.0',
+                    cwd: '${workspaceFolder}',
+                    luaFileExtension: '',
+                    connectionPort: 8818,
+                    stopOnEntry: false,
+                    useCHook: true,
+                    autoPathMode: true,
+                });
+            })
+            .then(() => {
+                return this.runProject('boot.lua');
+            });
     }
 
     public async test() {
