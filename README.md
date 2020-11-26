@@ -21,6 +21,7 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 -   [x] 运行工程
 -   [x] 运行测试工程
 -   [x] 停止工程
+-   [x] 断点调试\*
 -   [x] 打包工程
 -   [x] 上传文件
 -   [x] 抓图
@@ -30,9 +31,7 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 -   [x] 图片比较
 -   [ ] 字库代码生成
 -   [ ] 触动函数代码补全
--   [ ] 格式化文件
 -   [ ] 脚手架生成
--   ~~[ ] 代码调试(没有解决方案，所以暂时放弃)~~
 
 # 使用
 
@@ -41,6 +40,10 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 安装完成后前请先在设置中输入触动提供的开发者 AccessKey。
 
 快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，输入 '触动插件' ，以 '触动插件' 开头的命令均为本插件提供的便捷指令。
+
+### 代码调试
+
+代码调试需要编写好测试引导文件 maintest.lua 并设置好断点。然后使用快捷键 **<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>** 调出输入框，输入 '触动插件: 开始调试' 即可开始调试。
 
 ## 快捷键
 
@@ -66,6 +69,10 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 # License
 
 [GNU General Public License version 3](https://github.com/AuTsing/touchsprite-extension/blob/master/LICENSE) @AuTsing
+
+# 贡献
+
+-   调试功能基于 [LuaPanda](https://github.com/Tencent/LuaPanda) 进行开发
 
 # 声明
 

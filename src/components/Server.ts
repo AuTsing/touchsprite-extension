@@ -194,12 +194,12 @@ class Server {
     }
 
     public operationsMenu() {
-        vscode.window.showQuickPick(['触动插件: 搜索设备', '触动插件: 连接设备', '触动插件: 断开设备']).then(selected => {
+        vscode.window.showQuickPick(['触动插件: 连接设备(搜索设备)', '触动插件: 连接设备(手动输入)', '触动插件: 断开设备']).then(selected => {
             switch (selected) {
-                case '触动插件: 搜索设备':
+                case '触动插件: 连接设备(搜索设备)':
                     vscode.commands.executeCommand('extension.search');
                     break;
-                case '触动插件: 连接设备':
+                case '触动插件: 连接设备(手动输入)':
                     vscode.commands.executeCommand('extension.connect');
                     break;
                 case '触动插件: 断开设备':
@@ -211,7 +211,8 @@ class Server {
         });
     }
 
-    public runProject(runfile = 'main.lua') {
+    public runProject(runfile = 'main.lua', boot?: string) {
+        boot = boot ? boot : runfile;
         if (!this._attachingDevice) {
             Ui.setStatusBarTemporary(StatusBarType.failed);
             Ui.logging('运行工程失败: 尚未连接设备');
@@ -223,7 +224,7 @@ class Server {
                 if (res.data !== 'ok') {
                     return Promise.reject('设置日志服务器失败');
                 }
-                return this._api.setLuaPath(this._attachingDevice!, runfile);
+                return this._api.setLuaPath(this._attachingDevice!, boot!);
             })
             .then(async res => {
                 if (res.data !== 'ok') {
@@ -583,7 +584,9 @@ class Server {
                 });
             })
             .then(() => {
-                return this.runProject('boot.lua');
+                const testRunFile: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.testRunFile');
+                const runfile = testRunFile ? testRunFile : 'maintest.lua';
+                return this.runProject(runfile, 'boot.lua');
             });
     }
 

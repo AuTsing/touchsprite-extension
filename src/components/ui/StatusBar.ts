@@ -48,11 +48,11 @@ class StatusBar {
             switch (content) {
                 case StatusBarType.failed:
                     this.setStatusBar('$(issues) 操作失败...');
-                    setTimeout(() => this.setStatusBar(StatusBarType.connected), 3000);
+                    setTimeout(() => this.setStatusBar(StatusBarType.connected), 2000);
                     break;
                 case StatusBarType.successful:
                     this.setStatusBar('$(check) 操作成功...');
-                    setTimeout(() => this.setStatusBar(StatusBarType.connected), 3000);
+                    setTimeout(() => this.setStatusBar(StatusBarType.connected), 2000);
                     break;
                 default:
                     break;
