@@ -64,14 +64,14 @@ export class PathManager {
             } else if (typeof _fileNameToPathMap[fileNameKey] === 'string') {
                 completePath = _fileNameToPathMap[fileNameKey];
             }
-            Ui.logging(processingRate + '%  |  ' + fileNameKey + '   ' + completePath);
+            Ui.logDebug(processingRate + '%  |  ' + fileNameKey + '   ' + completePath);
             // record LuaPanda.lua Path
             if (fileNameKey === 'LuaPanda') {
                 this.LuaPandaPath = completePath;
             }
         }
         let endMS = Tools.getCurrentMS(); //文件分析结束时毫秒数
-        Ui.logging('文件Map刷新完毕，使用了' + (endMS - beginMS) + '毫秒。检索了' + workspaceFileCount + '个文件， 其中' + processFilNum + '个lua类型文件');
+        Ui.logDebug('文件Map刷新完毕，使用了' + (endMS - beginMS) + '毫秒。检索了' + workspaceFileCount + '个文件， 其中' + processFilNum + '个lua类型文件');
         if (processFilNum <= 0) {
             vscode.window.showErrorMessage(
                 '没有在工程中检索到lua文件。请检查launch.json文件中lua后缀(luaFileExtension)是否配置正确, 以及VSCode打开的工程是否正确',
@@ -79,8 +79,7 @@ export class PathManager {
             );
             let noLuaFileTip =
                 '[!] 没有在VSCode打开的工程中检索到lua文件，请进行如下检查\n 1. VSCode打开的文件夹是否正确 \n 2. launch.json 文件中 luaFileExtension 选项配置是否正确';
-            Ui.logging(noLuaFileTip);
-            Ui.logging(noLuaFileTip);
+            Ui.logError(noLuaFileTip);
         }
         this.fileNameToPathMap = _fileNameToPathMap;
     }
@@ -111,9 +110,7 @@ export class PathManager {
                 sameNameFileTips += '方法3: 同名文件信息展示在 VSCode 控制台 OUTPUT - LuaPanda Debugger 中, 也可以尝试修改文件名;\n';
                 this.consoleLog(sameNameFileTips, this.luaDebugInstance);
             }
-
-            Ui.logging(sameNameFileStr);
-            Ui.logging(sameNameFileStr);
+            Ui.logError(sameNameFileStr);
         }
     }
 
@@ -161,7 +158,7 @@ export class PathManager {
             }
         }
         //最终没有找到，返回输入的地址
-        Ui.logging('调试器没有找到文件 ' + shortPath + ' 。 请检查launch.json文件中lua后缀是否配置正确, 以及VSCode打开的工程是否正确');
+        Ui.logError('调试器没有找到文件 ' + shortPath + ' 。 请检查launch.json文件中lua后缀是否配置正确, 以及VSCode打开的工程是否正确');
         return shortPath;
     }
 
@@ -210,13 +207,13 @@ export class PathManager {
         if (Tools.developmentMode === true) {
             // 开发模式下提示
             let str = 'file_name:' + fileName + '  opath:' + oPath + '无法命中任何文件路径!';
-            Ui.logging(str);
+            Ui.logError(str);
             let Adapterlog = '同名文件无法命中!\n';
             for (const iteratorPath of fullPathArray) {
                 Adapterlog += ' + ' + iteratorPath + '\n';
             }
             Adapterlog += str;
-            Ui.logging(Adapterlog);
+            Ui.logError(Adapterlog);
         }
         return fullPathArray[0];
     }

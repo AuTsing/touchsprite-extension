@@ -533,7 +533,7 @@ class Server {
 
         const luapanda = vscode.Uri.file(path.join(this._extensionPath, 'assets', 'debugger', 'LuaPanda.lua'));
 
-        const bootStr = `require("LuaPanda").start("${this._hostIp}",8818)local a=function(b)LuaPanda.printToVSCode(b,1,2)end;nLog=a;print=a;require("maintest")`;
+        const bootStr = `require("LuaPanda").start("${this._hostIp}",8818)local a=function(b)LuaPanda.printToVSCode(b,1,2)end;nLog=a;require("maintest")`;
         fs.writeFileSync(path.join(this._extensionPath, 'assets', 'debugger', 'boot.lua'), bootStr);
         const boot = vscode.Uri.file(path.join(this._extensionPath, 'assets', 'debugger', 'boot.lua'));
 

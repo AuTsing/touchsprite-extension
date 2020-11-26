@@ -58,7 +58,7 @@ export class DataProcessor {
         for (let index = 0; index < this._orderList.length; index++) {
             const element = this._orderList[index];
             if (element['timeOut'] && Date.now() > element['timeOut']) {
-                // dataProcessor._runtime.showError(element["callbackId"] + " 请求超时! 详细请求信息可在 LuaPanda Adapter 中搜索此id查看");
+                Ui.logDebug(element['callbackId'] + ' 请求超时! 详细请求信息可在 LuaPanda Adapter 中搜索此id查看');
                 const cb = element.callback as (args: ICallbackArgs) => void;
                 const cba = element.callbackArgs!;
                 cb(cba);
@@ -99,8 +99,9 @@ export class DataProcessor {
             this._getDataJsonCatch = '';
         } catch (e) {
             if (this.isNeedB64EncodeStr) {
-                this.runtime.showError(' JSON  解析失败! ' + data);
-                Ui.logging('[Adapter Error]: JSON  解析失败! ' + data);
+                const content = '[Adapter Error] JSON解析失败 ' + data;
+                Ui.popError(content);
+                Ui.logError(content);
             } else {
                 this._getDataJsonCatch = data + '|*|';
             }
@@ -109,13 +110,15 @@ export class DataProcessor {
 
         if (this.runtime != undefined) {
             if (cmdInfo == undefined) {
-                this.runtime.showError('JSON 解析失败! no cmdInfo:' + data);
-                Ui.logging('[Adapter Error]:JSON解析失败  no cmdInfo:' + data);
+                const content = '[Adapter Error] JSON解析失败，缺失 cmdInfo ' + data;
+                Ui.popError(content);
+                Ui.logError(content);
                 return;
             }
             if (cmdInfo['cmd'] == undefined) {
-                this.runtime.showError('JSON 解析失败! no cmd:' + data);
-                Ui.logging('[Adapter Warning]:JSON 解析失败 no cmd:' + data);
+                const content = '[Adapter Error] JSON解析失败，缺失 cmd ' + data;
+                Ui.popError(content);
+                Ui.logError(content);
             }
 
             if (cmdInfo['callbackId'] != undefined && cmdInfo['callbackId'] != '0') {
@@ -136,17 +139,17 @@ export class DataProcessor {
                         return;
                     }
                 }
-                Ui.logging('[Adapter Error]: 没有在列表中找到回调');
+                Ui.logError('[Adapter Error] 没有在列表中找到回调');
             } else {
                 switch (cmdInfo['cmd']) {
                     case 'refreshLuaMemory':
                         this.runtime.refreshLuaMemoty(cmdInfo['info']['memInfo']);
                         break;
                     case 'tip':
-                        this.runtime.showTip(cmdInfo['info']['logInfo']);
+                        Ui.popMessage(cmdInfo['info']['logInfo']);
                         break;
                     case 'tipError':
-                        this.runtime.showError(cmdInfo['info']['logInfo']);
+                        Ui.popError(cmdInfo['info']['logInfo']);
                         break;
                     case 'stopOnCodeBreakpoint':
                     case 'stopOnBreakpoint':
@@ -227,10 +230,10 @@ export class DataProcessor {
         const str = JSON.stringify(sendObj) + ' ' + this.runtime.tcpSplitChar + '\n';
         //记录随机数和回调的对应关系
         if (this.socket != undefined) {
-            Ui.logging('[Send Msg]:' + str);
+            Ui.logDebug('[Send Msg] ' + str);
             this.socket.write(str);
         } else {
-            Ui.logging('[Send Msg but socket deleted]:' + str);
+            Ui.logDebug('[Send Msg but socket deleted] ' + str);
         }
     }
 }
