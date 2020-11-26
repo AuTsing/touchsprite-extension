@@ -1,1 +1,1 @@
-require("LuaPanda").start("192.168.6.100",8818)local a=function(b)LuaPanda.printToVSCode(b,1,2)end;nLog=a;print=a;require("main")
+require("LuaPanda").start("192.168.6.100",8818)local a=function(b)LuaPanda.printToVSCode(b,1,2)end;nLog=a;print=a;require("maintest")

@@ -21,7 +21,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('extension.zipProject', () => server.zipProject()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.uploadFile', () => server.uploadFile()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.setHostIp', () => server.setHostIp()));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => server.debug()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.debug', () => server.debug()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => server.test()));
 
     const dvs = new DeviceSearcher(server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.search', () => dvs.search()));
@@ -38,8 +39,6 @@ export function activate(context: vscode.ExtensionContext) {
     const pkg = require(context.extensionPath + '/package.json');
     Tools.adapterVersion = pkg.version;
     Tools.vscodeExtensionPath = context.extensionPath;
-
-
 }
 
 export function deactivate() {}

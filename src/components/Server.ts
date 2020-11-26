@@ -301,7 +301,7 @@ class Server {
 
     public runTestProject() {
         const testRunFile: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.testRunFile');
-        const runfile = testRunFile ? testRunFile : 'main.test.lua';
+        const runfile = testRunFile ? testRunFile : 'maintest.lua';
         return this.runProject(runfile);
     }
 
@@ -532,7 +532,7 @@ class Server {
 
         const luapanda = vscode.Uri.file(path.join(this._extensionPath, 'assets', 'debugger', 'LuaPanda.lua'));
 
-        const bootStr = `require("LuaPanda").start("${this._hostIp}",8818)local a=function(b)LuaPanda.printToVSCode(b,1,2)end;nLog=a;print=a;require("main")`;
+        const bootStr = `require("LuaPanda").start("${this._hostIp}",8818)local a=function(b)LuaPanda.printToVSCode(b,1,2)end;nLog=a;print=a;require("maintest")`;
         fs.writeFileSync(path.join(this._extensionPath, 'assets', 'debugger', 'boot.lua'), bootStr);
         const boot = vscode.Uri.file(path.join(this._extensionPath, 'assets', 'debugger', 'boot.lua'));
 
@@ -588,8 +588,7 @@ class Server {
     }
 
     public async test() {
-        await this.attachDevice('192.168.6.110');
-        this.runProject();
+        await this.attachDevice('192.168.6.111');
     }
 }
 

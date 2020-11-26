@@ -97,7 +97,7 @@
                         ".git",
                         ".gitignore",
                         ".vscode",
-                        "main.test.lua"
+                        "maintest.lua"
                     ],
                     "type": "array",
                     "scope": "resource",
@@ -105,7 +105,7 @@
                 },
                 "touchsprite-extension.testRunFile": {
                     "type": "string",
-                    "default": "main.test.lua",
+                    "default": "maintest.lua",
                     "scope": "resource",
                     "description": "测试工程引导文件"
                 }
@@ -118,7 +118,7 @@
             },
             {
                 "command": "extension.connect",
-                "title": "触动插件: 连接设备"
+                "title": "触动插件: 连接设备(手动输入)"
             },
             {
                 "command": "extension.disconnect",
@@ -126,11 +126,11 @@
             },
             {
                 "command": "extension.runProject",
-                "title": "触动插件: 运行工程"
+                "title": "触动插件: 运行工程(main.lua)"
             },
             {
                 "command": "extension.runTestProject",
-                "title": "触动插件: 运行测试工程"
+                "title": "触动插件: 运行测试工程(maintest.lua)"
             },
             {
                 "command": "extension.runScript",
@@ -146,7 +146,7 @@
             },
             {
                 "command": "extension.search",
-                "title": "触动插件: 搜索设备"
+                "title": "触动插件: 连接设备(搜索设备)"
             },
             {
                 "command": "extension.snapshoter",
@@ -161,8 +161,12 @@
                 "title": "触动插件: 设置本机IP"
             },
             {
+                "command": "extension.debug",
+                "title": "触动插件: 开始调试"
+            },
+            {
                 "command": "extension.test",
-                "title": "触动插件: TEST"
+                "title": "触动插件: TEST(普通用户请勿使用)"
             }
         ],
         "keybindings": [
