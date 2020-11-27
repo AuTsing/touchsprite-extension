@@ -32,6 +32,7 @@ import * as fs from 'fs';
 import { Subject } from 'await-notify';
 import Ui from '../ui/Ui';
 import * as os from 'os';
+import ProjectGenerator from '../ProjectGenerator';
 
 interface IBreakpointRecord {
     bkPath: string;
@@ -200,23 +201,30 @@ export class LuaDebugSession extends LoggingDebugSession {
     }
 
     private initProcess(response: any, args: any) {
+        const pjg = new ProjectGenerator('maintest.lua');
+        pjg.generate();
+
+        if (!pjg.focusing) {
+            Ui.logError('未指定工程，请聚焦在工程文件再运行');
+            return;
+        }
+
+        if (!pjg.projectRoot) {
+            Ui.logError(`所选工程不包含引导文件 maintest.lua`);
+            return;
+        }
+
         //1. 配置初始化信息
         this.tcpPort = args.connectionPort;
-        this._pathManager.CWD = args.cwd;
-        this._pathManager.rootFolder = args.rootFolder;
+        this._pathManager.CWD = pjg.projectRoot;
+        this._pathManager.rootFolder = pjg.projectRoot;
         this._pathManager.useAutoPathMode = !!args.autoPathMode;
         this._pathManager.pathCaseSensitivity = !!args.pathCaseSensitivity;
         this._dbCheckBreakpoint = !!args.dbCheckBreakpoint;
 
         if (this._pathManager.useAutoPathMode === true) {
             Tools.rebuildAcceptExtMap(args.luaFileExtension);
-            // 判断 args.cwd 是否存在， 如果不存在给出提示，并停止运行
-            let isCWDExist = fs.existsSync(args.cwd);
-            if (!isCWDExist) {
-                vscode.window.showErrorMessage('[Error] launch.json 文件中 cwd 指向的路径 ' + args.cwd + ' 不存在，请修改后再次运行！', '好的');
-                return;
-            }
-            this._pathManager.rebuildWorkspaceNamePathMap(args.cwd);
+            this._pathManager.rebuildWorkspaceNamePathMap(pjg.projectRoot);
             this._pathManager.checkSameNameFile(!!args.distinguishSameNameFile);
         }
 
@@ -227,7 +235,7 @@ export class LuaDebugSession extends LoggingDebugSession {
         const sendArgs = {
             stopOnEntry: !!args.stopOnEntry,
             luaFileExtension: args.luaFileExtension,
-            cwd: args.cwd,
+            cwd: pjg.projectRoot,
             isNeedB64EncodeStr: !!args.isNeedB64EncodeStr,
             TempFilePath: args.TempFilePath,
             logLevel: args.logLevel,

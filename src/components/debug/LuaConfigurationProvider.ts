@@ -43,10 +43,10 @@ class LuaConfigurationProvider implements vscode.DebugConfigurationProvider {
         }
 
         // rootFolder 固定为 ${workspaceFolder}, 用来查找本项目的launch.json.
-        config.rootFolder = '${workspaceFolder}';
+        config.rootFolder = '';
 
         if (!config.TempFilePath) {
-            config.TempFilePath = '${workspaceFolder}';
+            config.TempFilePath = '';
         }
 
         // 开发模式设置
@@ -86,7 +86,7 @@ class LuaConfigurationProvider implements vscode.DebugConfigurationProvider {
             }
 
             if (!config.cwd) {
-                config.cwd = '${workspaceFolder}';
+                config.cwd = '';
             }
 
             if (!config.luaFileExtension) {

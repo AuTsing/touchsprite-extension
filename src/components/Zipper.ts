@@ -1,6 +1,6 @@
 import * as JSZip from 'jszip';
 import * as fs from 'fs';
-import Project, { IProjectFile } from './Project';
+import ProjectGenerator, { IProjectFile } from './ProjectGenerator';
 
 class Zipper extends JSZip {
     public addFile(pjf: IProjectFile) {
@@ -8,8 +8,8 @@ class Zipper extends JSZip {
         this.file(pjf.filename, data);
     }
 
-    public addFiles(project: Project) {
-        const list = project.getList();
+    public addFiles(project: ProjectGenerator) {
+        const list = project.projectFiles;
         return Promise.all(
             list.map(pjf => {
                 const data = fs.readFileSync(pjf.url);

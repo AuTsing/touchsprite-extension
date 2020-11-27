@@ -5,9 +5,9 @@ import * as path from 'path';
 import Ui from './ui/Ui';
 import { StatusBarType } from './ui/StatusBar';
 import Api from './Api';
-import Project, { IProjectFile, ProjectFileRoot } from './Project';
 import Zipper from './Zipper';
 import * as fs from 'fs';
+import ProjectGenerator, { IProjectFile, ProjectFileRoot } from './ProjectGenerator';
 
 export interface IDevice {
     ip: string;
@@ -88,7 +88,7 @@ class Server {
             );
         });
         logger.listen(14088, () => {
-            Ui.logging('日志服务器已启用');
+            Ui.logging('触动插件已启用');
         });
     }
 
@@ -231,21 +231,15 @@ class Server {
                     return Promise.reject('设置引导文件失败');
                 }
                 Ui.setStatusBar('$(cloud-upload) 上传工程中...');
-                const focusing = vscode.window.activeTextEditor?.document;
-                if (!focusing) {
-                    return Promise.reject('未指定工程');
+                const pjg = new ProjectGenerator(runfile);
+                pjg.generate();
+                if (!pjg.focusing) {
+                    return Promise.reject('未指定工程，请聚焦在工程文件再运行');
                 }
-                const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath');
-                const focusingDir = path.dirname(focusing.fileName);
-                let project = new Project(focusingDir, ignorePath);
-                if (!project.isThereFile(runfile)) {
-                    const upDir = path.dirname(focusingDir);
-                    project = new Project(upDir, ignorePath);
-                }
-                if (!project.isThereFile(runfile)) {
+                if (!pjg.projectRoot) {
                     return Promise.reject(`所选工程不包含引导文件 ${runfile}`);
                 }
-                const pjfs = project.getList();
+                const pjfs = pjg.projectFiles;
                 const miss: string[] = [];
                 for (const pjf of pjfs) {
                     await this._api.upload(this._attachingDevice!, pjf).then(res => {
@@ -253,29 +247,6 @@ class Server {
                             miss.push(pjf.filename);
                         }
                     });
-                }
-                if (miss.length > 0) {
-                    const missInOne = miss.join(', ');
-                    return Promise.reject(`以下文件上传失败[${missInOne}]`);
-                }
-                return Promise.resolve('ok');
-            })
-            .then(async () => {
-                const includePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath');
-                const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath');
-                const miss: string[] = [];
-                if (includePath && includePath.length > 0) {
-                    for (const icp of includePath) {
-                        const project = new Project(icp, ignorePath);
-                        const pjfs = project.getList();
-                        for (const pjf of pjfs) {
-                            await this._api.upload(this._attachingDevice!, pjf).then(res => {
-                                if (res.data !== 'ok') {
-                                    miss.push(pjf.filename);
-                                }
-                            });
-                        }
-                    }
                 }
                 if (miss.length > 0) {
                     const missInOne = miss.join(', ');
@@ -386,41 +357,23 @@ class Server {
     }
 
     public zipProject() {
-        const focusing = vscode.window.activeTextEditor?.document;
-        if (!focusing) {
+        const pjg = new ProjectGenerator();
+        pjg.generateZip();
+        if (!pjg.focusing) {
             Ui.setStatusBarTemporary(StatusBarType.failed);
             Ui.logging('打包工程失败: 未指定工程');
             return;
         }
-        Ui.setStatusBar('$(loading) 打包工程中...');
-
-        const ignorePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePathInZip');
-        const focusingDir = path.dirname(focusing.fileName);
-        let mainProject = new Project(focusingDir, ignorePath);
-        let mainDir = focusingDir;
-        if (!mainProject.isThereFile('main.lua')) {
-            const upDir = path.dirname(focusingDir);
-            mainProject = new Project(upDir, ignorePath);
-            mainDir = upDir;
-        }
-        if (!mainProject.isThereFile('main.lua')) {
+        if (!pjg.projectRoot) {
             Ui.setStatusBarTemporary(StatusBarType.failed);
             Ui.logging('打包工程失败: 所选工程不包含引导文件 main.lua');
             return;
         }
-
-        const projects: Project[] = [];
-        projects.push(mainProject);
-        const includePath: string[] | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.includePathInZip');
-        if (includePath && includePath.length > 0) {
-            for (const icp of includePath) {
-                const project = new Project(icp, ignorePath);
-                projects.push(project);
-            }
-        }
+        Ui.setStatusBar('$(loading) 打包工程中...');
+        const mainDir = pjg.projectRoot;
         const zipper = new Zipper();
-        projects.forEach(project => zipper.addFiles(project));
-        Promise.all(projects)
+        zipper
+            .addFiles(pjg)
             .then(() => zipper.zipFiles(mainDir))
             .then(() => {
                 Ui.setStatusBarTemporary(StatusBarType.successful);
@@ -561,7 +514,7 @@ class Server {
                 }
                 if (miss.length > 0) {
                     const missInOne = miss.join(', ');
-                    return Promise.reject(`以下文件上传失败[${missInOne}]`);
+                    return reject(`以下文件上传失败[${missInOne}]`);
                 }
             }
             return resolve(uris.length);
@@ -575,7 +528,6 @@ class Server {
                     tag: 'normal',
                     name: 'LuaPanda',
                     description: '通用模式,通常调试项目请选择此模式 | launchVer:3.2.0',
-                    cwd: '${workspaceFolder}',
                     luaFileExtension: '',
                     connectionPort: 8818,
                     stopOnEntry: false,
@@ -587,11 +539,17 @@ class Server {
                 const testRunFile: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.testRunFile');
                 const runfile = testRunFile ? testRunFile : 'maintest.lua';
                 return this.runProject(runfile, 'boot.lua');
+            })
+            .catch(err => {
+                Ui.setStatusBarTemporary(StatusBarType.failed);
+                Ui.logging(`开始调试失败: ${err.toString()} 请尝试调整配置后重新运行`);
             });
     }
 
-    public async test() {
-        await this.attachDevice('192.168.6.111');
+    public test() {
+        const pjg = new ProjectGenerator();
+        pjg.generate();
+        console.log(pjg.focusing, pjg.projectRoot, pjg.projectFiles);
     }
 }
 

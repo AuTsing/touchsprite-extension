@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import * as fs from 'fs';
-import { IProjectFile } from './Project';
+import { IProjectFile } from './ProjectGenerator';
 import { IDevice } from './Server';
 
 axios.defaults.timeout = 3000;
