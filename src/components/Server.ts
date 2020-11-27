@@ -88,7 +88,7 @@ class Server {
             );
         });
         logger.listen(14088, () => {
-            Ui.logging('触动插件已启用');
+            Ui.loggingShow('触动插件已启用');
         });
     }
 

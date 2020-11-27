@@ -18,6 +18,11 @@ class Output {
         // this._channel.show(true);
     }
 
+    public loggingShow(content: string) {
+        this.logging(content);
+        this._channel.show();
+    }
+
     public logError(content: string) {
         const contentWithType = `[Error] ` + content;
         this.logging(contentWithType);

@@ -14,6 +14,11 @@ export interface IProjectFile {
     root: ProjectFileRoot;
 }
 
+export interface IRawFile {
+    url: string;
+    dir: string;
+}
+
 export default class ProjectGenerator {
     public projectRoot?: string;
     public focusing?: vscode.Uri;
@@ -37,9 +42,9 @@ export default class ProjectGenerator {
             this.generateUp(dir);
             if (this.projectRoot) {
                 const projectPaths = [...this._includes, this.projectRoot];
-                const collectedFiles: string[] = [];
+                const collectedFiles: IRawFile[] = [];
                 projectPaths.forEach(pjp => {
-                    this.collectFiles(pjp, collectedFiles);
+                    this.collectFiles(pjp, collectedFiles, pjp);
                 });
                 this.projectFiles = this.generateProject(collectedFiles);
             }
@@ -94,7 +99,7 @@ export default class ProjectGenerator {
         }
     }
 
-    private collectFiles(dir: string, list: string[]) {
+    private collectFiles(dir: string, list: IRawFile[], collectingPath: string) {
         const files = fs.readdirSync(dir);
         files.forEach(file => {
             if (this._ignores.indexOf(file) > -1) {
@@ -103,20 +108,20 @@ export default class ProjectGenerator {
             const fPath = path.join(dir, file);
             const stat = fs.statSync(fPath);
             if (stat.isDirectory() === true) {
-                this.collectFiles(fPath, list);
+                this.collectFiles(fPath, list, collectingPath);
             }
             if (stat.isFile() === true) {
-                list.push(fPath);
+                list.push({ url: fPath, dir: collectingPath });
             }
         });
     }
 
-    private generateProject(files: string[]) {
+    private generateProject(files: IRawFile[]) {
         return files.map(file => {
-            const remain = file.substr(this.projectRoot!.length, file.length - this.projectRoot!.length);
+            const remain = file.url.substr(file.dir.length, file.url.length - file.dir.length);
             const isLua = path.basename(remain).indexOf('.lua') >= 0 || path.basename(remain).indexOf('.so') >= 0;
             const pjf: IProjectFile = {
-                url: file,
+                url: file.url,
                 path: path.dirname(remain).replace(/\\/g, '/'),
                 filename: path.basename(remain),
                 root: isLua ? ProjectFileRoot.lua : ProjectFileRoot.res,

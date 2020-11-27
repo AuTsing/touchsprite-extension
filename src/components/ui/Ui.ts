@@ -12,6 +12,7 @@ class Ui {
     public static resetStatusBar = () => Ui._statusBar.resetStatusBar();
 
     public static logging = (content: string) => Ui._output.logging(content);
+    public static loggingShow = (content: string) => Ui._output.loggingShow(content);
     public static logError = (content: string) => Ui._output.logError(content);
     public static logWarning = (content: string) => Ui._output.logWarning(content);
     public static logDebug = (content: string) => Ui._output.logDebug(content);
