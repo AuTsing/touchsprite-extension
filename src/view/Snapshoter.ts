@@ -74,6 +74,7 @@ class Snapshoter {
                             });
                             return;
                         }
+                        Ui.setStatusBar('$(sync~spin) 截图中...');
                         this._api
                             .getSnapshot(attachingDevice)
                             .then(res => {
@@ -154,6 +155,8 @@ class Snapshoter {
         this._panel.onDidChangeViewState(e => {
             if (e.webviewPanel.visible) {
                 vscode.commands.executeCommand('workbench.action.closePanel');
+            } else {
+                vscode.commands.executeCommand('workbench.action.focusPanel');
             }
         });
         this._panel.onDidDispose(

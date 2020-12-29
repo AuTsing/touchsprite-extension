@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { IProjectFile } from './ProjectGenerator';
 import { IDevice } from './Server';
 
-axios.defaults.timeout = 3000;
+axios.defaults.timeout = 5000;
 
 class Api {
     public getDeviceId(device: IDevice) {

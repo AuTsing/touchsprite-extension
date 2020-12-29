@@ -230,7 +230,7 @@ class Server {
                 if (res.data !== 'ok') {
                     return Promise.reject('设置引导文件失败');
                 }
-                Ui.setStatusBar('$(cloud-upload) 上传工程中...');
+                Ui.setStatusBar('$(sync~spin) 上传工程中...');
                 const pjg = new ProjectGenerator(runfile);
                 pjg.generate();
                 if (!pjg.focusing) {
