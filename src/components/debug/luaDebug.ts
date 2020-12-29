@@ -28,7 +28,6 @@ import { LineBreakpoint, ConditionBreakpoint, LogPoint } from './Breakpoint';
 import Tools from './Tools';
 import { ThreadManager } from './ThreadManager';
 import { PathManager } from './PathManager';
-import * as fs from 'fs';
 import { Subject } from 'await-notify';
 import Ui from '../ui/Ui';
 import * as os from 'os';

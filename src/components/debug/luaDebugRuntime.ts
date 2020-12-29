@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
 import { DataProcessor } from './DataProcessor';
 import { DebugProtocol } from 'vscode-debugprotocol';
