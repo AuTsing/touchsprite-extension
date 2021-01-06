@@ -16,7 +16,8 @@ export interface ICaptureContext {
     captures: ICapture[];
     activeKey: string | undefined;
     setActiveKey: (key: string) => void;
-    addCapture: (img: string) => void;
+    addCapture: (imgs: Jimp[]) => void;
+    addCaptureByString: (imgs: string[]) => void;
     removeCapture: (key: string) => void;
     activeJimp: Jimp | undefined;
     setActiveJimp: (jimp: Jimp) => void;
@@ -32,6 +33,7 @@ export const CaptrueContextDefaultValue: ICaptureContext = {
     activeKey: undefined,
     setActiveKey: () => null,
     addCapture: () => null,
+    addCaptureByString: () => null,
     removeCapture: () => null,
     activeJimp: undefined,
     setActiveJimp: () => null,
@@ -52,23 +54,45 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
     const [addedCaptureCallback, setAddedCallback] = useState<() => void>(() => () => {});
 
     const addCapture = useCallback(
-        async (img: string | Jimp) => {
-            let jimp: Jimp;
-            if (typeof img === 'string') {
-                jimp = await Jimp.read(Buffer.from(img, 'base64'));
-            } else {
-                jimp = img;
-            }
-            const base64 = await jimp.getBase64Async(Jimp.MIME_PNG);
-            const key = `newTab${newTabIndex}`;
-            const title = `图片${newTabIndex + 1}`;
-
-            setNewTabIndex(newTabIndex + 1);
-            setCaptures([...captures, { title, jimp, base64, key }]);
-            setActiveKey(key);
-            setActiveJimp(jimp);
+        (imgs: Jimp[]) => {
+            let keyRecord = newTabIndex;
+            const capturesRecord = [...captures];
+            Promise.all(
+                imgs.map(async (img: Jimp) => {
+                    let jimp: Jimp;
+                    if (typeof img === 'string') {
+                        jimp = await Jimp.read(Buffer.from(img, 'base64'));
+                    } else {
+                        jimp = img;
+                    }
+                    const base64 = await jimp.getBase64Async(Jimp.MIME_PNG);
+                    keyRecord++;
+                    const key = `newTab${keyRecord}`;
+                    const title = `图片${keyRecord}`;
+                    capturesRecord.push({ title, jimp, base64, key });
+                })
+            ).then(() => {
+                setCaptures(capturesRecord);
+                const lastCapture = capturesRecord.slice(-1)[0];
+                setNewTabIndex(keyRecord);
+                setActiveKey(lastCapture.key);
+                setActiveJimp(lastCapture.jimp);
+            });
         },
         [newTabIndex, captures]
+    );
+
+    const addCaptureByString = useCallback(
+        (imgs: string[]) => {
+            Promise.all(
+                imgs.map(async img => {
+                    return await Jimp.read(Buffer.from(img, 'base64'));
+                })
+            ).then(jimps => {
+                return addCapture(jimps);
+            });
+        },
+        [addCapture]
     );
 
     const removeCapture = useCallback(
@@ -182,7 +206,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                         }
                     },
                     (_, newJimp) => {
-                        addCapture(newJimp);
+                        addCapture([newJimp]);
                     }
                 );
             });
@@ -221,7 +245,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                         }
                     },
                     (_, newJimp) => {
-                        addCapture(newJimp);
+                        addCapture([newJimp]);
                     }
                 );
             });
@@ -235,7 +259,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
             switch (eventData.command) {
                 case 'add':
                     const imgs = (eventData.data as { imgs: string[] }).imgs;
-                    imgs.forEach(img => addCapture(img));
+                    addCaptureByString(imgs);
                     addedCaptureCallback();
                     break;
                 case 'showMessage':
@@ -262,6 +286,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                 activeKey,
                 setActiveKey,
                 addCapture,
+                addCaptureByString,
                 removeCapture,
                 activeJimp,
                 setActiveJimp,
