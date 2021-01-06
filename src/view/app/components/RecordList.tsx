@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { FC, useContext } from 'react';
-import { RecordContext, IRecord, IPoint } from '../contexts/RecordContext';
-import { VscodeContext } from '../contexts/vscodeContext';
+import { FC, useContext, useCallback } from 'react';
 import { Row, Col, Table, Space, message } from 'antd';
+import { CopyOutlined, DeleteOutlined } from '@ant-design/icons';
+
+import { VscodeContext } from '../contexts/VscodeContext';
+import { RecordContext, IRecord, IPoint } from '../contexts/RecordContext';
 
 const { Column } = Table;
 
@@ -10,24 +12,26 @@ const RecordList: FC = () => {
     const vscode = useContext(VscodeContext);
     const { records, deleteRecord, p1, p2 } = useContext(RecordContext);
 
-    const copyRecord = (record: IRecord) => {
+    const copyRecord = useCallback((record: IRecord) => {
         const code = `{${record.coordinate},${record.color}}`;
         vscode.postMessage({ command: 'copy', data: code });
         message.info(`${code.slice(0, 30)}${code.length > 30 ? '...' : ''} 已复制到剪贴板`);
-    };
-    const copyPoint = (point: IPoint) => {
+    }, []);
+
+    const copyPoint = useCallback((point: IPoint) => {
         const code = `${point.x},${point.y}`;
         vscode.postMessage({ command: 'copy', data: code });
         message.info(`${code} 已复制到剪贴板`);
-    };
-    const copyInfo = (coordinate: string) => {
+    }, []);
+
+    const copyInfo = useCallback((coordinate: string) => {
         vscode.postMessage({ command: 'copy', data: coordinate });
         message.info(`${coordinate} 已复制到剪贴板`);
-    };
+    }, []);
 
     return (
         <Row>
-            <Col className='zoomRow3'>
+            <Col className='record-list'>
                 <Table dataSource={records} size='small' bordered={true} pagination={false} locale={{ emptyText: '鼠标左键/数字键1-9开始取色' }}>
                     <Column title='坐标' dataIndex='coordinate' width='25%' onCell={(record: IRecord) => ({ onClick: () => copyInfo(record.coordinate) })} />
                     <Column title='颜色值' dataIndex='color' width='25%' onCell={(record: IRecord) => ({ onClick: () => copyInfo(record.color) })} />
@@ -48,8 +52,8 @@ const RecordList: FC = () => {
                         width='30%'
                         render={(record: IRecord) => (
                             <Space>
-                                <a onClick={() => copyRecord(record)}>CP</a>
-                                <a onClick={() => deleteRecord(record.key)}>DL</a>
+                                <CopyOutlined onClick={() => copyRecord(record)} />
+                                <DeleteOutlined onClick={() => deleteRecord(record.key)} />
                             </Space>
                         )}
                     />

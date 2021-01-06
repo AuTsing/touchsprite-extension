@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { FC } from 'react';
-import { IVscode } from './contexts/vscodeContext';
-import VscodeContextProvider from './contexts/vscodeContext';
+import { Layout } from 'antd';
+
+import { IVscode } from './contexts/VscodeContext';
+import VscodeContextProvider from './contexts/VscodeContext';
 import CaptrueContextProvider from './contexts/CaptureContext';
 import CoordinateContextProvider from './contexts/CoordinateContext';
 import RecordContextProvider from './contexts/RecordContext';
-import { Layout } from 'antd';
 import Navbar from './components/Navbar';
 import Canvas from './components/Canvas';
 import Zoom from './components/Zoom';
@@ -22,14 +23,12 @@ const App: FC<{ vscode: IVscode }> = ({ vscode }) => {
                     <CoordinateContextProvider>
                         <RecordContextProvider>
                             <Layout>
-                                <Layout>
-                                    <Header className='header'>
-                                        <Navbar />
-                                    </Header>
-                                    <Content className='content'>
-                                        <Canvas />
-                                    </Content>
-                                </Layout>
+                                <Header className='header'>
+                                    <Navbar />
+                                </Header>
+                                <Content className='content'>
+                                    <Canvas />
+                                </Content>
                                 <Sider className='sider' width={315}>
                                     <Zoom />
                                     <CoordinateInfo />

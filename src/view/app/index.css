@@ -4,6 +4,29 @@ body {
     padding: 0;
 }
 
+.sider {
+    height: 100vh;
+    overflow: auto;
+    position: fixed;
+    right: 0;
+}
+
+.header {
+    width: calc(100% - 315px);
+    z-index: 1;
+    position: fixed;
+    overflow: hidden;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.content {
+    margin-right: 315px;
+    margin-top: 64px;
+    /* margin: 24px 16px 0; */
+    overflow: initial;
+}
+
 .img {
     max-width: none;
     max-height: none;
@@ -11,7 +34,7 @@ body {
     margin-left: 15px;
 }
 
-.imgContainer {
+.img-container {
     overflow-x: scroll;
 }
 
@@ -20,28 +43,15 @@ body {
     width: 300px;
 }
 
-.sider {
-    height: 100vh;
-    overflow: auto;
-    position: fixed;
-    right: 0;
-}
-
-.content {
-    margin-right: 315px;
-}
-
-.header {
-    width: 100%;
-    padding: 0;
-    padding-left: 10px;
-}
-
-.zoomRow2 {
+.coordinate-info {
     margin: 15px;
     width: 300px;
 }
 
-.zoomRow3 {
+.record-list {
     width: 300px;
+}
+
+.empty {
+    margin-top: 300px;
 }

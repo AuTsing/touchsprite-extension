@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { FC, useState, useContext } from 'react';
+import { FC, useState, useContext, useCallback } from 'react';
 import { Button, Modal, Form, Input, InputNumber } from 'antd';
+
 import { CaptrueContext } from '../contexts/CaptureContext';
 
 const PicBinarization: FC = () => {
@@ -12,7 +13,7 @@ const PicBinarization: FC = () => {
     const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
     const [form] = Form.useForm();
 
-    const handleOk = () => {
+    const handleOk = useCallback(() => {
         setConfirmLoading(true);
         form.validateFields()
             .then(values => {
@@ -31,10 +32,11 @@ const PicBinarization: FC = () => {
             .catch(() => {
                 setTimeout(() => setConfirmLoading(false), 1000);
             });
-    };
-    const handleCancel = () => {
+    }, [activeKey, binaryJimp, form]);
+
+    const handleCancel = useCallback(() => {
         setVisible(false);
-    };
+    }, []);
 
     return (
         <div>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createContext, useState } from 'react';
+import { createContext, useState, useCallback } from 'react';
 import { message } from 'antd';
 
 export interface IRecord {
@@ -27,45 +27,73 @@ export interface IRecordContext {
     clearPoints: () => void;
 }
 
-export const RecordContext = createContext<IRecordContext>(undefined);
+export const RecordContextDefaultValue: IRecordContext = {
+    records: [],
+    addRecordByMouse: () => null,
+    addRecordByKeyboard: () => null,
+    deleteRecord: () => null,
+    clearRecords: () => null,
+    p1: { x: -1, y: -1 },
+    p2: { x: -1, y: -1 },
+    setPoint1: () => null,
+    setPoint2: () => null,
+    clearPoints: () => null,
+};
+
+export const RecordContext = createContext<IRecordContext>(RecordContextDefaultValue);
 
 const RecordContextProvider = (props: { children: React.ReactNode }) => {
     const [records, setRecords] = useState<IRecord[]>([]);
     const [p1, setP1] = useState<IPoint>({ x: -1, y: -1 });
     const [p2, setP2] = useState<IPoint>({ x: -1, y: -1 });
 
-    const addRecordByMouse = (x: number, y: number, c: string) => {
-        if (records.length >= 9) {
-            message.warning('最大取点数为9个');
-            return;
-        }
-        setRecords([...records, { coordinate: `${x},${y}`, color: c, preview: c, key: (records.length + 1).toString() }]);
-    };
-    const addRecordByKeyboard = (key: string, x: number, y: number, c: string) => {
-        const index = parseInt(key) - 1;
-        const copy = [...records];
-        for (let i = 0; i < index; i++) {
-            if (!copy[i]) {
-                copy[i] = { key: (i + 1).toString(), coordinate: '', color: '', preview: '' };
+    const addRecordByMouse = useCallback(
+        (x: number, y: number, c: string) => {
+            if (records.length >= 9) {
+                message.warning('最大取点数为9个');
+                return;
             }
-        }
-        copy[index] = { coordinate: `${x},${y}`, color: c, preview: c, key: key };
-        setRecords(copy);
-    };
-    const deleteRecord = (key: string) => {
-        const copy = records.filter(record => record.key !== key);
-        const newRecords = copy.map((record: IRecord, i: number) => {
-            return { ...record, key: i.toString() };
-        });
-        setRecords(newRecords);
-    };
-    const clearRecords = () => setRecords([]);
-    const setPoint1 = (x: number, y: number) => setP1({ x, y });
-    const setPoint2 = (x: number, y: number) => setP2({ x, y });
-    const clearPoints = () => {
+            setRecords([...records, { coordinate: `${x},${y}`, color: c, preview: c, key: (records.length + 1).toString() }]);
+        },
+        [records]
+    );
+
+    const addRecordByKeyboard = useCallback(
+        (key: string, x: number, y: number, c: string) => {
+            const index = parseInt(key) - 1;
+            const copy = [...records];
+            for (let i = 0; i < index; i++) {
+                if (!copy[i]) {
+                    copy[i] = { key: (i + 1).toString(), coordinate: '', color: '', preview: '' };
+                }
+            }
+            copy[index] = { coordinate: `${x},${y}`, color: c, preview: c, key: key };
+            setRecords(copy);
+        },
+        [records]
+    );
+
+    const deleteRecord = useCallback(
+        (key: string) => {
+            const copy = records.filter(record => record.key !== key);
+            const newRecords = copy.map((record: IRecord, i: number) => {
+                return { ...record, key: i.toString() };
+            });
+            setRecords(newRecords);
+        },
+        [records]
+    );
+
+    const clearRecords = useCallback(() => setRecords([]), []);
+
+    const setPoint1 = useCallback((x: number, y: number) => setP1({ x, y }), []);
+
+    const setPoint2 = useCallback((x: number, y: number) => setP2({ x, y }), []);
+
+    const clearPoints = useCallback(() => {
         setPoint1(-1, -1);
         setPoint2(-1, -1);
-    };
+    }, [setPoint1, setPoint2]);
 
     return (
         <RecordContext.Provider

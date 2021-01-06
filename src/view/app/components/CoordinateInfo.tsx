@@ -7,7 +7,7 @@ const CoordinateInfo: FC = () => {
     const { x, y, c } = useContext(CoordinateContext);
 
     return (
-        <Row className='zoomRow2'>
+        <Row className='coordinate-info'>
             <Col span={12}>
                 <Statistic title='坐标' value={x + ',' + y} />
             </Col>

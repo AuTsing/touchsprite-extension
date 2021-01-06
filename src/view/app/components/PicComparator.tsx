@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FC, useState, useContext } from 'react';
+import { FC, useState, useContext, useCallback } from 'react';
 import { Button, Modal, Select, Form, InputNumber } from 'antd';
 import { CaptrueContext } from '../contexts/CaptureContext';
 
@@ -12,7 +12,7 @@ const PicComparator: FC = () => {
     const [form] = Form.useForm();
     const options = captures.map((capture, index) => ({ label: capture.title, value: index }));
 
-    const handleOk = () => {
+    const handleOk = useCallback(() => {
         setConfirmLoading(true);
         form.validateFields()
             .then(values => {
@@ -28,10 +28,11 @@ const PicComparator: FC = () => {
             .catch(() => {
                 setTimeout(() => setConfirmLoading(false), 1000);
             });
-    };
-    const handleCancel = () => {
+    }, [captures, compareJimp, form]);
+
+    const handleCancel = useCallback(() => {
         setVisible(false);
-    };
+    }, []);
 
     return (
         <div>

@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { FC, useState, useEffect, useContext } from 'react';
-import { RecordContext } from '../contexts/RecordContext';
+import { FC, useState, useEffect, useContext, useCallback } from 'react';
 import { Button, Modal, Form, Input, message, Table } from 'antd';
-import { VscodeContext } from '../contexts/vscodeContext';
+
+import { VscodeContext, IVscodeMessageEventData } from '../contexts/VscodeContext';
+import { RecordContext } from '../contexts/RecordContext';
 
 const { Column } = Table;
 
@@ -13,7 +14,8 @@ interface ITemplate {
 
 const CodeMaker: FC = () => {
     const vscode = useContext(VscodeContext);
-    const { records, p1, p2 } = useContext(RecordContext);
+    const { records, p1, p2, clearRecords, clearPoints } = useContext(RecordContext);
+
     const [templates, setTemplates] = useState<ITemplate[]>([
         { key: '1', content: "{'untitled',{$pointList}}," },
         { key: '2', content: "{'untitled',{$point[1][c],'$delta'}}," },
@@ -33,7 +35,7 @@ const CodeMaker: FC = () => {
         { key: '8', keywords: '$point[n][c]', instruction: '点n的c颜色值' },
     ];
 
-    const handleOk = () => {
+    const handleOk = useCallback(() => {
         setConfirmLoading(true);
         form.validateFields()
             .then(values => {
@@ -55,76 +57,91 @@ const CodeMaker: FC = () => {
                 setConfirmLoading(false);
                 setVisible(false);
             });
-    };
-    const handleCancel = () => {
+    }, [form]);
+
+    const handleCancel = useCallback(() => {
         setVisible(false);
-    };
-    const makeCode = (key: string) => {
-        const unEmptyRecords = records.filter(record => record.coordinate !== '');
-        let template: string = templates[0].content;
-        switch (key) {
-            case 'f':
-                template = templates[0].content;
-                break;
-            case 'g':
-                template = templates[1].content;
-                break;
-            case 'h':
-                template = templates[2].content;
-                break;
-            default:
-                break;
-        }
-        const pointList = unEmptyRecords.map(record => ({
-            x: record.coordinate.split(',')[0],
-            y: record.coordinate.split(',')[1],
-            c: record.color,
-        }));
-        const pointStringList = pointList.map(point => `{${point.x},${point.y},${point.c}}`);
-        const delta = pointList.map(point => `${parseInt(point.x) - parseInt(pointList[0].x)}|${parseInt(point.y) - parseInt(pointList[0].y)}|${point.c}`);
-        delta.shift();
+    }, []);
 
-        const code = template
-            .replace(/\$pointList/g, pointStringList.join(','))
-            .replace(/\$delta/g, delta.join(','))
-            .replace(/\$p1/g, `${p1.x},${p1.y}`)
-            .replace(/\$p2/g, `${p2.x},${p2.y}`)
-            .replace(/\$point\[[1-9]\]\[x\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.x)
-            .replace(/\$point\[[1-9]\]\[y\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.y)
-            .replace(/\$point\[[1-9]\]\[c\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.c)
-            .replace(/\$point\[[1-9]\]/g, str => pointStringList[parseInt(str.slice(7, 8)) - 1]);
-
-        vscode.postMessage({ command: 'copy', data: code });
-        message.info(`${code.slice(0, 30)}${code.length > 30 ? '...' : ''} 已复制到剪贴板`);
-    };
-    const handleKeypress = (ev: KeyboardEvent) => {
-        if (['f', 'g', 'h'].includes(ev.key)) {
-            makeCode(ev.key);
-        }
-    };
-
-    useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
-            const msg = event.data;
-            switch (msg.command) {
-                case 'loadTemplates':
-                    const { data } = msg;
-                    // console.log(msg);
-                    const preSave = JSON.parse(data);
-                    if (preSave && preSave.length > 0) {
-                        setTemplates(preSave);
-                    }
+    const makeCode = useCallback(
+        (key: string) => {
+            const unEmptyRecords = records.filter(record => record.coordinate !== '');
+            let template: string = templates[0].content;
+            switch (key) {
+                case 'f':
+                    template = templates[0].content;
+                    break;
+                case 'g':
+                    template = templates[1].content;
+                    break;
+                case 'h':
+                    template = templates[2].content;
+                    break;
+                default:
                     break;
             }
-        };
+            const pointList = unEmptyRecords.map(record => ({
+                x: record.coordinate.split(',')[0],
+                y: record.coordinate.split(',')[1],
+                c: record.color,
+            }));
+            const pointStringList = pointList.map(point => `{${point.x},${point.y},${point.c}}`);
+            const delta = pointList.map(point => `${parseInt(point.x) - parseInt(pointList[0].x)}|${parseInt(point.y) - parseInt(pointList[0].y)}|${point.c}`);
+            delta.shift();
+
+            const code = template
+                .replace(/\$pointList/g, pointStringList.join(','))
+                .replace(/\$delta/g, delta.join(','))
+                .replace(/\$p1/g, `${p1.x},${p1.y}`)
+                .replace(/\$p2/g, `${p2.x},${p2.y}`)
+                .replace(/\$point\[[1-9]\]\[x\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.x)
+                .replace(/\$point\[[1-9]\]\[y\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.y)
+                .replace(/\$point\[[1-9]\]\[c\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.c)
+                .replace(/\$point\[[1-9]\]/g, str => pointStringList[parseInt(str.slice(7, 8)) - 1]);
+
+            vscode.postMessage({ command: 'copy', data: code });
+            message.info(`${code.slice(0, 30)}${code.length > 30 ? '...' : ''} 已复制到剪贴板`);
+        },
+        [p1.x, p1.y, p2.x, p2.y, records, templates]
+    );
+
+    const handleMessage = useCallback((event: MessageEvent) => {
+        const eventData: IVscodeMessageEventData = event.data;
+        switch (eventData.command) {
+            case 'loadTemplates':
+                const templates = (eventData.data as { templates: string }).templates;
+                const preSave = JSON.parse(templates);
+                if (preSave && preSave.length > 0) {
+                    setTemplates(preSave);
+                }
+                break;
+        }
+    }, []);
+
+    useEffect(() => {
         window.addEventListener('message', handleMessage);
         vscode.postMessage({ command: 'loadTemplates' });
         return () => window.removeEventListener('message', handleMessage);
-    }, []);
+    }, [handleMessage]);
+
+    const handleKeypress = useCallback(
+        (ev: KeyboardEvent) => {
+            const key = ev.key.toLowerCase();
+            if (['f', 'g', 'h'].includes(key)) {
+                makeCode(key);
+            } else if (key === 'z') {
+                clearRecords();
+            } else if (key === 'x') {
+                clearPoints();
+            }
+        },
+        [clearPoints, clearRecords, makeCode]
+    );
+
     useEffect(() => {
         window.addEventListener('keypress', handleKeypress);
         return () => window.removeEventListener('keypress', handleKeypress);
-    }, [records, p1, p2]);
+    }, [handleKeypress]);
 
     return (
         <div>
