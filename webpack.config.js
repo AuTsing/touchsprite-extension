@@ -1,3 +1,4 @@
+const webpack = require('webpack');
 const path = require('path');
 
 module.exports = {
@@ -26,4 +27,9 @@ module.exports = {
     performance: {
         hints: false,
     },
+    plugins: [
+        new webpack.DefinePlugin({
+            'process.browser': 'true',
+        }),
+    ],
 };

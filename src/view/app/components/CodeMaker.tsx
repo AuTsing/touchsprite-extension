@@ -115,6 +115,8 @@ const CodeMaker: FC = () => {
                     setTemplates(preSave);
                 }
                 break;
+            default:
+                break;
         }
     }, []);
 

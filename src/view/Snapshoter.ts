@@ -6,7 +6,12 @@ import Api from '../components/Api';
 import Ui from '../components/ui/Ui';
 import { StatusBarType } from '../components/ui/StatusBar';
 
-export interface IWebviewPostMessage {
+export interface IVscodeMessageEventData {
+    command: string;
+    data: { message: string } | { imgs: string[] } | { templates: string };
+}
+
+export interface IPostdata {
     command: string;
     data?: any;
 }
@@ -68,10 +73,11 @@ class Snapshoter {
                     case 'loadImgFromDevice':
                         const attachingDevice = this._server.getAttachingDevice();
                         if (!attachingDevice) {
-                            this._panel?.webview.postMessage({
+                            const message: IVscodeMessageEventData = {
                                 command: 'showMessage',
                                 data: { message: '设备截图失败: 未连接设备' },
-                            });
+                            };
+                            this._panel!.webview.postMessage(message);
                             return;
                         }
                         Ui.setStatusBar('$(sync~spin) 截图中...');
@@ -81,10 +87,11 @@ class Snapshoter {
                                 if (!res.data) {
                                     return Promise.reject('获取远程图片失败');
                                 }
-                                this._panel?.webview.postMessage({
+                                const message: IVscodeMessageEventData = {
                                     command: 'add',
-                                    data: { img: Buffer.from(res.data, res.data.byteLength).toString('base64') },
-                                });
+                                    data: { imgs: [Buffer.from(res.data, res.data.byteLength).toString('base64')] },
+                                };
+                                this._panel!.webview.postMessage(message);
                                 return Promise.resolve(res.data);
                             })
                             .then(data => {
@@ -114,23 +121,26 @@ class Snapshoter {
                         const openDialogOptions: vscode.OpenDialogOptions = {
                             canSelectFiles: true,
                             canSelectFolders: false,
-                            canSelectMany: false,
+                            canSelectMany: true,
                             filters: { Img: ['png'] },
                         };
-                        vscode.window.showOpenDialog(openDialogOptions).then((uri: vscode.Uri[] | undefined) => {
-                            if (uri && uri.length > 0) {
-                                this._panel!.webview.postMessage({
+                        vscode.window.showOpenDialog(openDialogOptions).then((uris: vscode.Uri[] | undefined) => {
+                            if (uris && uris.length > 0) {
+                                const imgs = uris.map(uri => Buffer.from(fs.readFileSync(uri.fsPath)).toString('base64'));
+                                const message: IVscodeMessageEventData = {
                                     command: 'add',
-                                    data: { img: Buffer.from(fs.readFileSync(uri[0].fsPath)).toString('base64') },
-                                });
+                                    data: { imgs },
+                                };
+                                this._panel!.webview.postMessage(message);
                             }
                         });
                         break;
                     case 'loadTemplates':
-                        this._panel!.webview.postMessage({
+                        const message: IVscodeMessageEventData = {
                             command: 'loadTemplates',
-                            data: this._extensionGlobalState.get<string>('templates'),
-                        });
+                            data: { templates: this._extensionGlobalState.get<string>('templates') || '' },
+                        };
+                        this._panel!.webview.postMessage(message);
                         break;
                     case 'saveTemplates':
                         this._extensionGlobalState.update('templates', msg.data).then(

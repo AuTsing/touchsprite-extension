@@ -3,10 +3,7 @@ import { createContext, useState, useEffect, useCallback } from 'react';
 import Jimp from 'jimp';
 import { message } from 'antd';
 
-export interface IWebviewPostMessage {
-    command: string;
-    data?: any;
-}
+import { IVscodeMessageEventData } from '../contexts/VscodeContext';
 
 export interface ICapture {
     title: string;
@@ -234,14 +231,16 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
 
     const handleMessage = useCallback(
         (event: MessageEvent) => {
-            const eventData: IWebviewPostMessage = event.data;
+            const eventData: IVscodeMessageEventData = event.data;
             switch (eventData.command) {
                 case 'add':
-                    addCapture(eventData.data.img);
+                    const imgs = (eventData.data as { imgs: string[] }).imgs;
+                    imgs.forEach(img => addCapture(img));
                     addedCaptureCallback();
                     break;
                 case 'showMessage':
-                    message.info(eventData.data.message);
+                    const msg = (eventData.data as { message: string }).message;
+                    message.info(msg);
                     addedCaptureCallback();
                     break;
                 default:
