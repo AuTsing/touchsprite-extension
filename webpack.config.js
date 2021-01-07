@@ -1,5 +1,7 @@
+// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const webpack = require('webpack');
 const path = require('path');
+const AntdDayjsWebpackPlugin = require('antd-dayjs-webpack-plugin');
 
 module.exports = {
     entry: './src/view/app/index.tsx',
@@ -31,5 +33,7 @@ module.exports = {
         new webpack.DefinePlugin({
             'process.browser': 'true',
         }),
+        new AntdDayjsWebpackPlugin(),
+        // new BundleAnalyzerPlugin(),
     ],
 };
