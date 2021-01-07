@@ -267,6 +267,9 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                     message.info(msg);
                     addedCaptureCallback();
                     break;
+                case 'loadedImg':
+                    addedCaptureCallback();
+                    break;
                 default:
                     break;
             }

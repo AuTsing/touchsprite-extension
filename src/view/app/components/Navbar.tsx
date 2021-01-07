@@ -19,14 +19,12 @@ const Navbar: FC = () => {
         setAddedCallback(() => () => setHandleImgFromDeviceLoading(false));
         setHandleImgFromDeviceLoading(true);
         vscode.postMessage({ command: 'loadImgFromDevice' });
-        setTimeout(() => setHandleImgFromDeviceLoading(false), 5000);
     }, [setAddedCallback, vscode]);
 
     const handleLoadImgFromLocal = useCallback(() => {
         setAddedCallback(() => () => setHandleLoadImgFromLocalLoading(false));
         setHandleLoadImgFromLocalLoading(true);
         vscode.postMessage({ command: 'loadImgFromLocal' });
-        setTimeout(() => setHandleLoadImgFromLocalLoading(false), 5000);
     }, [setAddedCallback, vscode]);
 
     return (

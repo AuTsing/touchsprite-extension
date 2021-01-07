@@ -8,7 +8,7 @@ import { StatusBarType } from '../components/ui/StatusBar';
 
 export interface IVscodeMessageEventData {
     command: string;
-    data: { message: string } | { imgs: string[] } | { templates: string };
+    data: { message: string } | { imgs: string[] } | { templates: string } | {};
 }
 
 export interface IPostdata {
@@ -115,6 +115,11 @@ class Snapshoter {
                             .catch(err => {
                                 Ui.setStatusBarTemporary(StatusBarType.failed);
                                 Ui.logging(`截图失败: ${err.toString()}`);
+                                const message: IVscodeMessageEventData = {
+                                    command: 'loadedImg',
+                                    data: {},
+                                };
+                                this._panel!.webview.postMessage(message);
                             });
                         break;
                     case 'loadImgFromLocal':
@@ -130,6 +135,12 @@ class Snapshoter {
                                 const message: IVscodeMessageEventData = {
                                     command: 'add',
                                     data: { imgs },
+                                };
+                                this._panel!.webview.postMessage(message);
+                            } else {
+                                const message: IVscodeMessageEventData = {
+                                    command: 'loadedImg',
+                                    data: {},
                                 };
                                 this._panel!.webview.postMessage(message);
                             }
