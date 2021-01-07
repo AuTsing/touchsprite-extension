@@ -271,7 +271,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                     break;
             }
         },
-        [addCapture, addedCaptureCallback]
+        [addCaptureByString, addedCaptureCallback]
     );
 
     useEffect(() => {

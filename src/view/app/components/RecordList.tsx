@@ -16,18 +16,18 @@ const RecordList: FC = () => {
         const code = `{${record.coordinate},${record.color}}`;
         vscode.postMessage({ command: 'copy', data: code });
         message.info(`${code.slice(0, 30)}${code.length > 30 ? '...' : ''} 已复制到剪贴板`);
-    }, []);
+    }, [vscode]);
 
     const copyPoint = useCallback((point: IPoint) => {
         const code = `${point.x},${point.y}`;
         vscode.postMessage({ command: 'copy', data: code });
         message.info(`${code} 已复制到剪贴板`);
-    }, []);
+    }, [vscode]);
 
     const copyInfo = useCallback((coordinate: string) => {
         vscode.postMessage({ command: 'copy', data: coordinate });
         message.info(`${coordinate} 已复制到剪贴板`);
-    }, []);
+    }, [vscode]);
 
     return (
         <Row>

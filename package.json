@@ -391,6 +391,7 @@
         "antd": "^4.10.0",
         "css-loader": "^5.0.1",
         "eslint": "^7.17.0",
+        "eslint-plugin-react-hooks": "0.0.0-8e5adfbd7",
         "glob": "^7.1.6",
         "jimp": "^0.14.0",
         "mocha": "^7.0.1",

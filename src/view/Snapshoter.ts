@@ -166,7 +166,8 @@ class Snapshoter {
             if (e.webviewPanel.visible) {
                 vscode.commands.executeCommand('workbench.action.closePanel');
             } else {
-                vscode.commands.executeCommand('workbench.action.focusPanel');
+                vscode.commands.executeCommand('workbench.action.togglePanel');
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup'), 50);
             }
         });
         this._panel.onDidDispose(

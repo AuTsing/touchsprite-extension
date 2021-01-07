@@ -12,12 +12,12 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "allowSyntheticDefaultImports": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
         // "experimentalDecorators": true,
         // "allowJs": true,
         // "skipLibCheck": true,
-        // "strict": true,
-        // "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
         // "resolveJsonModule": true,
         // "isolatedModules": true
     },

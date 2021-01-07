@@ -57,7 +57,7 @@ const CodeMaker: FC = () => {
                 setConfirmLoading(false);
                 setVisible(false);
             });
-    }, [form]);
+    }, [form, vscode]);
 
     const handleCancel = useCallback(() => {
         setVisible(false);
@@ -102,7 +102,7 @@ const CodeMaker: FC = () => {
             vscode.postMessage({ command: 'copy', data: code });
             message.info(`${code.slice(0, 30)}${code.length > 30 ? '...' : ''} 已复制到剪贴板`);
         },
-        [p1.x, p1.y, p2.x, p2.y, records, templates]
+        [p1.x, p1.y, p2.x, p2.y, records, templates, vscode]
     );
 
     const handleMessage = useCallback((event: MessageEvent) => {
@@ -124,7 +124,7 @@ const CodeMaker: FC = () => {
         window.addEventListener('message', handleMessage);
         vscode.postMessage({ command: 'loadTemplates' });
         return () => window.removeEventListener('message', handleMessage);
-    }, [handleMessage]);
+    }, [handleMessage, vscode]);
 
     const handleKeypress = useCallback(
         (ev: KeyboardEvent) => {

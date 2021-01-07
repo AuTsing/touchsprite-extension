@@ -48,7 +48,6 @@ const Canvas: FC = () => {
                 activeKey={activeKey}
                 type='editable-card'
                 onEdit={onEdit}
-                animated={true}
                 tabBarExtraContent={{
                     right: (
                         <Tooltip title='关闭所有页面'>
