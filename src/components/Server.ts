@@ -362,27 +362,31 @@ class Server {
         if (!pjg.focusing) {
             Ui.setStatusBarTemporary(StatusBarType.failed);
             Ui.logging('打包工程失败: 未指定工程');
-            return;
+            return Promise.reject('打包工程失败: 未指定工程');
         }
         if (!pjg.projectRoot) {
             Ui.setStatusBarTemporary(StatusBarType.failed);
             Ui.logging('打包工程失败: 所选工程不包含引导文件 main.lua');
-            return;
+            return Promise.reject('打包工程失败: 所选工程不包含引导文件 main.lua');
         }
         Ui.setStatusBar('$(loading) 打包工程中...');
         const mainDir = pjg.projectRoot;
         const zipper = new Zipper();
-        zipper
+        return zipper
             .addFiles(pjg)
             .then(() => zipper.zipFiles(mainDir))
-            .then(() => {
-                Ui.setStatusBarTemporary(StatusBarType.successful);
-                Ui.logging('打包工程成功: ' + mainDir + '.zip');
-            })
-            .catch(err => {
-                Ui.setStatusBarTemporary(StatusBarType.failed);
-                Ui.logging(`打包工程失败: ${err.toString()}`);
-            });
+            .then(
+                () => {
+                    Ui.setStatusBarTemporary(StatusBarType.successful);
+                    Ui.logging('打包工程成功: ' + mainDir + '.zip');
+                    return mainDir + '.zip';
+                },
+                err => {
+                    Ui.setStatusBarTemporary(StatusBarType.failed);
+                    Ui.logging(`打包工程失败: ${err.toString()}`);
+                    return Promise.reject(`打包工程失败: ${err.toString()}`);
+                }
+            );
     }
 
     public uploadFile() {

@@ -31,7 +31,12 @@
                 "touchsprite-extension.accessKey": {
                     "type": "string",
                     "default": "",
-                    "description": "开发者AccessKey"
+                    "description": "开发者AccessKey，可在开发者后台中获取，获取详情请查看插件介绍页"
+                },
+                "touchsprite-extension.cookie": {
+                    "type": "string",
+                    "default": "",
+                    "description": "登陆Cookie，发布版本用，可在开发者后台网页中获取，获取详情请查看插件介绍页"
                 },
                 "touchsprite-extension.snapshotOrient": {
                     "type": "string",
@@ -163,6 +168,10 @@
             {
                 "command": "extension.debug",
                 "title": "触动插件: 开始调试"
+            },
+            {
+                "command": "extension.publish",
+                "title": "触动插件: 发布版本"
             },
             {
                 "command": "extension.test",
@@ -413,7 +422,9 @@
     "dependencies": {
         "await-notify": "^1.0.1",
         "axios": "^0.21.1",
+        "form-data": "^3.0.0",
         "jszip": "^3.5.0",
+        "luaparse": "^0.3.0",
         "path-reader": "^1.1.0",
         "vscode-debugadapter": "^1.42.1",
         "vscode-uri": "^2.1.2"

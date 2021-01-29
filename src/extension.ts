@@ -3,6 +3,7 @@ import Server from './components/Server';
 import DeviceSearcher from './components/DeviceSearcher';
 import Snapshoter from './view/Snapshoter';
 import Ui from './components/ui/Ui';
+import Publisher from './components/Publisher';
 
 import LuaConfigurationProvider from './components/debug/LuaConfigurationProvider';
 import LuaDebugAdapterServerDescriptorFactory from './components/debug/LuaDebugAdapterServerDescriptorFactory';
@@ -22,7 +23,10 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('extension.uploadFile', () => server.uploadFile()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.setHostIp', () => server.setHostIp()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.debug', () => server.debug()));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => server.test()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => {}));
+
+    const publisher = new Publisher(server);
+    context.subscriptions.push(vscode.commands.registerCommand('extension.publish', () => publisher.publish()));
 
     const dvs = new DeviceSearcher(server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.search', () => dvs.search()));
