@@ -67,7 +67,7 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 
 进入[触动开发者后台](https://dev.touchsprite.com/) - 个人中心 - API，即可看到 AccessKey，注意设备已满的话请先清空设备。
 
-![avatar]()
+![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/master/assets/images/readme/20210129163252.png)
 
 ## 代码调试
 
@@ -84,7 +84,7 @@ main()
 
 发布工程前需要填写开发者后台 Cookie。
 
-1. 进入[触动开发者后台](https://dev.touchsprite.com/)
+1. 进入[触动开发者后台](https://account.touchsprite.com/)
 
 2. 登陆，确认已经是登陆状态
 
@@ -92,19 +92,19 @@ main()
 
 4. 选择 Network(网络) 标签页
 
-    ![avatar]()
+    ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/master/assets/images/readme/20210129164740.png)
 
 5. 点击刷新按钮，等待刷新完毕
 
-    ![avatar]()
+    ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/master/assets/images/readme/20210129164849.png)
 
 6. 找到 `index` 项，通常在首位，展开
 
-    ![avatar]()
+    ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/master/assets/images/readme/20210129165159.png)
 
 7. 找到`Headers` - `Request Headers` - `cookie` 项，复制该项的值填入设置中即可
 
-    ![avatar]()
+    ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/master/assets/images/readme/20210129165429.png)
 
 8. (可选) 发布工程会自动检测工程目录下的 _luaconfig.lua_ 文件，该文件返回一个表，`id` 字段和 `version` 字段会被读取使用，如果文件不存在或者无法读取，插件会提供手动输入
 
