@@ -29,11 +29,12 @@ TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 
 -   [x] 运行工程 🆒
 -   [x] 运行测试工程
--   [x] 断点调试 🆕
+-   [x] 断点调试
 -   [x] 停止工程
 -   [x] 上传文件
 -   [x] 打包工程
 -   [x] 发布工程 🆕
+-   [x] 查询工程 🆕
 -   [x] 抓图
 -   [x] 取色
 -   [x] 颜色代码生成
@@ -144,7 +145,7 @@ main()
 -   [ ] 触动函数代码补全
 -   [ ] 脚手架生成
 
-插件目前由我一个人进行开发并进行维护，由于时间精力有限，难免会存在 BUG 以及一些其他问题。如果你发现了任何错误，或者愿意协助我开发插件，或者时有什么更好的意见建议，请[告诉我](https://github.com/AuTsing/touchsprite-extension/issues)或使用[Pull Requests](https://github.com/AuTsing/touchsprite-extension/pulls)提交，同时也可以通过加群进行反馈。
+插件目前由我一个人进行开发并进行维护，由于时间精力有限，难免会存在 BUG 以及一些其他问题。如果你发现了任何错误，或者愿意协助我开发插件，或者有什么更好的意见建议，请[告诉我](https://github.com/AuTsing/touchsprite-extension/issues)或使用[Pull Requests](https://github.com/AuTsing/touchsprite-extension/pulls)提交，同时也可以通过加群进行反馈。
 
 -   [QQ 群：1040367696](http://shang.qq.com/wpa/qunwpa?idkey=4568016974574bb1af0fa76337d4d55dd9f16509238b1ff7c6f0e79655654d1b)
 -   QQ：763025696

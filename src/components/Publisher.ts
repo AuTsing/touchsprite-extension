@@ -9,6 +9,7 @@ import { StatusBarType } from './ui/StatusBar';
 import ProjectGenerator from './ProjectGenerator';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import Workspace from './kits/Workspace';
 
 const luaparse = require('luaparse');
 
@@ -31,7 +32,10 @@ class Publisher {
 
     constructor(server: Server) {
         this.server = server;
-        this.loginer = axios.create({ maxRedirects: 0 });
+        this.loginer = axios.create({
+            timeout: 10000,
+            maxRedirects: 0,
+        });
         this.loginer.interceptors.response.use(
             resp => resp,
             err => {
@@ -42,31 +46,23 @@ class Publisher {
                 }
             }
         );
-        this.updater = axios.create();
+        this.updater = axios.create({
+            timeout: 10000,
+        });
     }
 
     public async publish() {
-        const pjg = new ProjectGenerator();
-        pjg.generateZip();
-        new Promise((resolve, reject) => {
-            if (!pjg.focusing) {
-                return reject('未指定工程');
-            }
-            if (!pjg.projectRoot) {
-                return reject('所选工程不包含引导文件 main.lua');
-            }
-            return resolve(this.askPublishCookie());
-        })
+        this.askPublishCookie()
             .then(() => {
+                const workspace = new Workspace();
+                return workspace.getRoot();
+            })
+            .then(root => {
                 if (!this.publishCookie) {
                     return Promise.reject('用户验证失败, 请检查Cookie是否可用');
                 }
                 this.updater.defaults.headers.cookie = this.publishCookie;
-                return Promise.all<string, string, string>([
-                    this.readScriptId(pjg.projectRoot!),
-                    this.readScriptVersion(pjg.projectRoot!),
-                    this.server.zipProject(),
-                ]);
+                return Promise.all<string, string, string>([this.readScriptId(root), this.readScriptVersion(root), this.server.zipProject()]);
             })
             .then((values: any) => {
                 const id: string = values[0];
@@ -84,7 +80,7 @@ class Publisher {
                 const id = values[0];
                 const ver = values[1];
                 const zip = values[2];
-                Ui.setStatusBar('$(cloud-upload) 发布中...');
+                Ui.setStatusBar('$(sync~spin) 发布中...');
                 return Promise.all([
                     id,
                     this.askScriptState(id).then(respData => {
@@ -115,6 +111,40 @@ class Publisher {
             .catch(err => {
                 Ui.setStatusBarTemporary(StatusBarType.failed);
                 Ui.logging(`发布版本失败: ${err}`);
+            });
+    }
+
+    public inquiry() {
+        Ui.setStatusBar('$(sync~spin) 查询中...');
+        this.askPublishCookie()
+            .then(() => {
+                const workspace = new Workspace();
+                return workspace.getRoot();
+            })
+            .then(root => {
+                if (!this.publishCookie) {
+                    return Promise.reject('用户验证失败, 请检查Cookie是否可用');
+                }
+                this.updater.defaults.headers.cookie = this.publishCookie;
+                return this.readScriptId(root);
+            })
+            .then(id => {
+                if (!id) {
+                    return Promise.reject('脚本ID无法正确读取');
+                }
+                return this.askScriptState(id);
+            })
+            .then(resp => {
+                const id = resp.data.details.id;
+                const name = resp.data.details.name;
+                const ver = resp.data.version.version;
+                const updatedAt = resp.data.version.created_at;
+                Ui.setStatusBarTemporary(StatusBarType.successful);
+                Ui.logging(`查询成功: ID >> ${id}; NAME >> ${name}; VER >> ${ver}; UPDATEDAT >> ${updatedAt};`);
+            })
+            .catch(err => {
+                Ui.setStatusBarTemporary(StatusBarType.failed);
+                Ui.logging(`查询失败: ${err}`);
             });
     }
 

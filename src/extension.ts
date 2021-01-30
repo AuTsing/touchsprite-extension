@@ -27,6 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const publisher = new Publisher(server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.publish', () => publisher.publish()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.inquiry', () => publisher.inquiry()));
 
     const dvs = new DeviceSearcher(server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.search', () => dvs.search()));
