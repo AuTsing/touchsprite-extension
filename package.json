@@ -1,6 +1,6 @@
 {
     "name": "touchsprite-extension",
-    "displayName": "TouchSprite-Extension",
+    "displayName": "TouchSprite Extension",
     "description": "用于触动精灵脚本开发的插件",
     "keywords": [
         "touchsprite",

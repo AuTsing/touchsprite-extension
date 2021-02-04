@@ -1,11 +1,11 @@
-# TouchSprite-Extension
+# TouchSprite Extension
 
 ![license](https://img.shields.io/github/license/AuTsing/touchsprite-extension)
 ![version](https://img.shields.io/visual-studio-marketplace/v/autsing.touchsprite-extension)
 ![installs](https://img.shields.io/visual-studio-marketplace/i/autsing.touchsprite-extension)
 ![downloads](https://img.shields.io/visual-studio-marketplace/d/autsing.touchsprite-extension)
 
-TouchSprite-Extension ( 触动精灵开发插件 ) 是基于触动精灵官方的 API 库进行开发的第三方插件，为开发者提供在 VSCode 进行触动精灵脚本开发的条件。
+TouchSprite Extension ( 触动精灵开发插件 ) 是基于触动精灵官方的 API 库进行开发的第三方插件，为开发者提供在 VSCode 进行触动精灵脚本开发的条件。
 
 # 目录
 
