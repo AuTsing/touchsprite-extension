@@ -1,30 +1,39 @@
 import * as vscode from 'vscode';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import * as fs from 'fs';
 import { IProjectFile } from './ProjectGenerator';
-import { IDevice } from './Server';
 
-axios.defaults.timeout = 5000;
+interface ITsOpenApiResponseData {
+    status: number;
+    message: string;
+    time: number;
+    auth: string;
+    valid: string;
+    remainder_token: number;
+}
 
-class Api {
-    public getDeviceId(device: IDevice) {
-        return axios.get(`/deviceid`, {
-            baseURL: `http://${device.ip}:50005`,
+export default class Api {
+    private readonly instance: AxiosInstance = axios.create({ timeout: 5000 });
+
+    public getDeviceId(ip: string) {
+        return this.instance.get<string>(`/deviceid`, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Length': 0,
             },
         });
     }
-    public getAuth(device: IDevice, key: string) {
+
+    public getAuth(id: string, ak: string) {
         const postData = JSON.stringify({
             action: 'getAuth',
-            key: key,
-            devices: [device.id],
+            key: ak,
+            devices: [id],
             valid: 3600,
             time: Math.floor(Date.now() / 1000),
         });
-        return axios.post(`/api/openapi`, postData, {
+        return this.instance.post<ITsOpenApiResponseData>(`/api/openapi`, postData, {
             baseURL: `http://openapi.touchsprite.com`,
             headers: {
                 Connection: 'close',
@@ -33,17 +42,19 @@ class Api {
             },
         });
     }
-    public getDeviceName(device: IDevice) {
-        return axios.get(`/devicename`, {
-            baseURL: `http://${device.ip}:50005`,
+
+    public getDeviceName(ip: string, auth: string) {
+        return this.instance.get<string>(`/devicename`, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Length': 0,
-                auth: device.auth,
+                auth: auth,
             },
         });
     }
-    public getSnapshot(device: IDevice) {
+
+    public getSnapshot(ip: string, auth: string) {
         const selected: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotOrient');
         let orient: number;
         switch (selected) {
@@ -60,12 +71,12 @@ class Api {
                 orient = 1;
                 break;
         }
-        return axios.get(`/snapshot`, {
-            baseURL: `http://${device.ip}:50005`,
+        return this.instance.get(`/snapshot`, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Length': 0,
-                auth: device.auth,
+                auth: auth,
             },
             params: {
                 ext: 'png',
@@ -74,68 +85,73 @@ class Api {
             responseType: 'arraybuffer',
         });
     }
-    public setLogServer(device: IDevice, logIp: string) {
-        return axios.get(`/logServer`, {
-            baseURL: `http://${device.ip}:50005`,
+
+    public setLogServer(ip: string, auth: string, server: string, port: number = 14088) {
+        return this.instance.get(`/logServer`, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Length': 0,
-                auth: device.auth,
+                auth: auth,
                 port: 14088,
-                server: logIp,
+                server: server,
             },
         });
     }
-    public setLuaPath(device: IDevice, filename: string) {
+
+    public setLuaPath(ip: string, auth: string, filename: string, osType: string) {
         let filepath: string;
-        if (device.osType === 'iOS') {
+        if (osType === 'iOS') {
             filepath = '/var/mobile/Media/TouchSprite/lua/';
-        } else if (device.osType === 'Android') {
+        } else if (osType === 'Android') {
             filepath = '/storage/emulated/0/TouchSprite/lua/';
         } else {
             filepath = '/sdcard/TouchSprite/lua/';
         }
         const fileurl = filepath + filename;
         const postData = JSON.stringify({ path: fileurl });
-        return axios.post(`/setLuaPath`, postData, {
-            baseURL: `http://${device.ip}:50005`,
+        return this.instance.post(`/setLuaPath`, postData, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(postData),
-                auth: device.auth,
+                auth: auth,
             },
         });
     }
-    public runLua(device: IDevice) {
-        return axios.get(`/runLua`, {
-            baseURL: `http://${device.ip}:50005`,
+
+    public runLua(ip: string, auth: string) {
+        return this.instance.get(`/runLua`, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Length': 0,
-                auth: device.auth,
+                auth: auth,
             },
         });
     }
-    public stopLua(device: IDevice) {
-        return axios.get(`/stopLua`, {
-            baseURL: `http://${device.ip}:50005`,
+
+    public stopLua(ip: string, auth: string) {
+        return this.instance.get(`/stopLua`, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Length': 0,
-                auth: device.auth,
+                auth: auth,
             },
         });
     }
-    public upload(device: IDevice, pjf: IProjectFile) {
+
+    public upload(ip: string, auth: string, pjf: IProjectFile) {
         const postData = fs.readFileSync(pjf.url);
-        return axios.post('/upload', postData, {
-            baseURL: `http://${device.ip}:50005`,
+        return this.instance.post('/upload', postData, {
+            baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
                 'Content-Type': 'touchsprite/uploadfile',
                 'Content-Length': Buffer.byteLength(postData),
-                auth: device.auth,
+                auth: auth,
                 root: pjf.root,
                 path: encodeURIComponent(pjf.path),
                 filename: encodeURIComponent(pjf.filename),
@@ -143,5 +159,3 @@ class Api {
         });
     }
 }
-
-export default Api;

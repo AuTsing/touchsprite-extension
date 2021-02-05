@@ -122,11 +122,11 @@
                 "title": "触动插件: 启用服务"
             },
             {
-                "command": "extension.connect",
+                "command": "extension.attachDeviceThroughInput",
                 "title": "触动插件: 连接设备(手动输入)"
             },
             {
-                "command": "extension.disconnect",
+                "command": "extension.detachDevice",
                 "title": "触动插件: 断开连接"
             },
             {
@@ -150,7 +150,7 @@
                 "title": "触动插件: 打包工程"
             },
             {
-                "command": "extension.search",
+                "command": "extension.attachDevice",
                 "title": "触动插件: 连接设备(搜索设备)"
             },
             {
