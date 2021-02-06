@@ -87,7 +87,7 @@ export default class Api {
     }
 
     public setLogServer(ip: string, auth: string, server: string, port: number = 14088) {
-        return this.instance.get(`/logServer`, {
+        return this.instance.get<string>(`/logServer`, {
             baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
@@ -110,7 +110,7 @@ export default class Api {
         }
         const fileurl = filepath + filename;
         const postData = JSON.stringify({ path: fileurl });
-        return this.instance.post(`/setLuaPath`, postData, {
+        return this.instance.post<string>(`/setLuaPath`, postData, {
             baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
@@ -122,7 +122,7 @@ export default class Api {
     }
 
     public runLua(ip: string, auth: string) {
-        return this.instance.get(`/runLua`, {
+        return this.instance.get<string>(`/runLua`, {
             baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
@@ -133,7 +133,7 @@ export default class Api {
     }
 
     public stopLua(ip: string, auth: string) {
-        return this.instance.get(`/stopLua`, {
+        return this.instance.get<string>(`/stopLua`, {
             baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',
@@ -145,7 +145,7 @@ export default class Api {
 
     public upload(ip: string, auth: string, pjf: IProjectFile) {
         const postData = fs.readFileSync(pjf.url);
-        return this.instance.post('/upload', postData, {
+        return this.instance.post<string>('/upload', postData, {
             baseURL: `http://${ip}:50005`,
             headers: {
                 Connection: 'close',

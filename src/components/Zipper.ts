@@ -1,6 +1,7 @@
 import * as JSZip from 'jszip';
 import * as fs from 'fs';
-import ProjectGenerator, { IProjectFile } from './ProjectGenerator';
+import * as path from 'path';
+import { IProjectFile } from './ProjectGenerator';
 
 class Zipper extends JSZip {
     public addFile(pjf: IProjectFile) {
@@ -8,10 +9,9 @@ class Zipper extends JSZip {
         this.file(pjf.filename, data);
     }
 
-    public addFiles(project: ProjectGenerator) {
-        const list = project.projectFiles;
+    public addFiles(pjfs: IProjectFile[]) {
         return Promise.all(
-            list.map(pjf => {
+            pjfs.map(pjf => {
                 const data = fs.readFileSync(pjf.url);
                 let path = pjf.path.substr(1, pjf.path.length);
                 if (path === '') {
@@ -24,12 +24,13 @@ class Zipper extends JSZip {
         );
     }
 
-    public zipFiles(mainPath: string): Promise<string> {
-        return new Promise(resolve => {
+    public zipFiles(dir: string, filename: string) {
+        const url = path.join(dir, filename);
+        return new Promise<string>(resolve =>
             this.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
-                .pipe(fs.createWriteStream(mainPath + '.zip'))
-                .on('finish', () => resolve('ok'));
-        });
+                .pipe(fs.createWriteStream(url))
+                .on('finish', () => resolve(url))
+        );
     }
 }
 

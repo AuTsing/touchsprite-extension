@@ -357,36 +357,24 @@ class Server {
     }
 
     public zipProject() {
-        const pjg = new ProjectGenerator();
-        pjg.generateZip();
-        if (!pjg.focusing) {
-            Ui.setStatusBarTemporary(StatusBarType.failed);
-            Ui.logging('打包工程失败: 未指定工程');
-            return Promise.reject('打包工程失败: 未指定工程');
-        }
-        if (!pjg.projectRoot) {
-            Ui.setStatusBarTemporary(StatusBarType.failed);
-            Ui.logging('打包工程失败: 所选工程不包含引导文件 main.lua');
-            return Promise.reject('打包工程失败: 所选工程不包含引导文件 main.lua');
-        }
-        Ui.setStatusBar('$(loading) 打包工程中...');
-        const mainDir = pjg.projectRoot;
+        const pjg = new ProjectGenerator().useZip();
         const zipper = new Zipper();
-        return zipper
-            .addFiles(pjg)
-            .then(() => zipper.zipFiles(mainDir))
-            .then(
-                () => {
-                    Ui.setStatusBarTemporary(StatusBarType.successful);
-                    Ui.logging('打包工程成功: ' + mainDir + '.zip');
-                    return mainDir + '.zip';
-                },
-                err => {
-                    Ui.setStatusBarTemporary(StatusBarType.failed);
-                    Ui.logging(`打包工程失败: ${err.toString()}`);
-                    return Promise.reject(`打包工程失败: ${err.toString()}`);
-                }
-            );
+        Ui.setStatusBar('$(loading) 打包工程中...');
+        pjg.generate()
+            .then(pjfs => {
+                return zipper.addFiles(pjfs);
+            })
+            .then(() => {
+                const dir: string = pjg.projectRoot!;
+                const filename: string = path.basename(dir) + '.zip';
+                return zipper.zipFiles(dir, filename);
+            })
+            .then(url => {
+                Ui.logging(`打包工程成功: ${url}`);
+            })
+            .catch(err => {
+                Ui.logging(`打包工程失败: ${err.toString()}`);
+            });
     }
 
     public uploadFile() {
