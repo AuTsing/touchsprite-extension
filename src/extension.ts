@@ -1,29 +1,30 @@
 import * as vscode from 'vscode';
 import Server from './components/Server';
+import Debugger from './components/Debuger';
 import DeviceSearcher from './components/DeviceSearcher';
 import Snapshoter from './view/Snapshoter';
 import Ui from './components/ui/Ui';
 import Publisher from './components/Publisher';
-
 import LuaConfigurationProvider from './components/debug/LuaConfigurationProvider';
 import LuaDebugAdapterServerDescriptorFactory from './components/debug/LuaDebugAdapterServerDescriptorFactory';
 import Tools from './components/debug/Tools';
 
 export function activate(context: vscode.ExtensionContext) {
-    const server = new Server(context);
+    const server = new Server();
     context.subscriptions.push(vscode.commands.registerCommand('extension.startServer', () => Ui.logging('触动插件已启用')));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.connect', () => server.attachDeviceThroughInput()));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.disconnect', () => server.detachDevice()));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.menu', () => server.operationsMenu()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.attachDevice', () => server.attachDeviceThroughInput()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.detachDevice', () => server.detachDevice()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.menus', () => server.deviceMenus()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.runProject', () => server.runProject()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.runTestProject', () => server.runTestProject()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.runScript', () => server.runScript()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.stopScript', () => server.stopScript()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.zipProject', () => server.zipProject()));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.uploadFile', () => server.uploadFile()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.uploadFiles', () => server.uploadFiles()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.setHostIp', () => server.setHostIp()));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.debug', () => server.debug()));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => {}));
+
+    const debuger = new Debugger(server, context);
+    context.subscriptions.push(vscode.commands.registerCommand('extension.debug', () => debuger.debug()));
 
     const publisher = new Publisher(server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.publish', () => publisher.publish()));

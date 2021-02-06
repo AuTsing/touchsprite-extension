@@ -58,7 +58,7 @@ export default class ProjectGenerator {
             });
     }
 
-    private locateMain() {
+    public locateMain() {
         const focusing = vscode.window.activeTextEditor?.document?.uri;
         if (!focusing) {
             return Promise.reject('未指定工程');

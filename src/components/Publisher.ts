@@ -54,8 +54,8 @@ class Publisher {
     public async publish() {
         this.askPublishCookie()
             .then(() => {
-                const workspace = new Workspace();
-                return workspace.getRoot();
+                const pjg = new ProjectGenerator();
+                return pjg.locateMain();
             })
             .then(root => {
                 if (!this.publishCookie) {
@@ -64,10 +64,7 @@ class Publisher {
                 this.updater.defaults.headers.cookie = this.publishCookie;
                 return Promise.all<string, string, string>([this.readScriptId(root), this.readScriptVersion(root), this.server.zipProject()]);
             })
-            .then((values: any) => {
-                const id: string = values[0];
-                const ver: string = values[1];
-                const zip: string = values[2];
+            .then(([id, ver, zip]) => {
                 if (!id) {
                     return Promise.reject('脚本ID无法正确读取');
                 }
@@ -76,10 +73,7 @@ class Publisher {
                 }
                 return Promise.all([id, ver, zip]);
             })
-            .then(values => {
-                const id = values[0];
-                const ver = values[1];
-                const zip = values[2];
+            .then(([id, ver, zip]) => {
                 Ui.setStatusBar('$(sync~spin) 发布中...');
                 return Promise.all([
                     id,
@@ -98,10 +92,7 @@ class Publisher {
                     }),
                 ]);
             })
-            .then(values => {
-                const id = values[0];
-                const ver = values[1];
-                const key = values[2];
+            .then(([id, ver, key]) => {
                 return this.versionScript(id, ver, key);
             })
             .then(resp => {
