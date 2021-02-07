@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
     const debuger = new Debugger(server, context);
     context.subscriptions.push(vscode.commands.registerCommand('extension.debug', () => debuger.debug()));
 
-    const publisher = new Publisher(server);
+    const publisher = new Publisher();
     context.subscriptions.push(vscode.commands.registerCommand('extension.publish', () => publisher.publish()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.inquiry', () => publisher.inquiry()));
 

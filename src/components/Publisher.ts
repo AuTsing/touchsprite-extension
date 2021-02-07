@@ -9,7 +9,7 @@ import { StatusBarType } from './ui/StatusBar';
 import ProjectGenerator from './ProjectGenerator';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import Workspace from './kits/Workspace';
+import Zipper from './Zipper';
 
 const luaparse = require('luaparse');
 
@@ -25,13 +25,11 @@ interface IAstObject {
 }
 
 class Publisher {
-    private readonly server: Server;
     private readonly loginer: AxiosInstance;
     private readonly updater: AxiosInstance;
     private publishCookie: string | undefined;
 
-    constructor(server: Server) {
-        this.server = server;
+    constructor() {
         this.loginer = axios.create({
             timeout: 10000,
             maxRedirects: 0,
@@ -62,7 +60,7 @@ class Publisher {
                     return Promise.reject('用户验证失败, 请检查Cookie是否可用');
                 }
                 this.updater.defaults.headers.cookie = this.publishCookie;
-                return Promise.all<string, string, string>([this.readScriptId(root), this.readScriptVersion(root), this.server.zipProject()]);
+                return Promise.all<string, string, string>([this.readScriptId(root), this.readScriptVersion(root), this.zipProject()]);
             })
             .then(([id, ver, zip]) => {
                 if (!id) {
@@ -105,12 +103,22 @@ class Publisher {
             });
     }
 
+    public async zipProject() {
+        const pjg = new ProjectGenerator().useZip();
+        const zipper = new Zipper();
+        const pjfs = await pjg.generate();
+        await zipper.addFiles(pjfs);
+        const dir = await pjg.getRoot();
+        const filename = path.basename(dir) + '.zip';
+        const url = await zipper.zipFiles(dir, filename);
+        return Promise.resolve(url);
+    }
+
     public inquiry() {
         Ui.setStatusBar('$(sync~spin) 查询中...');
         this.askPublishCookie()
             .then(() => {
-                const workspace = new Workspace();
-                return workspace.getRoot();
+                return new ProjectGenerator().getRoot();
             })
             .then(root => {
                 if (!this.publishCookie) {

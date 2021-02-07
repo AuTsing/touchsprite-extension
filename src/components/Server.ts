@@ -130,7 +130,9 @@ export default class Server {
                 return zipper.addFiles(pjfs);
             })
             .then(() => {
-                const dir: string = pjg.projectRoot!;
+                return pjg.getRoot();
+            })
+            .then(dir => {
                 const filename: string = path.basename(dir) + '.zip';
                 return zipper.zipFiles(dir, filename);
             })

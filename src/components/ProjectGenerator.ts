@@ -26,7 +26,7 @@ export interface IRawFile {
 
 export default class ProjectGenerator {
     public runfile: string;
-    public projectRoot: string | undefined;
+    private projectRoot: string | undefined;
     private locateTimes: number = 0;
     private generateMode: GeneratorMode = GeneratorMode.send;
     private includes: string[] = [];
@@ -70,6 +70,14 @@ export default class ProjectGenerator {
             return Promise.reject('所选工程不包含引导文件: ' + this.runfile);
         }
         return Promise.resolve(this.projectRoot);
+    }
+
+    public getRoot() {
+        if (this.projectRoot) {
+            return Promise.resolve(this.projectRoot);
+        } else {
+            return this.locateMain();
+        }
     }
 
     private isRoot(files: string[]): boolean {
