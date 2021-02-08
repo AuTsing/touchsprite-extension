@@ -4,7 +4,6 @@ import * as fs from 'fs';
 import Server from '../components/Server';
 import Api from '../components/Api';
 import Ui from '../components/ui/Ui';
-import { StatusBarType } from '../components/ui/StatusBar';
 
 export interface IVscodeMessageEventData {
     command: string;

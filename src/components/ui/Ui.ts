@@ -1,26 +1,24 @@
-import StatusBar, { StatusBarType } from './StatusBar';
+import StatusBar from './StatusBar';
 import Output from './Output';
 import Pop from './Pop';
+import Device from '../Device';
 
-class Ui {
-    private static _statusBar: StatusBar = new StatusBar();
-    private static _output: Output = new Output();
-    private static _pop: Pop = new Pop();
+export default class Ui {
+    private static statusBar: StatusBar = new StatusBar();
+    private static outputChannel: Output = new Output();
+    private static pop: Pop = new Pop();
 
-    public static setStatusBar = (content: string | StatusBarType) => Ui._statusBar.setStatusBar(content);
-    public static setStatusBarTemporary = (content: string | StatusBarType, timeout?: number) => Ui._statusBar.setStatusBarTemporary(content, timeout);
-    public static resetStatusBar = () => Ui._statusBar.resetStatusBar();
+    public static doing = (text: string) => Ui.statusBar.doing(text);
+    public static attachDevice = (device: Device) => Ui.statusBar.attachDevice(device);
+    public static detachDevice = () => Ui.statusBar.detachDevice();
 
-    public static logging = (content: string) => Ui._output.logging(content);
-    public static loggingShow = (content: string) => Ui._output.loggingShow(content);
-    public static logError = (content: string) => Ui._output.logError(content);
-    public static logWarning = (content: string) => Ui._output.logWarning(content);
-    public static logDebug = (content: string) => Ui._output.logDebug(content);
-    public static enableDebugChannel = () => Ui._output.enableDebugChannel();
+    public static output = (content: string, level?: number) => Ui.outputChannel.output(content, level);
+    public static outputWarn = (content: string) => Ui.outputChannel.outputWarn(content);
+    public static outputError = (content: string) => Ui.outputChannel.outputError(content);
+    public static enableDebugChannel = () => Ui.outputChannel.enableDebugChannel();
+    public static outputDebug = (content: string) => Ui.outputChannel.outputDebug(content);
 
-    public static popMessage = (content: string) => Ui._pop.popMessage(content);
-    public static popError = (content: string) => Ui._pop.popError(content);
-    public static popWarning = (content: string) => Ui._pop.popMessage(content);
+    public static popMessage = (content: string) => Ui.pop.popMessage(content);
+    public static popError = (content: string) => Ui.pop.popError(content);
+    public static popWarning = (content: string) => Ui.pop.popMessage(content);
 }
-
-export default Ui;

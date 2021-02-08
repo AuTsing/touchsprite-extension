@@ -150,7 +150,7 @@
                 "title": "触动插件: 打包工程"
             },
             {
-                "command": "extension.attachDevice",
+                "command": "extension.attachDeviceThroughSearch",
                 "title": "触动插件: 连接设备(搜索设备)"
             },
             {

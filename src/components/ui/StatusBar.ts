@@ -1,67 +1,63 @@
 import * as vscode from 'vscode';
+import Device from '../Device';
 
-export enum StatusBarType {
-    disconnected,
-    connected,
-    failed,
-    successful,
+interface ITaks {
+    prefix: string;
+    text: string;
+    surfix: string;
 }
 
 class StatusBar {
-    private readonly _statusBar: vscode.StatusBarItem;
-    private _statusBarDisconnected: string = '$(play) 触动插件: 未连接设备';
-    private _statusBarConnected: string = '$(play) 触动插件: 未连接设备';
+    private readonly statusBar: vscode.StatusBarItem;
+    private attachingDevice: Device | undefined;
+    private readonly defaultText = '触动插件';
+    private taskList: ITaks[] = [];
 
     constructor() {
-        this._statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-        this._statusBar.tooltip = '触动插件: 连接/断开设备';
-        this._statusBar.command = 'extension.menu';
-        this._statusBar.text = this._statusBarDisconnected;
-        this._statusBar.show();
+        this.statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+        this.statusBar.tooltip = '触动插件: 连接/断开设备';
+        this.statusBar.command = 'extension.menus';
+        this.statusBar.text = this.defaultText;
+        setInterval(() => this.refresh(), 1000);
+        this.statusBar.show();
     }
 
-    public setStatusBar(content: string | StatusBarType) {
-        if (typeof content === 'string') {
-            this._statusBar.text = content;
-            if (content.indexOf('已连接') > -1) {
-                this._statusBarConnected = content;
-            }
+    private getText(): string {
+        if (this.taskList.length > 0) {
+            const task = this.taskList[this.taskList.length - 1];
+            const text = `${task.prefix} ${task.text} ${task.surfix}`;
+            return text;
+        } else if (this.attachingDevice) {
+            return `📱 ${this.attachingDevice.ip}`;
         } else {
-            switch (content) {
-                case StatusBarType.connected:
-                    this._statusBar.text = this._statusBarConnected;
-                    break;
-                case StatusBarType.disconnected:
-                    this._statusBar.text = this._statusBarDisconnected;
-                    break;
-                default:
-                    break;
-            }
+            return `📴 触动插件`;
         }
     }
 
-    public setStatusBarTemporary(content: string | StatusBarType, timeout?: number) {
-        if (typeof content === 'string') {
-            this.setStatusBar(content);
-            setTimeout(() => this.setStatusBar(StatusBarType.connected), timeout);
+    public refresh() {
+        const text = this.getText();
+        if (text === this.statusBar.text) {
+            return;
         } else {
-            switch (content) {
-                case StatusBarType.failed:
-                    this.setStatusBar('$(issues) 操作失败...');
-                    setTimeout(() => this.setStatusBar(StatusBarType.connected), 2000);
-                    break;
-                case StatusBarType.successful:
-                    this.setStatusBar('$(check) 操作成功...');
-                    setTimeout(() => this.setStatusBar(StatusBarType.connected), 2000);
-                    break;
-                default:
-                    break;
-            }
+            this.statusBar.text = text;
         }
     }
 
-    public resetStatusBar() {
-        this.setStatusBar(StatusBarType.disconnected);
+    public doing(text: string) {
+        const task: ITaks = { prefix: '$(loading~spin)', text: text, surfix: '...' };
+        this.taskList.push(task);
+        this.refresh();
+        return () => {
+            this.taskList.splice(this.taskList.indexOf(task), 1);
+        };
+    }
+
+    public attachDevice(device: Device) {
+        this.attachingDevice = device;
+    }
+
+    public detachDevice() {
+        this.attachingDevice = undefined;
     }
 }
 

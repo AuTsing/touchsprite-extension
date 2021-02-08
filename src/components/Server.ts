@@ -6,6 +6,7 @@ import Api from './Api';
 import Ui from './ui/Ui';
 import Zipper from './Zipper';
 import ProjectGenerator, { IProjectFile, ProjectFileRoot } from './ProjectGenerator';
+import axios from 'axios';
 
 export default class Server {
     public readonly api: Api = new Api();
@@ -75,9 +76,11 @@ export default class Server {
             .then(([id, auth, name, osType]) => {
                 const device = new Device(ip, id, auth, name, osType);
                 this.attachingDevice = device;
+                Ui.attachDevice(this.attachingDevice);
             })
             .catch(err => {
-                Ui.logging('连接设备失败: ' + err);
+                Ui.outputWarn('连接设备失败: ' + err);
+                console.log(err);
             });
     }
 
@@ -92,7 +95,8 @@ export default class Server {
                 inputValue = inputValue ? inputValue : '';
                 inputValue = /^((2[0-4]\d|25[0-5]|[01]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[01]?\d\d?)$/.test(inputValue) ? inputValue : '';
                 if (!inputValue) {
-                    Ui.logging('连接设备失败: IP地址格式错误');
+                    Ui.outputWarn('连接设备失败: IP地址格式错误');
+                    return;
                 }
                 return this.attachDevice(inputValue);
             });
@@ -100,13 +104,14 @@ export default class Server {
 
     public detachDevice() {
         this.attachingDevice = undefined;
+        Ui.detachDevice();
     }
 
     public deviceMenus() {
         return vscode.window.showQuickPick(['触动插件: 连接设备(搜索设备)', '触动插件: 连接设备(手动输入)', '触动插件: 断开设备']).then(selected => {
             switch (selected) {
                 case '触动插件: 连接设备(搜索设备)':
-                    vscode.commands.executeCommand('extension.attachDevice');
+                    vscode.commands.executeCommand('extension.attachDeviceThroughSearch');
                     break;
                 case '触动插件: 连接设备(手动输入)':
                     vscode.commands.executeCommand('extension.attachDeviceThroughInput');
@@ -123,7 +128,7 @@ export default class Server {
     public zipProject() {
         const pjg = new ProjectGenerator().useZip();
         const zipper = new Zipper();
-        Ui.setStatusBar('$(loading) 打包工程中...');
+        const statusBarDisposer = Ui.doing('打包工程中');
         return pjg
             .generate()
             .then(pjfs => {
@@ -137,10 +142,12 @@ export default class Server {
                 return zipper.zipFiles(dir, filename);
             })
             .then(url => {
-                Ui.logging(`打包工程成功: ${url}`);
+                Ui.output(`打包工程成功: ${url}`);
+                statusBarDisposer();
             })
             .catch(err => {
-                Ui.logging(`打包工程失败: ${err.toString()}`);
+                Ui.outputWarn(`打包工程失败: ${err.toString()}`);
+                statusBarDisposer();
             });
     }
 
@@ -199,9 +206,9 @@ export default class Server {
             if (resp4.data !== 'ok') {
                 return Promise.reject('运行引导文件失败');
             }
-            Ui.logging('运行工程成功');
+            Ui.output('运行工程成功');
         } catch (err) {
-            Ui.logging(`运行工程失败: ${err.toString()}`);
+            Ui.outputWarn(`运行工程失败: ${err.toString()}`);
         }
     }
 
@@ -244,9 +251,9 @@ export default class Server {
             if (resp4.data !== 'ok') {
                 return Promise.reject('运行引导文件失败');
             }
-            Ui.logging(`运行脚本成功`);
+            Ui.output(`运行脚本成功`);
         } catch (err) {
-            Ui.logging(`运行脚本失败: ${err.toString()}`);
+            Ui.outputWarn(`运行脚本失败: ${err.toString()}`);
         }
     }
 
@@ -258,13 +265,14 @@ export default class Server {
             if (resp.data !== 'ok') {
                 return Promise.reject('停止脚本失败');
             }
-            Ui.logging(`停止脚本成功`);
+            Ui.output(`停止脚本成功`);
         } catch (err) {
-            Ui.logging(`停止脚本失败: ${err.toString()}`);
+            Ui.outputWarn(`停止脚本失败: ${err.toString()}`);
         }
     }
 
     public async uploadFiles(): Promise<void> {
+        const statusBarDisposer = Ui.doing('上传工程工程中');
         try {
             const attachingDevice = await this.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -297,9 +305,11 @@ export default class Server {
             if (resp1.some(resp => resp !== 'ok')) {
                 return Promise.reject('上传文件失败');
             }
-            Ui.logging(`上次文件成功: ${resp1.length}`);
+            Ui.output(`上次文件成功: ${resp1.length}`);
+            statusBarDisposer();
         } catch (err) {
-            Ui.logging(`上传文件失败: ${err.toString()}`);
+            Ui.outputWarn(`上传文件失败: ${err.toString()}`);
+            statusBarDisposer();
         }
     }
 
@@ -321,11 +331,15 @@ export default class Server {
             })
             .then(
                 ip => {
-                    Ui.logging(`设置本机IP地址成功: ${ip}`);
+                    Ui.output(`设置本机IP地址成功: ${ip}`);
                 },
                 err => {
-                    Ui.logging(`设置本机IP地址失败: ${err.toString()}`);
+                    Ui.outputWarn(`设置本机IP地址失败: ${err.toString()}`);
                 }
             );
+    }
+
+    public async test() {
+        axios.get(`http://192.168.231.55:50005/deviceid?Connection=close&Content-Length=0`).then(value => console.log(value));
     }
 }

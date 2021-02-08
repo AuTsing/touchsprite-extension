@@ -3,9 +3,7 @@ import * as fs from 'fs';
 import * as FormData from 'form-data';
 import Version from './kits/Version';
 import * as qs from 'querystring';
-import Server from './Server';
 import Ui from './ui/Ui';
-import { StatusBarType } from './ui/StatusBar';
 import ProjectGenerator from './ProjectGenerator';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -31,7 +29,7 @@ class Publisher {
 
     constructor() {
         this.loginer = axios.create({
-            timeout: 10000,
+            timeout: 30000,
             maxRedirects: 0,
         });
         this.loginer.interceptors.response.use(
@@ -50,6 +48,7 @@ class Publisher {
     }
 
     public async publish() {
+        const statusBarDisposer = Ui.doing('发布中');
         this.askPublishCookie()
             .then(() => {
                 const pjg = new ProjectGenerator();
@@ -72,7 +71,6 @@ class Publisher {
                 return Promise.all([id, ver, zip]);
             })
             .then(([id, ver, zip]) => {
-                Ui.setStatusBar('$(sync~spin) 发布中...');
                 return Promise.all([
                     id,
                     this.askScriptState(id).then(respData => {
@@ -94,12 +92,12 @@ class Publisher {
                 return this.versionScript(id, ver, key);
             })
             .then(resp => {
-                Ui.setStatusBarTemporary(StatusBarType.successful);
-                Ui.logging(`发布版本成功: ID >> ${resp.id}; VER >> ${resp.ver};`);
+                Ui.output(`发布版本成功: ID >> ${resp.id}; VER >> ${resp.ver};`);
+                statusBarDisposer();
             })
             .catch(err => {
-                Ui.setStatusBarTemporary(StatusBarType.failed);
-                Ui.logging(`发布版本失败: ${err}`);
+                Ui.output(`发布版本失败: ${err}`);
+                statusBarDisposer();
             });
     }
 
@@ -115,7 +113,7 @@ class Publisher {
     }
 
     public inquiry() {
-        Ui.setStatusBar('$(sync~spin) 查询中...');
+        const statusBarDisposer = Ui.doing('查询中');
         this.askPublishCookie()
             .then(() => {
                 return new ProjectGenerator().getRoot();
@@ -138,12 +136,12 @@ class Publisher {
                 const name = resp.data.details.name;
                 const ver = resp.data.version.version;
                 const updatedAt = resp.data.version.created_at;
-                Ui.setStatusBarTemporary(StatusBarType.successful);
-                Ui.logging(`查询成功: ID >> ${id}; NAME >> ${name}; VER >> ${ver}; UPDATEDAT >> ${updatedAt};`);
+                Ui.output(`查询成功: ID >> ${id}; NAME >> ${name}; VER >> ${ver}; UPDATEDAT >> ${updatedAt};`);
+                statusBarDisposer();
             })
             .catch(err => {
-                Ui.setStatusBarTemporary(StatusBarType.failed);
-                Ui.logging(`查询失败: ${err}`);
+                Ui.outputWarn(`查询失败: ${err}`);
+                statusBarDisposer();
             });
     }
 
@@ -241,7 +239,7 @@ class Publisher {
         if (table.id && /^[0-9]*$/.test(table.id)) {
             return table.id;
         } else {
-            Ui.logging(`WARNING: 读取配置文件 ${configUri} 字段 id 失败, 请手动指定脚本ID`);
+            Ui.outputWarn(`读取配置文件 ${configUri} 字段 id 失败, 请手动指定脚本ID`);
             let id: string = '';
             await vscode.window
                 .showInputBox({
@@ -263,7 +261,7 @@ class Publisher {
         if (table.version && /^[0-9]+\.[0-9]+\.[0-9]+$/.test(table.version)) {
             return table.version;
         } else {
-            Ui.logging(`WARNING: 读取配置文件 ${configUri} 字段 version 失败, 请选择版本调整方式`);
+            Ui.outputWarn(`读取配置文件 ${configUri} 字段 version 失败, 请选择版本调整方式`);
             let version: string = '';
             await vscode.window.showQuickPick(['major', 'minor', 'patch', '手动输入']).then(async selected => {
                 if (!selected) {

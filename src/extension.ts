@@ -11,8 +11,8 @@ import Tools from './components/debug/Tools';
 
 export function activate(context: vscode.ExtensionContext) {
     const server = new Server();
-    context.subscriptions.push(vscode.commands.registerCommand('extension.startServer', () => Ui.logging('触动插件已启用')));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.attachDevice', () => server.attachDeviceThroughInput()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.startServer', () => Ui.output('触动插件已启用', 1)));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.attachDeviceThroughInput', () => server.attachDeviceThroughInput()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.detachDevice', () => server.detachDevice()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.menus', () => server.deviceMenus()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.runProject', () => server.runProject()));
@@ -30,8 +30,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('extension.publish', () => publisher.publish()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.inquiry', () => publisher.inquiry()));
 
-    const dvs = new DeviceSearcher(server);
-    context.subscriptions.push(vscode.commands.registerCommand('extension.search', () => dvs.search()));
+    const deviceSearcher = new DeviceSearcher(server);
+    context.subscriptions.push(vscode.commands.registerCommand('extension.attachDeviceThroughSearch', () => deviceSearcher.search()));
 
     const snapshoter = new Snapshoter(context, server);
     context.subscriptions.push(vscode.commands.registerCommand('extension.snapshoter', () => snapshoter.show()));
@@ -45,6 +45,10 @@ export function activate(context: vscode.ExtensionContext) {
     const pkg = require(context.extensionPath + '/package.json');
     Tools.adapterVersion = pkg.version;
     Tools.vscodeExtensionPath = context.extensionPath;
+
+    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => server.test()));
+
+    vscode.commands.executeCommand('extension.startServer');
 }
 
 export function deactivate() {}
