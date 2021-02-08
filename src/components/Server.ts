@@ -1,17 +1,23 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
+import * as net from 'net';
 import Device from './Device';
 import Api from './Api';
 import Ui from './ui/Ui';
 import Zipper from './Zipper';
 import ProjectGenerator, { IProjectFile, ProjectFileRoot } from './ProjectGenerator';
-import axios from 'axios';
 
 export default class Server {
     public readonly api: Api = new Api();
     private attachingDevice: Device | undefined;
     private hostIp: string | undefined;
+    private loggerPort: number;
+
+    constructor() {
+        this.loggerPort = Math.round(Math.random() * (20000 - 24999 + 1) + 24999);
+        this.setLogger();
+    }
 
     private getAccessKey(): Promise<string> {
         const accessKey: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.accessKey');
@@ -22,7 +28,21 @@ export default class Server {
         }
     }
 
+    private setLogger() {
+        const logger = net.createServer((socket: net.Socket) => {
+            socket.on('data', data => {
+                Ui.output(data.toString('utf8', 4, data.length - 2));
+            });
+        });
+        logger.on('error', err => {
+            logger.close();
+            Ui.outputError(`日志服务器启用失败, 这可能导致设备日志无法正常接收, 错误代码: ${err.toString()}, 如无法自行解决, 请联系开发者获取帮助`);
+        });
+        logger.listen(this.loggerPort);
+    }
+
     public attachDevice(ip: string) {
+        const statusBarDisposer = Ui.doing('连接中');
         return this.api
             .getDeviceId(ip)
             .then(resp => {
@@ -77,10 +97,11 @@ export default class Server {
                 const device = new Device(ip, id, auth, name, osType);
                 this.attachingDevice = device;
                 Ui.attachDevice(this.attachingDevice);
+                statusBarDisposer();
             })
             .catch(err => {
                 Ui.outputWarn('连接设备失败: ' + err);
-                console.log(err);
+                statusBarDisposer();
             });
     }
 
@@ -143,10 +164,11 @@ export default class Server {
             })
             .then(url => {
                 Ui.output(`打包工程成功: ${url}`);
-                statusBarDisposer();
             })
             .catch(err => {
                 Ui.outputWarn(`打包工程失败: ${err.toString()}`);
+            })
+            .finally(() => {
                 statusBarDisposer();
             });
     }
@@ -179,12 +201,13 @@ export default class Server {
     }
 
     public async runProject(runfile = 'main.lua', boot?: string): Promise<void> {
+        const statusBarDisposer = Ui.doing('发送工程中');
         try {
             boot = boot ? boot : runfile;
             const attachingDevice = await this.getAttachingDevice();
             const hostIp = await this.getHostIp();
             const { ip, auth, osType } = attachingDevice;
-            const resp1 = await this.api.setLogServer(ip, auth, hostIp);
+            const resp1 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
             if (resp1.data !== 'ok') {
                 return Promise.reject('设置日志服务器失败');
             }
@@ -210,6 +233,7 @@ export default class Server {
         } catch (err) {
             Ui.outputWarn(`运行工程失败: ${err.toString()}`);
         }
+        statusBarDisposer();
     }
 
     public runTestProject() {
@@ -218,6 +242,7 @@ export default class Server {
     }
 
     public async runScript(): Promise<void> {
+        const statusBarDisposer = Ui.doing('发送脚本中');
         try {
             const attachingDevice = await this.getAttachingDevice();
             const focusing = vscode.window.activeTextEditor?.document;
@@ -229,7 +254,7 @@ export default class Server {
             }
             const hostIp = await this.getHostIp();
             const { ip, auth, osType } = attachingDevice;
-            const resp1 = await this.api.setLogServer(ip, auth, hostIp);
+            const resp1 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
             if (resp1.data !== 'ok') {
                 return Promise.reject('设置日志服务器失败');
             }
@@ -255,6 +280,7 @@ export default class Server {
         } catch (err) {
             Ui.outputWarn(`运行脚本失败: ${err.toString()}`);
         }
+        statusBarDisposer();
     }
 
     public async stopScript(): Promise<void> {
@@ -272,7 +298,7 @@ export default class Server {
     }
 
     public async uploadFiles(): Promise<void> {
-        const statusBarDisposer = Ui.doing('上传工程工程中');
+        const statusBarDisposer = Ui.doing('上传文件中');
         try {
             const attachingDevice = await this.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -306,11 +332,10 @@ export default class Server {
                 return Promise.reject('上传文件失败');
             }
             Ui.output(`上次文件成功: ${resp1.length}`);
-            statusBarDisposer();
         } catch (err) {
             Ui.outputWarn(`上传文件失败: ${err.toString()}`);
-            statusBarDisposer();
         }
+        statusBarDisposer();
     }
 
     public setHostIp() {
@@ -337,9 +362,5 @@ export default class Server {
                     Ui.outputWarn(`设置本机IP地址失败: ${err.toString()}`);
                 }
             );
-    }
-
-    public async test() {
-        axios.get(`http://192.168.231.55:50005/deviceid?Connection=close&Content-Length=0`).then(value => console.log(value));
     }
 }

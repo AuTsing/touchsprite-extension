@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
     Tools.adapterVersion = pkg.version;
     Tools.vscodeExtensionPath = context.extensionPath;
 
-    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => server.test()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => {}));
 
     vscode.commands.executeCommand('extension.startServer');
 }

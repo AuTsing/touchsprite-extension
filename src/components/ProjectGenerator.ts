@@ -40,10 +40,10 @@ export default class ProjectGenerator {
         return this.locateMain()
             .then(root => {
                 if (this.generateMode === GeneratorMode.send) {
-                    this.includes = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath') || [];
-                    this.ignores = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath') || [];
+                    this.includes = vscode.workspace.getConfiguration().get('touchsprite-extension.includePath') || [];
+                    this.ignores = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePath') || [];
                 } else if (this.generateMode === GeneratorMode.zip) {
-                    this.includes = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePathInZip') || [];
+                    this.includes = vscode.workspace.getConfiguration().get('touchsprite-extension.includePathInZip') || [];
                     this.ignores = vscode.workspace.getConfiguration().get('touchsprite-extension.ignorePathInZip') || [];
                 }
                 const projectPaths = [...this.includes, root];

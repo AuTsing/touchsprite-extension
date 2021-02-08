@@ -13,7 +13,7 @@ interface ITsOpenApiResponseData {
 }
 
 export default class Api {
-    private readonly instance: AxiosInstance = axios.create({ timeout: 5000 });
+    private readonly instance: AxiosInstance = axios.create({ timeout: 10000 });
 
     public getDeviceId(ip: string) {
         return this.instance.get<string>(`/deviceid`, {
@@ -93,7 +93,7 @@ export default class Api {
                 Connection: 'close',
                 'Content-Length': 0,
                 auth: auth,
-                port: 14088,
+                port: port,
                 server: server,
             },
         });
