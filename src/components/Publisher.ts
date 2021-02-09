@@ -43,7 +43,7 @@ class Publisher {
             }
         );
         this.updater = axios.create({
-            timeout: 10000,
+            timeout: 30000,
         });
     }
 
@@ -106,8 +106,9 @@ class Publisher {
         const zipper = new Zipper();
         const pjfs = await pjg.generate();
         await zipper.addFiles(pjfs);
-        const dir = await pjg.getRoot();
-        const filename = path.basename(dir) + '.zip';
+        const root = await pjg.getRoot();
+        const dir = path.dirname(root);
+        const filename = path.basename(root) + '.zip';
         const url = await zipper.zipFiles(dir, filename);
         return Promise.resolve(url);
     }

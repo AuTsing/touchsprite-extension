@@ -158,7 +158,7 @@
                 "title": "触动插件: 取色器"
             },
             {
-                "command": "extension.uploadFile",
+                "command": "extension.uploadFiles",
                 "title": "触动插件: 上传文件"
             },
             {

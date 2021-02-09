@@ -96,11 +96,13 @@ export default class Server {
             .then(([id, auth, name, osType]) => {
                 const device = new Device(ip, id, auth, name, osType);
                 this.attachingDevice = device;
+                Ui.output(`连接设备成功: ${name} >> ${ip}`);
                 Ui.attachDevice(this.attachingDevice);
-                statusBarDisposer();
             })
             .catch(err => {
-                Ui.outputWarn('连接设备失败: ' + err);
+                Ui.outputWarn(`连接设备失败: ${err}`);
+            })
+            .finally(() => {
                 statusBarDisposer();
             });
     }
@@ -158,8 +160,9 @@ export default class Server {
             .then(() => {
                 return pjg.getRoot();
             })
-            .then(dir => {
-                const filename: string = path.basename(dir) + '.zip';
+            .then(root => {
+                const dir: string = path.dirname(root);
+                const filename: string = path.basename(root) + '.zip';
                 return zipper.zipFiles(dir, filename);
             })
             .then(url => {
@@ -259,7 +262,7 @@ export default class Server {
                 throw new Error('设置日志服务器失败');
             }
             const resp2 = await this.api.setLuaPath(ip, auth, path.basename(focusing.fileName), osType);
-            if (resp2.data === 'ok') {
+            if (resp2.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
             const pjf: IProjectFile = {
