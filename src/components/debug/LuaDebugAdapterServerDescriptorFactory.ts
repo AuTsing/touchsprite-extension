@@ -10,7 +10,7 @@ class LuaDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDescr
         session: vscode.DebugSession,
         executable: vscode.DebugAdapterExecutable | undefined
     ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-        Ui.logDebug('start createDebugAdapterDescriptor');
+        Ui.outputDebug('start createDebugAdapterDescriptor');
 
         if (!this._server) {
             // start listening on a random port

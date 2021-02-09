@@ -15,6 +15,7 @@ export default class Ui {
     public static output = (content: string, level?: number) => Ui.outputChannel.output(content, level);
     public static outputWarn = (content: string) => Ui.outputChannel.outputWarn(content);
     public static outputError = (content: string) => Ui.outputChannel.outputError(content);
+    public static outputShow = () => Ui.outputChannel.outputShow();
     public static enableDebugChannel = () => Ui.outputChannel.enableDebugChannel();
     public static outputDebug = (content: string) => Ui.outputChannel.outputDebug(content);
 

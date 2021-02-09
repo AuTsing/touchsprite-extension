@@ -47,7 +47,7 @@ class Publisher {
         });
     }
 
-    public async publish() {
+    public publish() {
         const statusBarDisposer = Ui.doing('发布中');
         this.askPublishCookie()
             .then(() => {

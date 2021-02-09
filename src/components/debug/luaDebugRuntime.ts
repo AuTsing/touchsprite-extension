@@ -43,7 +43,7 @@ export class LuaDebugRuntime extends EventEmitter {
      * @param event：事件名
      */
     public continue(callback: (args: ICallbackArgs) => void, callbackArgs: ICallbackArgs, event = 'continue') {
-        Ui.logDebug('continue');
+        Ui.outputDebug('continue');
         const arrSend: ISendInfo = {};
         this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
     }
@@ -55,7 +55,7 @@ export class LuaDebugRuntime extends EventEmitter {
      * @param event：事件名
      */
     public continueWithFakeHitBk(callback: () => void, callbackArgs = undefined, event = 'continue') {
-        Ui.logDebug('continue');
+        Ui.outputDebug('continue');
         const arrSend: ISendInfo = {};
         arrSend['fakeBKPath'] = String(this.breakStackArr[0].oPath);
         arrSend['fakeBKLine'] = String(this.breakStackArr[0].line);
@@ -78,7 +78,7 @@ export class LuaDebugRuntime extends EventEmitter {
         frameId = 2,
         event = 'getWatchedVariable'
     ) {
-        Ui.logDebug('getWatchedVariable');
+        Ui.outputDebug('getWatchedVariable');
         const arrSend: ISendInfo = {};
         arrSend['varName'] = String(varName);
         arrSend['stackId'] = String(frameId);
@@ -100,7 +100,7 @@ export class LuaDebugRuntime extends EventEmitter {
         frameId = 2,
         event = 'runREPLExpression'
     ) {
-        Ui.logDebug('runREPLExpression');
+        Ui.outputDebug('runREPLExpression');
         const arrSend: ISendInfo = {};
         arrSend['Expression'] = String(expression);
         arrSend['stackId'] = String(frameId);
@@ -126,7 +126,7 @@ export class LuaDebugRuntime extends EventEmitter {
         frameId = 2,
         event = 'setVariable'
     ) {
-        Ui.logDebug('setVariable');
+        Ui.outputDebug('setVariable');
         const arrSend: ISendInfo = {};
         arrSend['varRef'] = String(variableRef);
         arrSend['stackId'] = String(frameId);
@@ -145,7 +145,7 @@ export class LuaDebugRuntime extends EventEmitter {
      * @param event：事件名
      */
     public getVariable(callback: (args: ICallbackArgs, info?: any) => void, callbackArgs: ICallbackArgs, variableRef = 0, frameId = 2, event = 'getVariable') {
-        Ui.logDebug('getVariable');
+        Ui.outputDebug('getVariable');
         const arrSend: ISendInfo = {};
         arrSend['varRef'] = String(variableRef);
         arrSend['stackId'] = String(frameId);
@@ -164,7 +164,7 @@ export class LuaDebugRuntime extends EventEmitter {
      * 	通知Debugger单步运行
      */
     public step(callback: (args: ICallbackArgs) => void, callbackArgs: ICallbackArgs, event = 'stopOnStep') {
-        Ui.logDebug('step:' + event);
+        Ui.outputDebug('step:' + event);
         const arrSend: ISendInfo = {};
         this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
     }
@@ -185,7 +185,7 @@ export class LuaDebugRuntime extends EventEmitter {
      * @param callbackArgs：回调参数
      */
     public setBreakPoint(path: string, bks: DebugProtocol.Breakpoint[], callback?: (args: ICallbackArgs) => void, callbackArgs?: ICallbackArgs) {
-        Ui.logDebug('setBreakPoint ' + ' path:' + path);
+        Ui.outputDebug('setBreakPoint ' + ' path:' + path);
         const arrSend: ISendInfo = {};
         arrSend['path'] = path;
         arrSend['bks'] = bks;
@@ -206,7 +206,7 @@ export class LuaDebugRuntime extends EventEmitter {
      * 	在Debugger日志中输出
      */
     public printLog(logStr: string) {
-        Ui.logDebug('[Debugger Log] ' + logStr);
+        Ui.outputDebug('[Debugger Log] ' + logStr);
     }
 
     /**

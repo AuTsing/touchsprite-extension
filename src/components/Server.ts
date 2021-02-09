@@ -209,11 +209,11 @@ export default class Server {
             const { ip, auth, osType } = attachingDevice;
             const resp1 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
             if (resp1.data !== 'ok') {
-                return Promise.reject('设置日志服务器失败');
+                throw new Error('设置日志服务器失败');
             }
             const resp2 = await this.api.setLuaPath(ip, auth, boot, osType);
             if (resp2.data !== 'ok') {
-                return Promise.reject('设置引导文件失败');
+                throw new Error('设置引导文件失败');
             }
             const pjg = new ProjectGenerator(runfile);
             const pjfs = await pjg.generate();
@@ -223,11 +223,11 @@ export default class Server {
                 resp3.push(resp.data);
             }
             if (resp3.some(resp => resp !== 'ok')) {
-                return Promise.reject('上传工程失败');
+                throw new Error('上传工程失败');
             }
             const resp4 = await this.api.runLua(ip, auth);
             if (resp4.data !== 'ok') {
-                return Promise.reject('运行引导文件失败');
+                throw new Error('运行引导文件失败');
             }
             Ui.output('运行工程成功');
         } catch (err) {
@@ -247,20 +247,20 @@ export default class Server {
             const attachingDevice = await this.getAttachingDevice();
             const focusing = vscode.window.activeTextEditor?.document;
             if (!focusing) {
-                return Promise.reject('未指定脚本');
+                throw new Error('未指定脚本');
             }
             if (path.extname(focusing.fileName) !== '.lua') {
-                return Promise.reject('所选文件非Lua脚本');
+                throw new Error('所选文件非Lua脚本');
             }
             const hostIp = await this.getHostIp();
             const { ip, auth, osType } = attachingDevice;
             const resp1 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
             if (resp1.data !== 'ok') {
-                return Promise.reject('设置日志服务器失败');
+                throw new Error('设置日志服务器失败');
             }
             const resp2 = await this.api.setLuaPath(ip, auth, path.basename(focusing.fileName), osType);
             if (resp2.data === 'ok') {
-                return Promise.reject('设置引导文件失败');
+                throw new Error('设置引导文件失败');
             }
             const pjf: IProjectFile = {
                 url: focusing.fileName,
@@ -270,11 +270,11 @@ export default class Server {
             };
             const resp3 = await this.api.upload(ip, auth, pjf);
             if (resp3.data !== 'ok') {
-                return Promise.reject('上传脚本失败');
+                throw new Error('上传脚本失败');
             }
             const resp4 = await this.api.runLua(ip, auth);
             if (resp4.data !== 'ok') {
-                return Promise.reject('运行引导文件失败');
+                throw new Error('运行引导文件失败');
             }
             Ui.output(`运行脚本成功`);
         } catch (err) {
@@ -289,7 +289,7 @@ export default class Server {
             const { ip, auth } = attachingDevice;
             const resp = await this.api.stopLua(ip, auth);
             if (resp.data !== 'ok') {
-                return Promise.reject('停止脚本失败');
+                throw new Error('停止脚本失败');
             }
             Ui.output(`停止脚本成功`);
         } catch (err) {
@@ -312,7 +312,7 @@ export default class Server {
                 canSelectMany: true,
             });
             if (!uris || uris.length === 0) {
-                return Promise.reject('未选择文件');
+                throw new Error('未选择文件');
             }
             const pjfs: IProjectFile[] = uris.map(uri => {
                 const url = uri.path.substring(1);
@@ -329,7 +329,7 @@ export default class Server {
                 resp1.push(resp.data);
             }
             if (resp1.some(resp => resp !== 'ok')) {
-                return Promise.reject('上传文件失败');
+                throw new Error('上传文件失败');
             }
             Ui.output(`上次文件成功: ${resp1.length}`);
         } catch (err) {
@@ -363,4 +363,6 @@ export default class Server {
                 }
             );
     }
+
+    public test() {}
 }

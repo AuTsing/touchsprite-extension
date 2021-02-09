@@ -25,7 +25,7 @@ export class PathManager {
     // 建立/刷新 工程下文件名-路径Map
     public rebuildWorkspaceNamePathMap(rootPath: string) {
         let beginMS = Tools.getCurrentMS(); //启动时毫秒数
-        let _fileNameToPathMap: { [key: string]: any } = {}; // 文件名-路径 cache
+        let fileNameToPathMap: { [key: string]: any } = {}; // 文件名-路径 cache
         let workspaceFiles = pathReader.files(rootPath, { sync: true }); //同步读取工程中所有文件名
         let workspaceFileCount = workspaceFiles.length;
         let processFilNum = 0; //记录最终处理了多少个文件
@@ -38,40 +38,40 @@ export class PathManager {
             }
             processFilNum = processFilNum + 1;
             let fileNameKey: string = nameExtObject['name']; // key是文件名，不包含路径和文件后缀
-            if (_fileNameToPathMap[fileNameKey]) {
+            if (fileNameToPathMap[fileNameKey]) {
                 //存在同名文件
-                if (Array.isArray(_fileNameToPathMap[fileNameKey])) {
-                    _fileNameToPathMap[fileNameKey].push(formatedPath);
-                } else if (typeof _fileNameToPathMap[fileNameKey] === 'string') {
+                if (Array.isArray(fileNameToPathMap[fileNameKey])) {
+                    fileNameToPathMap[fileNameKey].push(formatedPath);
+                } else if (typeof fileNameToPathMap[fileNameKey] === 'string') {
                     //冲突, 对应的key已有值（存在同名文件), 使用数组保存数据
-                    let tempSaveValue = _fileNameToPathMap[fileNameKey];
+                    let tempSaveValue = fileNameToPathMap[fileNameKey];
                     let tempArray = new Array();
                     tempArray.push(tempSaveValue);
                     tempArray.push(formatedPath);
-                    _fileNameToPathMap[fileNameKey] = tempArray;
+                    fileNameToPathMap[fileNameKey] = tempArray;
                 } else {
                     // 可能和元方法冲突, 此时key是一个function
-                    _fileNameToPathMap[fileNameKey] = formatedPath;
+                    fileNameToPathMap[fileNameKey] = formatedPath;
                 }
             } else {
-                _fileNameToPathMap[fileNameKey] = formatedPath;
+                fileNameToPathMap[fileNameKey] = formatedPath;
             }
             // 显示进度
             let processingRate = Math.floor((processingFileIdx / workspaceFileCount) * 100);
             let completePath = '';
-            if (Array.isArray(_fileNameToPathMap[fileNameKey])) {
-                completePath = _fileNameToPathMap[fileNameKey][_fileNameToPathMap[fileNameKey].length - 1];
-            } else if (typeof _fileNameToPathMap[fileNameKey] === 'string') {
-                completePath = _fileNameToPathMap[fileNameKey];
+            if (Array.isArray(fileNameToPathMap[fileNameKey])) {
+                completePath = fileNameToPathMap[fileNameKey][fileNameToPathMap[fileNameKey].length - 1];
+            } else if (typeof fileNameToPathMap[fileNameKey] === 'string') {
+                completePath = fileNameToPathMap[fileNameKey];
             }
-            Ui.logDebug(processingRate + '%  |  ' + fileNameKey + '   ' + completePath);
+            Ui.outputDebug(processingRate + '%  |  ' + fileNameKey + '   ' + completePath);
             // record LuaPanda.lua Path
             if (fileNameKey === 'LuaPanda') {
                 this.LuaPandaPath = completePath;
             }
         }
         let endMS = Tools.getCurrentMS(); //文件分析结束时毫秒数
-        Ui.logDebug('文件Map刷新完毕，使用了' + (endMS - beginMS) + '毫秒。检索了' + workspaceFileCount + '个文件， 其中' + processFilNum + '个lua类型文件');
+        Ui.outputDebug('文件Map刷新完毕，使用了' + (endMS - beginMS) + '毫秒。检索了' + workspaceFileCount + '个文件， 其中' + processFilNum + '个lua类型文件');
         if (processFilNum <= 0) {
             vscode.window.showErrorMessage(
                 '没有在工程中检索到lua文件。请检查launch.json文件中lua后缀(luaFileExtension)是否配置正确, 以及VSCode打开的工程是否正确',
@@ -79,9 +79,9 @@ export class PathManager {
             );
             let noLuaFileTip =
                 '[!] 没有在VSCode打开的工程中检索到lua文件，请进行如下检查\n 1. VSCode打开的文件夹是否正确 \n 2. launch.json 文件中 luaFileExtension 选项配置是否正确';
-            Ui.logError(noLuaFileTip);
+            Ui.outputError(noLuaFileTip);
         }
-        this.fileNameToPathMap = _fileNameToPathMap;
+        this.fileNameToPathMap = fileNameToPathMap;
     }
 
     // 检查同名文件, 如果存在，通过日志输出
@@ -110,7 +110,7 @@ export class PathManager {
                 sameNameFileTips += '方法3: 同名文件信息展示在 VSCode 控制台 OUTPUT - LuaPanda Debugger 中, 也可以尝试修改文件名;\n';
                 this.consoleLog(sameNameFileTips, this.luaDebugInstance);
             }
-            Ui.logError(sameNameFileStr);
+            Ui.outputError(sameNameFileStr);
         }
     }
 
@@ -158,7 +158,7 @@ export class PathManager {
             }
         }
         //最终没有找到，返回输入的地址
-        Ui.logError('调试器没有找到文件 ' + shortPath + ' 。 请检查launch.json文件中lua后缀是否配置正确, 以及VSCode打开的工程是否正确');
+        Ui.outputError('调试器没有找到文件 ' + shortPath + ' 。 请检查launch.json文件中lua后缀是否配置正确, 以及VSCode打开的工程是否正确');
         return shortPath;
     }
 
@@ -207,13 +207,13 @@ export class PathManager {
         if (Tools.developmentMode === true) {
             // 开发模式下提示
             let str = 'file_name:' + fileName + '  opath:' + oPath + '无法命中任何文件路径!';
-            Ui.logError(str);
+            Ui.outputError(str);
             let Adapterlog = '同名文件无法命中!\n';
             for (const iteratorPath of fullPathArray) {
                 Adapterlog += ' + ' + iteratorPath + '\n';
             }
             Adapterlog += str;
-            Ui.logError(Adapterlog);
+            Ui.outputError(Adapterlog);
         }
         return fullPathArray[0];
     }

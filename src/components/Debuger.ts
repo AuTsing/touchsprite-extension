@@ -39,7 +39,7 @@ export default class Debuger {
                 resp1.push(resp.data);
             }
             if (resp1.some(resp => resp !== 'ok')) {
-                return Promise.reject('上传工程失败');
+                throw new Error('上传工程失败');
             }
             const ret = await vscode.debug.startDebugging(undefined, {
                 type: 'lua',
@@ -54,13 +54,13 @@ export default class Debuger {
                 autoPathMode: true,
             });
             if (!ret) {
-                return Promise.reject('启用调试服务器失败');
+                throw new Error('启用调试服务器失败');
             }
             const runfile: string = vscode.workspace.getConfiguration().get('touchsprite-extension.testRunFile') || 'maintest.lua';
             this.server.runProject(runfile, 'boot.lua');
-            Ui.logging(`启用调试成功`);
+            Ui.output(`启用调试成功`);
         } catch (err) {
-            Ui.logging(`启动调试失败: ${err.toString()}`);
+            Ui.outputError(`启动调试失败: ${err.toString()}`);
         }
     }
 }

@@ -42,6 +42,10 @@ class Output {
         return this.output(content, 1);
     }
 
+    public outputShow() {
+        this.channel.show(true);
+    }
+
     public enableDebugChannel() {
         this.debugChannel = vscode.window.createOutputChannel('触动插件调试日志');
     }

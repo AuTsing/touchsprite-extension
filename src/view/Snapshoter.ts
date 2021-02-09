@@ -16,23 +16,23 @@ export interface IPostdata {
 }
 
 class Snapshoter {
-    private _panel: vscode.WebviewPanel | undefined;
-    private readonly _extensionGlobalState: vscode.Memento;
-    private readonly _extensionPath: string;
-    private readonly _disposables: vscode.Disposable[] = [];
-    private readonly _server: Server;
-    private readonly _api: Api;
+    private panel: vscode.WebviewPanel | undefined;
+    private readonly extensionGlobalState: vscode.Memento;
+    private readonly extensionPath: string;
+    private readonly disposables: vscode.Disposable[] = [];
+    private readonly server: Server;
+    private readonly api: Api;
 
     constructor(context: vscode.ExtensionContext, server: Server) {
-        this._extensionPath = context.extensionPath;
-        this._extensionGlobalState = context.globalState;
-        this._disposables = context.subscriptions;
-        this._server = server;
-        this._api = new Api();
+        this.extensionPath = context.extensionPath;
+        this.extensionGlobalState = context.globalState;
+        this.disposables = context.subscriptions;
+        this.server = server;
+        this.api = new Api();
     }
 
     private getWebviewContent(): string {
-        const reactAppPathOnDisk = vscode.Uri.file(path.join(this._extensionPath, 'assets', 'webview', 'main.js'));
+        const reactAppPathOnDisk = vscode.Uri.file(path.join(this.extensionPath, 'assets', 'webview', 'main.js'));
         const reactAppUri = reactAppPathOnDisk.with({ scheme: 'vscode-resource' });
 
         return `<!DOCTYPE html>
@@ -53,140 +53,165 @@ class Snapshoter {
     }
 
     public show() {
-        if (this._panel) {
+        if (this.panel) {
             const columnToShowIn = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
-            this._panel.reveal(columnToShowIn);
+            this.panel.reveal(columnToShowIn);
             return;
         }
 
         vscode.commands.executeCommand('workbench.action.closePanel');
-        this._panel = vscode.window.createWebviewPanel('snapshoter', '触动插件: 取色器', vscode.ViewColumn.One, {
+        this.panel = vscode.window.createWebviewPanel('picker', '触动插件: 取色器', vscode.ViewColumn.One, {
             enableScripts: true,
             retainContextWhenHidden: true,
         });
-        this._panel.webview.html = this.getWebviewContent();
-        this._panel.webview.onDidReceiveMessage(
+        this.panel.webview.html = this.getWebviewContent();
+        this.panel.webview.onDidReceiveMessage(
             msg => {
-                const { command } = msg;
-                switch (command) {
+                if (!this.panel) {
+                    return;
+                }
+                switch (msg.command) {
                     case 'loadImgFromDevice':
-                        const attachingDevice = this._server.getAttachingDevice();
-                        if (!attachingDevice) {
-                            const message: IVscodeMessageEventData = {
-                                command: 'showMessage',
-                                data: { message: '设备截图失败: 未连接设备' },
-                            };
-                            this._panel!.webview.postMessage(message);
-                            return;
-                        }
-                        Ui.setStatusBar('$(sync~spin) 截图中...');
-                        this._api
-                            .getSnapshot(attachingDevice)
-                            .then(res => {
-                                if (!res.data) {
-                                    return Promise.reject('获取远程图片失败');
-                                }
-                                const message: IVscodeMessageEventData = {
-                                    command: 'add',
-                                    data: { imgs: [Buffer.from(res.data, res.data.byteLength).toString('base64')] },
-                                };
-                                this._panel!.webview.postMessage(message);
-                                return Promise.resolve(res.data);
-                            })
-                            .then(data => {
-                                const snapshotDir: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir');
-                                if (!snapshotDir) {
-                                    return Promise.resolve('ok');
-                                }
-                                return new Promise<string>((resolve, reject) => {
-                                    fs.writeFile(path.join(snapshotDir, `PIC_${Date.now()}.png`), data, 'binary', err => {
-                                        if (err) {
-                                            reject('截图保存失败 ' + err.toString());
-                                            return;
-                                        }
-                                        resolve('截图保存成功');
-                                    });
-                                });
-                            })
-                            .then(() => {
-                                Ui.setStatusBarTemporary(StatusBarType.successful);
-                            })
-                            .catch(err => {
-                                Ui.setStatusBarTemporary(StatusBarType.failed);
-                                Ui.logging(`截图失败: ${err.toString()}`);
-                                const message: IVscodeMessageEventData = {
-                                    command: 'loadedImg',
-                                    data: {},
-                                };
-                                this._panel!.webview.postMessage(message);
-                            });
-                        break;
+                        return this.handleLoadImgFromDevice(this.panel);
                     case 'loadImgFromLocal':
-                        const openDialogOptions: vscode.OpenDialogOptions = {
-                            canSelectFiles: true,
-                            canSelectFolders: false,
-                            canSelectMany: true,
-                            filters: { Img: ['png'] },
-                        };
-                        vscode.window.showOpenDialog(openDialogOptions).then((uris: vscode.Uri[] | undefined) => {
-                            if (uris && uris.length > 0) {
-                                const imgs = uris.map(uri => Buffer.from(fs.readFileSync(uri.fsPath)).toString('base64'));
-                                const message: IVscodeMessageEventData = {
-                                    command: 'add',
-                                    data: { imgs },
-                                };
-                                this._panel!.webview.postMessage(message);
-                            } else {
-                                const message: IVscodeMessageEventData = {
-                                    command: 'loadedImg',
-                                    data: {},
-                                };
-                                this._panel!.webview.postMessage(message);
-                            }
-                        });
-                        break;
+                        return this.handleLoadImgFromLocal(this.panel);
                     case 'loadTemplates':
-                        const message: IVscodeMessageEventData = {
-                            command: 'loadTemplates',
-                            data: { templates: this._extensionGlobalState.get<string>('templates') || '' },
-                        };
-                        this._panel!.webview.postMessage(message);
-                        break;
+                        return this.handleLoadTemplates(this.panel);
                     case 'saveTemplates':
-                        this._extensionGlobalState.update('templates', msg.data).then(
-                            () => Ui.setStatusBarTemporary(`$(check) 代码模板保存成功`, 3000),
-                            err => {
-                                Ui.setStatusBarTemporary(`$(issues) 代码模板保存失败`, 3000);
-                                Ui.logging('代码模板保存失败: ' + err.toString());
-                            }
-                        );
-                        break;
+                        return this.handleSaveTemplates(this.panel, msg.data);
                     case 'copy':
-                        vscode.env.clipboard.writeText(msg.data);
-                        break;
+                        return this.handleCopy(this.panel, msg.data);
                     default:
-                        console.log('unknown command: ' + command);
-                        break;
+                        Ui.output(`取色器操作失败: 未知命令 "${msg.command}"`);
                 }
             },
             undefined,
-            this._disposables
+            this.disposables
         );
-        this._panel.onDidChangeViewState(e => {
-            if (e.webviewPanel.visible) {
-                vscode.commands.executeCommand('workbench.action.closePanel');
-            } else {
-                vscode.commands.executeCommand('workbench.action.togglePanel');
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup'), 50);
-            }
-        });
-        this._panel.onDidDispose(
-            () => {
-                this._panel = undefined;
+        this.panel.onDidChangeViewState(
+            e => {
+                if (e.webviewPanel.visible) {
+                    vscode.commands.executeCommand('workbench.action.closePanel');
+                } else {
+                    Ui.outputShow();
+                }
             },
-            null,
-            this._disposables
+            undefined,
+            this.disposables
         );
+        this.panel.onDidDispose(
+            () => {
+                this.panel = undefined;
+            },
+            undefined,
+            this.disposables
+        );
+    }
+
+    private async handleLoadImgFromDevice(panel: vscode.WebviewPanel) {
+        const statusBarDisposer = Ui.doing('截图中');
+        try {
+            const attachingDevice = await this.server.getAttachingDevice();
+            const { ip, auth } = attachingDevice;
+            const resp1 = await this.api.getSnapshot(ip, auth);
+            if (!resp1.data) {
+                throw new Error('获取设备截图失败');
+            }
+            panel.webview.postMessage({
+                command: 'add',
+                data: { imgs: [Buffer.from(resp1.data, resp1.data.byteLength).toString('base64')] },
+            } as IVscodeMessageEventData);
+            const snapshotSavePath: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir');
+            if (snapshotSavePath) {
+                fs.writeFile(path.join(snapshotSavePath, `PIC_${Date.now()}.png`), resp1.data, 'binary', err => {
+                    if (err) {
+                        Ui.outputWarn(`保存截图至本地失败: ${err.toString()}`);
+                    }
+                });
+            }
+        } catch (err) {
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `设备截图失败: ${err.toString()}` },
+            } as IVscodeMessageEventData);
+            panel.webview.postMessage({
+                command: 'loadedImg',
+                data: {},
+            } as IVscodeMessageEventData);
+        }
+        statusBarDisposer();
+    }
+
+    private async handleLoadImgFromLocal(panel: vscode.WebviewPanel) {
+        try {
+            const uris = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: true,
+                filters: { Img: ['png'] },
+            });
+            if (uris && uris.length > 0) {
+                const imgs = uris.map(uri => Buffer.from(fs.readFileSync(uri.fsPath)).toString('base64'));
+                panel.webview.postMessage({
+                    command: 'add',
+                    data: { imgs },
+                } as IVscodeMessageEventData);
+            } else {
+                panel.webview.postMessage({
+                    command: 'loadedImg',
+                    data: {},
+                } as IVscodeMessageEventData);
+            }
+        } catch (err) {
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `打开本地图片失败: ${err.toString()}` },
+            } as IVscodeMessageEventData);
+            panel.webview.postMessage({
+                command: 'loadedImg',
+                data: {},
+            } as IVscodeMessageEventData);
+        }
+    }
+
+    private handleLoadTemplates(panel: vscode.WebviewPanel) {
+        try {
+            panel.webview.postMessage({
+                command: 'loadTemplates',
+                data: { templates: this.extensionGlobalState.get<string>('templates') || '' },
+            });
+        } catch (err) {
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `读取模板失败: ${err.toString()}` },
+            } as IVscodeMessageEventData);
+        }
+    }
+
+    private handleSaveTemplates(panel: vscode.WebviewPanel, data: string) {
+        try {
+            this.extensionGlobalState.update('templates', data);
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `保存模板成功` },
+            } as IVscodeMessageEventData);
+        } catch (err) {
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `保存模板失败: ${err.toString()}` },
+            } as IVscodeMessageEventData);
+        }
+    }
+
+    private handleCopy(panel: vscode.WebviewPanel, data: string) {
+        try {
+            vscode.env.clipboard.writeText(data);
+        } catch (err) {
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `复制失败: ${err.toString()}` },
+            } as IVscodeMessageEventData);
+        }
     }
 }
 
