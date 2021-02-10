@@ -10,6 +10,7 @@ import * as vscode from 'vscode';
 import Zipper from './Zipper';
 
 const luaparse = require('luaparse');
+var parseChangelog = require('changelog-parser');
 
 interface ITouchspriteResponse {
     code: number;
@@ -59,44 +60,57 @@ class Publisher {
                     return Promise.reject('用户验证失败, 请检查Cookie是否可用');
                 }
                 this.updater.defaults.headers.cookie = this.publishCookie;
-                return Promise.all<string, string, string>([this.readScriptId(root), this.readScriptVersion(root), this.zipProject()]);
+                return Promise.all<string, string, string, string>([
+                    this.readScriptId(root),
+                    this.readScriptVersion(root),
+                    this.zipProject(),
+                    this.readChangeLog(root),
+                ]);
             })
-            .then(([id, ver, zip]) => {
+            .then(([id, ver, zip, changelog]) => {
                 if (!id) {
                     return Promise.reject('脚本ID无法正确读取');
                 }
                 if (!ver) {
                     return Promise.reject('脚本版本号无法正确读取');
                 }
-                return Promise.all([id, ver, zip]);
+                if (!zip) {
+                    return Promise.reject('打包工程失败');
+                }
+                if (!changelog) {
+                    return Promise.reject('获取更新日志失败');
+                }
+                return Promise.all([id, ver, zip, changelog, this.askScriptState(id)]);
             })
-            .then(([id, ver, zip]) => {
+            .then(([id, ver, zip, changelog, resp]) => {
+                if (ver === 'major' || ver === 'minor' || ver === 'patch') {
+                    const version = new Version(resp.data.version.version);
+                    const newVer = version[ver]().get();
+                    ver = newVer;
+                }
+                const encrypt = parseInt((resp.data.version.encrypt_mode as string).substring(1));
                 return Promise.all([
                     id,
-                    this.askScriptState(id).then(respData => {
-                        if (ver === 'major' || ver === 'minor' || ver === 'patch') {
-                            const version = new Version(respData.data.version.version);
-                            const newVer = version[ver]().get();
-                            return newVer;
-                        } else {
-                            return ver;
-                        }
-                    }),
+                    ver,
+                    encrypt,
+                    changelog,
                     this.uploadScript(zip).then(respData => {
                         const key = respData.data.key;
                         return key;
                     }),
+                    ,
                 ]);
             })
-            .then(([id, ver, key]) => {
-                return this.versionScript(id, ver, key);
+            .then(([id, ver, encrypt, changelog, key]) => {
+                return this.versionScript(id, ver, encrypt, changelog, key);
             })
             .then(resp => {
                 Ui.output(`发布版本成功: ID >> ${resp.id}; VER >> ${resp.ver};`);
-                statusBarDisposer();
             })
             .catch(err => {
                 Ui.output(`发布版本失败: ${err}`);
+            })
+            .finally(() => {
                 statusBarDisposer();
             });
     }
@@ -175,14 +189,14 @@ class Publisher {
         });
     }
 
-    private versionScript(id: string, ver: string, key: string) {
+    private versionScript(id: string, ver: string, encrypt: number, changelog: string, key: string) {
         const formData = {
             version: ver,
             key: key,
             script_id: id,
             is_default: true,
-            encrypt_mode: 6,
-            updated_logs: ' ',
+            encrypt_mode: encrypt,
+            updated_logs: changelog,
         };
         return this.updater
             .post('https://dev.touchsprite.com/touch/script/version', qs.stringify(formData), {
@@ -285,6 +299,23 @@ class Publisher {
                 }
             });
             return version;
+        }
+    }
+
+    private async readChangeLog(root: string): Promise<string> {
+        try {
+            const changelogUri = path.join(root, '/CHANGELOG.md');
+            fs.accessSync(changelogUri, fs.constants.R_OK);
+            const { versions } = await parseChangelog(changelogUri);
+            if (versions && versions.length > 0) {
+                const { title, body } = versions[0];
+                const content = `${title}\n${body}`;
+                return content;
+            } else {
+                return ' ';
+            }
+        } catch (err) {
+            return ' ';
         }
     }
 

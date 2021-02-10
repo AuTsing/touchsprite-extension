@@ -426,6 +426,7 @@
     "dependencies": {
         "await-notify": "^1.0.1",
         "axios": "^0.21.1",
+        "changelog-parser": "^2.8.0",
         "form-data": "^3.0.0",
         "jszip": "^3.5.0",
         "luaparse": "^0.3.0",
