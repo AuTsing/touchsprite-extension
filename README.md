@@ -167,7 +167,7 @@ main()
 
 # Contribution
 
--   发布工程功能使用项目: [luaparse](https://github.com/fstirlitz/luaparse)
+-   发布工程功能使用项目: [luaparse](https://github.com/fstirlitz/luaparse), [changelog-parser](https://github.com/hypermodules/changelog-parser)
 -   断点调试功能使用项目: [LuaPanda](https://github.com/Tencent/LuaPanda)
 
 # License
