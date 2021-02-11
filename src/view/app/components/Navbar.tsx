@@ -30,10 +30,22 @@ const Navbar: FC = () => {
     return (
         <div>
             <Space size={10}>
-                <Button type='primary' size='large' onClick={handleLoadImgFromDevice} loading={handleLoadImgFromDeviceLoading}>
+                <Button
+                    type='primary'
+                    size='large'
+                    onClick={handleLoadImgFromDevice}
+                    loading={handleLoadImgFromDeviceLoading}
+                    disabled={handleLoadImgFromDeviceLoading || handleLoadImgFromLocalLoading}
+                >
                     设备截图
                 </Button>
-                <Button type='primary' size='large' onClick={handleLoadImgFromLocal} loading={handleLoadImgFromLocalLoading}>
+                <Button
+                    type='primary'
+                    size='large'
+                    onClick={handleLoadImgFromLocal}
+                    loading={handleLoadImgFromLocalLoading}
+                    disabled={handleLoadImgFromDeviceLoading || handleLoadImgFromLocalLoading}
+                >
                     本地打开
                 </Button>
                 <CodeMaker />

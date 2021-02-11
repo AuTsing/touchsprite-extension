@@ -51,7 +51,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
     const [captures, setCaptures] = useState<ICapture[]>([]);
     const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
     const [activeJimp, setActiveJimp] = useState<Jimp | undefined>(undefined);
-    const [addedCaptureCallback, setAddedCallback] = useState<() => void>(() => () => {});
+    const [addedCaptureCallback, setAddedCallback] = useState<() => void>(() => {});
 
     const addCapture = useCallback(
         (imgs: Jimp[]) => {

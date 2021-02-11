@@ -310,6 +310,7 @@ class Publisher {
             if (versions && versions.length > 0) {
                 const { title, body } = versions[0];
                 const content = `${title}\n${body}`;
+                Ui.output(`成功读取更新日志: ${title}`);
                 return content;
             } else {
                 return ' ';
