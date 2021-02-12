@@ -20,6 +20,7 @@ class DeviceSearcher {
         const port: number = Math.round(Math.random() * (19999 - 15000 + 1) + 15000);
         let isAttached: boolean = false;
         try {
+            const ip = await this.server.getHostIp();
             const devices: IRawDevice[] = [];
             const finder = dgram.createSocket('udp4');
             finder.on('error', err => {
@@ -41,11 +42,10 @@ class DeviceSearcher {
                     });
                 }
             });
-            finder.bind(port);
+            finder.bind(port, ip);
 
             const sender = dgram.createSocket('udp4');
-            sender.bind(() => sender.setBroadcast(true));
-            const ip = await this.server.getHostIp();
+            sender.bind(0, ip, () => sender.setBroadcast(true));
             sender.send(`{ "ip": "${ip}", "port": ${port} }`, 14099, '255.255.255.255', err => {
                 if (err) {
                     Ui.outputError(`搜索失败: ${err.toString()}`);

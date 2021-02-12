@@ -189,13 +189,14 @@ export default class Server {
             return Promise.resolve(this.hostIp);
         } else {
             const interfaces = os.networkInterfaces();
-            for (let devName in interfaces) {
-                const iface = interfaces[devName];
-                for (let i = 0; i < iface.length; i++) {
-                    const alias = iface[i];
-                    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-                        this.hostIp = alias.address;
-                        return Promise.resolve(this.hostIp);
+            for (const interfaceKey in interfaces) {
+                if (interfaceKey.toLocaleLowerCase().indexOf('vmware') < 0 && interfaceKey.toLocaleLowerCase().indexOf('virtualbox') < 0) {
+                    const interfaceValue = interfaces[interfaceKey];
+                    for (const alias of interfaceValue) {
+                        if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                            this.hostIp = alias.address;
+                            return Promise.resolve(this.hostIp);
+                        }
                     }
                 }
             }
@@ -359,6 +360,7 @@ export default class Server {
             })
             .then(
                 ip => {
+                    this.hostIp = ip;
                     Ui.output(`设置本机IP地址成功: ${ip}`);
                 },
                 err => {
