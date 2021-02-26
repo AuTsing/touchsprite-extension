@@ -5,9 +5,9 @@ import Server from './Server';
 import Ui from './ui/Ui';
 import { IProjectFile, ProjectFileRoot } from './ProjectGenerator';
 
-export default class Debuger {
-    private server: Server;
-    private extensionPath: string;
+export default class TsDebugger {
+    private readonly server: Server;
+    private readonly extensionPath: string;
 
     constructor(server: Server, context: vscode.ExtensionContext) {
         this.server = server;
@@ -42,11 +42,10 @@ export default class Debuger {
                 throw new Error('上传工程失败');
             }
             const ret = await vscode.debug.startDebugging(undefined, {
-                type: 'lua',
+                type: 'ts-lua',
                 request: 'launch',
                 tag: 'normal',
-                name: 'LuaPanda',
-                description: '通用模式,通常调试项目请选择此模式 | launchVer:3.2.0',
+                name: 'TouchspriteDebug',
                 luaFileExtension: '',
                 connectionPort: 8818,
                 stopOnEntry: false,

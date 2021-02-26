@@ -1,9 +1,3 @@
-// Tencent is pleased to support the open source community by making LuaPanda available.
-// Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
-// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-// https://opensource.org/licenses/BSD-3-Clause
-// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
 /* eslint-disable eqeqeq */
 import * as vscode from 'vscode';
 import {
@@ -21,17 +15,18 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
-import { LuaDebugRuntime } from './LuaDebugRuntime';
+import { LuaRuntime } from './LuaRuntime';
 import * as Net from 'net';
 import { DataProcessor } from './DataProcessor';
 import { LineBreakpoint, ConditionBreakpoint, LogPoint } from './Breakpoint';
 import Tools from './Tools';
 import { ThreadManager } from './ThreadManager';
 import { PathManager } from './PathManager';
-import { Subject } from 'await-notify';
 import Ui from '../ui/Ui';
 import * as os from 'os';
 import ProjectGenerator from '../ProjectGenerator';
+
+const { Subject } = require('await-notify');
 
 interface IBreakpointRecord {
     bkPath: string;
@@ -53,13 +48,11 @@ export class LuaDebugSession extends LoggingDebugSession {
     private _server?: Net.Server; // adapter 作为server
     private _breakpointsArray: IBreakpointRecord[] = []; //在socket连接前临时保存断点的数组
     private _autoReconnect: boolean = false;
-    private _configurationDone = new Subject();
-    private _variableHandles = new Handles<string>(50000); //Handle编号从50000开始
+
     private _replacePath?: string[]; //替换路径数组
     //luaDebugRuntime实例
-    private _runtime: LuaDebugRuntime;
     private _dataProcessor: DataProcessor;
-    private _threadManager: ThreadManager;
+
     private _pathManager: PathManager;
     private _useLoadstring: boolean = false;
     private _dbCheckBreakpoint = true;
@@ -67,11 +60,18 @@ export class LuaDebugSession extends LoggingDebugSession {
     private static _debugSessionArray: Map<number, LuaDebugSession> = new Map<number, LuaDebugSession>();
     private connectionFlag = false; //连接成功的标志位
 
+    private readonly threadManager: ThreadManager;
+    private readonly runtime: LuaRuntime;
+    private readonly variableHandles = new Handles<string>(50000);
+    private readonly configurationDone = new Subject();
+
     public constructor() {
-        super('lua-debug.txt');
+        super('ts-lua-debug.txt');
         this.setDebuggerLinesStartAt1(true);
         this.setDebuggerColumnsStartAt1(true);
-        this._threadManager = new ThreadManager(); // 线程实例 调用this._threadManager.CUR_THREAD_ID可以获得当前线程号
+
+        this.threadManager = new ThreadManager(); //线程实例 调用this.threadManager.CUR_THREAD_ID可以获得当前线程号
+
         this._pathManager = new PathManager(this, this.printLogInDebugConsole);
         this._runtime = new LuaDebugRuntime(); // _runtime and _dataProcessor 相互持有实例
         this._dataProcessor = new DataProcessor();
@@ -79,27 +79,27 @@ export class LuaDebugSession extends LoggingDebugSession {
         this._runtime.dataProcessor = this._dataProcessor;
         this._runtime.pathManager = this._pathManager;
 
-        LuaDebugSession._debugSessionArray.set(this._threadManager.CUR_THREAD_ID, this);
+        LuaDebugSession._debugSessionArray.set(this.threadManager.CUR_THREAD_ID, this);
         this._runtime.on('stopOnEntry', () => {
-            this.sendEvent(new StoppedEvent('entry', this._threadManager.CUR_THREAD_ID));
+            this.sendEvent(new StoppedEvent('entry', this.threadManager.CUR_THREAD_ID));
         });
         this._runtime.on('stopOnStep', () => {
-            this.sendEvent(new StoppedEvent('step', this._threadManager.CUR_THREAD_ID));
+            this.sendEvent(new StoppedEvent('step', this.threadManager.CUR_THREAD_ID));
         });
         this._runtime.on('stopOnStepIn', () => {
-            this.sendEvent(new StoppedEvent('step', this._threadManager.CUR_THREAD_ID));
+            this.sendEvent(new StoppedEvent('step', this.threadManager.CUR_THREAD_ID));
         });
         this._runtime.on('stopOnStepOut', () => {
-            this.sendEvent(new StoppedEvent('step', this._threadManager.CUR_THREAD_ID));
+            this.sendEvent(new StoppedEvent('step', this.threadManager.CUR_THREAD_ID));
         });
         this._runtime.on('stopOnCodeBreakpoint', () => {
             // stopOnCodeBreakpoint 指的是遇到 LuaPanda.BP()，因为是代码中的硬断点，VScode中不会保存这个断点信息，故不做校验
-            this.sendEvent(new StoppedEvent('breakpoint', this._threadManager.CUR_THREAD_ID));
+            this.sendEvent(new StoppedEvent('breakpoint', this.threadManager.CUR_THREAD_ID));
         });
         this._runtime.on('stopOnBreakpoint', () => {
             // 因为lua端所做的断点命中可能出现同名文件错误匹配，这里要再次校验lua端命中的行列号是否在 breakpointsArray 中
             if (this.checkIsRealHitBreakpoint()) {
-                this.sendEvent(new StoppedEvent('breakpoint', this._threadManager.CUR_THREAD_ID));
+                this.sendEvent(new StoppedEvent('breakpoint', this.threadManager.CUR_THREAD_ID));
             } else {
                 // go on running
                 this._runtime.continueWithFakeHitBk(() => {
@@ -108,10 +108,10 @@ export class LuaDebugSession extends LoggingDebugSession {
             }
         });
         this._runtime.on('stopOnException', () => {
-            this.sendEvent(new StoppedEvent('exception', this._threadManager.CUR_THREAD_ID));
+            this.sendEvent(new StoppedEvent('exception', this.threadManager.CUR_THREAD_ID));
         });
         this._runtime.on('stopOnPause', () => {
-            this.sendEvent(new StoppedEvent('exception', this._threadManager.CUR_THREAD_ID));
+            this.sendEvent(new StoppedEvent('exception', this.threadManager.CUR_THREAD_ID));
         });
         this._runtime.on('breakpointValidated', (bp: DebugProtocol.Breakpoint) => {
             this.sendEvent(new BreakpointEvent('changed', <DebugProtocol.Breakpoint>{ verified: bp.verified, id: bp.id }));
@@ -701,8 +701,8 @@ export class LuaDebugSession extends LoggingDebugSession {
         this._server?.close(); // 关闭 server, 停止 listen. 放在这里的原因是即使未建立连接，也可以停止listen.
 
         // 删除自身的线程id, 并从LuaDebugSession实例列表中删除自身
-        this._threadManager.destructor();
-        LuaDebugSession._debugSessionArray.delete(this._threadManager.CUR_THREAD_ID);
+        this.threadManager.destructor();
+        LuaDebugSession._debugSessionArray.delete(this.threadManager.CUR_THREAD_ID);
         this.sendResponse(response);
     }
 
@@ -720,7 +720,7 @@ export class LuaDebugSession extends LoggingDebugSession {
 
     protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
         response.body = {
-            threads: [new Thread(this._threadManager.CUR_THREAD_ID, 'thread ' + this._threadManager.CUR_THREAD_ID)],
+            threads: [new Thread(this.threadManager.CUR_THREAD_ID, 'thread ' + this.threadManager.CUR_THREAD_ID)],
         };
         this.sendResponse(response);
     }

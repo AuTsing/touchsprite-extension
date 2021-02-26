@@ -2,7 +2,6 @@ import Tools from './Tools';
 import * as vscode from 'vscode';
 import Ui from '../ui/Ui';
 import { LuaDebugSession } from './LuaDebug';
-// import { pathReader } from 'path-reader';
 
 const pathReader = require('path-reader');
 
