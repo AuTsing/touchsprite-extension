@@ -228,13 +228,7 @@
                     {
                         "type": "ts-lua",
                         "request": "launch",
-                        "name": "TouchspriteDebug",
-                        "tag": "normal",
-                        "luaFileExtension": "",
-                        "connectionPort": 8818,
-                        "stopOnEntry": false,
-                        "useCHook": true,
-                        "autoPathMode": true
+                        "name": "TouchspriteDebug"
                     }
                 ]
             }

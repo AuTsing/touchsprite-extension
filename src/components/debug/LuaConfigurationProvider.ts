@@ -46,7 +46,7 @@ class LuaConfigurationProvider implements vscode.DebugConfigurationProvider {
         config.rootFolder = '';
 
         if (!config.TempFilePath) {
-            config.TempFilePath = '';
+            config.TempFilePath = '${workspaceFolder}';
         }
 
         // 开发模式设置

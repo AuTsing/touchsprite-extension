@@ -14,7 +14,7 @@ export default class TsDebugger {
         this.extensionPath = context.extensionPath;
     }
 
-    public async debug() {
+    public async startClient() {
         try {
             const attachingDevice = await this.server.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -41,20 +41,6 @@ export default class TsDebugger {
             if (resp1.some(resp => resp !== 'ok')) {
                 throw new Error('上传工程失败');
             }
-            const ret = await vscode.debug.startDebugging(undefined, {
-                type: 'ts-lua',
-                request: 'launch',
-                tag: 'normal',
-                name: 'TouchspriteDebug',
-                luaFileExtension: '',
-                connectionPort: 8818,
-                stopOnEntry: false,
-                useCHook: true,
-                autoPathMode: true,
-            });
-            if (!ret) {
-                throw new Error('启用调试服务器失败');
-            }
             const runfile: string = vscode.workspace.getConfiguration().get('touchsprite-extension.testRunFile') || 'maintest.lua';
             this.server.runProject(runfile, 'boot.lua');
             Ui.output(`启用调试成功`);
@@ -62,4 +48,14 @@ export default class TsDebugger {
             Ui.outputError(`启动调试失败: ${err.toString()}`);
         }
     }
+
+    public debug() {
+        vscode.debug.startDebugging(undefined, {
+            type: 'ts-lua',
+            request: 'launch',
+            name: 'TouchspriteDebug',
+        });
+    }
+
+    public test() {}
 }

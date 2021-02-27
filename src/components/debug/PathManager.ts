@@ -1,164 +1,97 @@
-import Tools from './Tools';
-import * as vscode from 'vscode';
+import * as path from 'path';
 import Ui from '../ui/Ui';
-import { LuaDebugSession } from './LuaDebug';
 
 const pathReader = require('path-reader');
 
+interface IFileNameAndPath {
+    filename: string;
+    files: string[];
+}
+
 export class PathManager {
-    public fileNameToPathMap: { [key: string]: any } | undefined; // 文件名-路径 Map
-    public useAutoPathMode = false;
-    public pathCaseSensitivity = false;
-    public VSCodeOpenedFolder: string | undefined; // VSCode当前打开的用户工程路径。打开文件夹后，由languageServer赋值
-    public LuaPandaPath: string | undefined; // 用户工程中luapanda.lua文件所在的路径，它在调试器启动时赋值。但也可能工程中不存在luapanda文件导致路径为空
-    public CWD: any;
-    public rootFolder: any;
-    public static rootFolderArray = {}; // name uri
-    private consoleLog: (message: string, instance: any) => void;
-    private luaDebugInstance: LuaDebugSession;
-    public constructor(_luaDebugInstance: LuaDebugSession, _consoleLog: (message: string, instance: any) => void) {
-        this.luaDebugInstance = _luaDebugInstance;
-        this.consoleLog = _consoleLog;
-    }
+    private readonly acceptExt = ['lua'];
+    private fileNameToPathMap: IFileNameAndPath[] = [];
 
     // 建立/刷新 工程下文件名-路径Map
     public rebuildWorkspaceNamePathMap(rootPath: string) {
-        let beginMS = Tools.getCurrentMS(); //启动时毫秒数
-        let fileNameToPathMap: { [key: string]: any } = {}; // 文件名-路径 cache
-        let workspaceFiles = pathReader.files(rootPath, { sync: true }); //同步读取工程中所有文件名
-        let workspaceFileCount = workspaceFiles.length;
+        const beginMs = new Date().getTime(); //启动时毫秒数
+        const fileNameToPathMap: IFileNameAndPath[] = []; // 文件名-路径 cache
+        const workspaceFiles: string[] = pathReader.files(rootPath, { sync: true }); //同步读取工程中所有文件名
+        const workspaceFileCount = workspaceFiles.length; //工程文件数量
         let processFilNum = 0; //记录最终处理了多少个文件
-        for (let processingFileIdx = 0; processingFileIdx < workspaceFileCount; processingFileIdx++) {
-            let formatedPath = Tools.genUnifiedPath(workspaceFiles[processingFileIdx]);
-            let nameExtObject = Tools.getPathNameAndExt(formatedPath);
-            if (!Tools.extMap[nameExtObject['ext']]) {
-                // 文件类型不在可处理列表中
-                continue;
+
+        workspaceFiles.forEach((file, fileIndex) => {
+            const formatedPath = this.genUnifiedPath(file);
+            const nameExtObject = this.getPathNameAndExt(formatedPath);
+            if (nameExtObject.name === '' || !this.acceptExt.includes(nameExtObject.ext)) {
+                return;
             }
-            processFilNum = processFilNum + 1;
-            let fileNameKey: string = nameExtObject['name']; // key是文件名，不包含路径和文件后缀
-            if (fileNameToPathMap[fileNameKey]) {
-                //存在同名文件
-                if (Array.isArray(fileNameToPathMap[fileNameKey])) {
-                    fileNameToPathMap[fileNameKey].push(formatedPath);
-                } else if (typeof fileNameToPathMap[fileNameKey] === 'string') {
-                    //冲突, 对应的key已有值（存在同名文件), 使用数组保存数据
-                    let tempSaveValue = fileNameToPathMap[fileNameKey];
-                    let tempArray = new Array();
-                    tempArray.push(tempSaveValue);
-                    tempArray.push(formatedPath);
-                    fileNameToPathMap[fileNameKey] = tempArray;
-                } else {
-                    // 可能和元方法冲突, 此时key是一个function
-                    fileNameToPathMap[fileNameKey] = formatedPath;
-                }
+            processFilNum++;
+            const filename = nameExtObject.name;
+            const filenameAndPath = fileNameToPathMap.find(filenameAndPath => filenameAndPath.filename === filename);
+            if (filenameAndPath) {
+                filenameAndPath.files.push(formatedPath);
             } else {
-                fileNameToPathMap[fileNameKey] = formatedPath;
+                fileNameToPathMap.push({ filename: filename, files: [formatedPath] });
             }
-            // 显示进度
-            let processingRate = Math.floor((processingFileIdx / workspaceFileCount) * 100);
-            let completePath = '';
-            if (Array.isArray(fileNameToPathMap[fileNameKey])) {
-                completePath = fileNameToPathMap[fileNameKey][fileNameToPathMap[fileNameKey].length - 1];
-            } else if (typeof fileNameToPathMap[fileNameKey] === 'string') {
-                completePath = fileNameToPathMap[fileNameKey];
-            }
-            Ui.outputDebug(processingRate + '%  |  ' + fileNameKey + '   ' + completePath);
-            // record LuaPanda.lua Path
-            if (fileNameKey === 'LuaPanda') {
-                this.LuaPandaPath = completePath;
-            }
-        }
-        let endMS = Tools.getCurrentMS(); //文件分析结束时毫秒数
-        Ui.outputDebug('文件Map刷新完毕，使用了' + (endMS - beginMS) + '毫秒。检索了' + workspaceFileCount + '个文件， 其中' + processFilNum + '个lua类型文件');
+            const processingRate = Math.floor((fileIndex / workspaceFileCount) * 100);
+            Ui.outputDebug(processingRate + '%  |  ' + filename);
+        });
+
+        const endMs = new Date().getTime(); //文件分析结束时毫秒数
+        Ui.outputDebug(`文件刷新完毕, 共 ${processFilNum} / ${workspaceFileCount} 个文件, 耗时 ${endMs - beginMs} 毫秒`);
         if (processFilNum <= 0) {
-            vscode.window.showErrorMessage(
-                '没有在工程中检索到lua文件。请检查launch.json文件中lua后缀(luaFileExtension)是否配置正确, 以及VSCode打开的工程是否正确',
-                '确定'
-            );
-            let noLuaFileTip =
-                '[!] 没有在VSCode打开的工程中检索到lua文件，请进行如下检查\n 1. VSCode打开的文件夹是否正确 \n 2. launch.json 文件中 luaFileExtension 选项配置是否正确';
-            Ui.outputError(noLuaFileTip);
+            Ui.outputError(`文件刷新失败, 请检查文件工程目录是否正确`);
         }
         this.fileNameToPathMap = fileNameToPathMap;
     }
 
     // 检查同名文件, 如果存在，通过日志输出
     public checkSameNameFile(distinguishSameNameFile: boolean) {
-        let sameNameFileStr;
-        for (const nameKey in this.fileNameToPathMap) {
-            let completePath = this.fileNameToPathMap[nameKey];
-            if (Array.isArray(completePath)) {
-                //初始化语句
-                if (sameNameFileStr === undefined) {
-                    sameNameFileStr = '\nVSCode打开工程中存在以下同名lua文件: \n';
-                }
-                sameNameFileStr = sameNameFileStr + ' + ' + completePath.join('\n + ') + '\n\n';
+        const sameNameFiles: string[] = [];
+        this.fileNameToPathMap.forEach(file => {
+            if (file.files.length > 1) {
+                sameNameFiles.push(`${file.filename} >> \n${file.files.join('\n')}`);
             }
-        }
-
-        if (sameNameFileStr) {
+        });
+        if (sameNameFiles.length > 0) {
+            const sameNameFilesStr = '工程中存在以下同名lua文件:\n' + sameNameFiles.join('\n');
             if (distinguishSameNameFile) {
-                sameNameFileStr = sameNameFileStr + 'distinguishSameNameFile 已开启。调试器[可以区分]同名文件中的断点。\n';
+                Ui.outputDebug(sameNameFilesStr);
             } else {
-                let sameNameFileTips =
-                    '[Tips] VSCode 打开目录中存在同名 lua 文件，请避免在这些文件中打断点。如确定需要区分同名文件中的断点，可按以下选择适合自己项目的操作:\n';
-                sameNameFileTips +=
-                    '方法1: LuaPanda启动时会索引 cwd 目录中的 lua 文件, 修改 launch.json 中的 cwd 配置路径, 过滤掉不参与运行的文件夹, 缩小索引范围来避免重复文件;\n';
-                sameNameFileTips += '方法2: 在 launch.json 中加入 distinguishSameNameFile:true , 开启同名文件区分 (会采用更严格的路径校验方式区分同名文件);\n';
-                sameNameFileTips += '方法3: 同名文件信息展示在 VSCode 控制台 OUTPUT - LuaPanda Debugger 中, 也可以尝试修改文件名;\n';
-                this.consoleLog(sameNameFileTips, this.luaDebugInstance);
+                Ui.outputError(sameNameFilesStr);
             }
-            Ui.outputError(sameNameFileStr);
         }
     }
 
     // 传入局部路径，返回完整路径
     public checkFullPath(shortPath: string, oPath?: string): string {
-        if (this.useAutoPathMode === false) {
-            return shortPath;
-        }
-
         //如果首字符是@，去除@
         if ('@' === shortPath.substr(0, 1)) {
             shortPath = shortPath.substr(1);
         }
 
-        let nameExtObject = Tools.getPathNameAndExt(shortPath);
-        let fileName = nameExtObject['name'];
+        const nameExtObject = this.getPathNameAndExt(shortPath);
+        const filename = nameExtObject.name;
+        const filenameAndPath = this.fileNameToPathMap.find(filenameAndPath => filenameAndPath.filename === filename);
 
-        let fullPath;
-        if (this.pathCaseSensitivity) {
-            fullPath = this.fileNameToPathMap ? this.fileNameToPathMap[fileName] : '';
-        } else {
-            for (const keyPath in this.fileNameToPathMap) {
-                if (keyPath.toLowerCase() === fileName) {
-                    fullPath = this.fileNameToPathMap[keyPath];
-                    break;
-                }
-            }
-        }
-
-        if (fullPath) {
-            if (Array.isArray(fullPath)) {
+        if (filenameAndPath) {
+            if (filenameAndPath.files.length > 1) {
                 // 存在同名文件
                 if (oPath) {
-                    return this.checkRightPath(shortPath, oPath, fullPath);
+                    return this.checkRightPath(shortPath, oPath, filenameAndPath.files);
                 } else {
                     // 如果lua文件没有更新，没有传过来oPath，则打开第一个文件
-                    for (const element of fullPath) {
-                        if (element.indexOf(shortPath)) {
-                            return element; // 这里固定返回第一个元素
-                        }
-                    }
+                    return filenameAndPath.files.find(file => file.indexOf(shortPath)) || filenameAndPath.files[0];
                 }
-            } else if (typeof fullPath === 'string') {
-                return fullPath;
+            } else {
+                return filenameAndPath.files[0];
             }
+        } else {
+            //最终没有找到，返回输入的地址
+            Ui.outputError('调试器没有找到文件 ' + shortPath + ' 。 请检查launch.json文件中lua后缀是否配置正确, 以及VSCode打开的工程是否正确');
+            return shortPath;
         }
-        //最终没有找到，返回输入的地址
-        Ui.outputError('调试器没有找到文件 ' + shortPath + ' 。 请检查launch.json文件中lua后缀是否配置正确, 以及VSCode打开的工程是否正确');
-        return shortPath;
     }
 
     // 存在同名文件的情况下, 根据lua虚拟机传来的 fullPath , 判断断点处具体是哪一个文件
@@ -174,14 +107,10 @@ export class PathManager {
         }
 
         //标准化路径, 盘符变成小写
-        oPath = Tools.genUnifiedPath(oPath);
-
-        if (!this.pathCaseSensitivity) {
-            oPath = oPath.toLowerCase();
-        }
+        oPath = this.genUnifiedPath(oPath);
 
         //因为 filename 存在不确定性（是否包含后缀），这里把后缀去掉进行对比
-        let nameExtObject = Tools.getPathNameAndExt(fileName);
+        let nameExtObject = this.getPathNameAndExt(fileName);
         fileName = nameExtObject['name'];
 
         // 从oPath中把文件名截取掉
@@ -194,26 +123,45 @@ export class PathManager {
 
         for (const iteratorPath of fullPathArray) {
             let pathForCompare = iteratorPath;
-            if (!this.pathCaseSensitivity) {
-                pathForCompare = iteratorPath.toLowerCase();
-            }
             if (pathForCompare.indexOf(oPath) >= 0) {
                 // fullPathArray 中包含oPath, 命中
                 return iteratorPath;
             }
         }
         // 如果最终都无法命中， 默认第一条。这种情况要避免，否则二次验证也通不过
-        if (Tools.developmentMode === true) {
-            // 开发模式下提示
-            let str = 'file_name:' + fileName + '  opath:' + oPath + '无法命中任何文件路径!';
-            Ui.outputError(str);
-            let Adapterlog = '同名文件无法命中!\n';
-            for (const iteratorPath of fullPathArray) {
-                Adapterlog += ' + ' + iteratorPath + '\n';
-            }
-            Adapterlog += str;
-            Ui.outputError(Adapterlog);
+
+        // 开发模式下提示
+        let str = 'file_name:' + fileName + '  opath:' + oPath + '无法命中任何文件路径!';
+        Ui.outputError(str);
+        let Adapterlog = '同名文件无法命中!\n';
+        for (const iteratorPath of fullPathArray) {
+            Adapterlog += ' + ' + iteratorPath + '\n';
         }
+        Adapterlog += str;
+        Ui.outputError(Adapterlog);
+
         return fullPathArray[0];
+    }
+
+    // 把传入的路径转为标准路径
+    public genUnifiedPath(beProcessPath: string): string {
+        //全部使用 /
+        beProcessPath = beProcessPath.replace(/\\/g, '/');
+        while (beProcessPath.match(/\/\//)) {
+            beProcessPath = beProcessPath.replace(/\/\//g, '/');
+        }
+        //win盘符转为小写
+        beProcessPath = beProcessPath.replace(/^\w:/, function ($1) {
+            return $1.toLocaleLowerCase();
+        });
+        return beProcessPath;
+    }
+
+    // 从URI分析出文件名和后缀
+    public getPathNameAndExt(UriOrPath: string) {
+        const nameAndExt = path.basename(UriOrPath).split('.');
+        const name = nameAndExt.shift() || ''; //文件名
+        const ext = nameAndExt.join('.') || ''; //文件后缀
+        return { name, ext };
     }
 }

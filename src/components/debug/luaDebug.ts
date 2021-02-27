@@ -15,22 +15,26 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
-import { LuaRuntime } from './LuaRuntime';
+import { LuaRuntime, ILuaBreakpoint } from './LuaRuntime';
 import * as Net from 'net';
-import { DataProcessor } from './DataProcessor';
 import { LineBreakpoint, ConditionBreakpoint, LogPoint } from './Breakpoint';
-import Tools from './Tools';
 import { ThreadManager } from './ThreadManager';
 import { PathManager } from './PathManager';
 import Ui from '../ui/Ui';
 import * as os from 'os';
 import ProjectGenerator from '../ProjectGenerator';
+import TsDebugger from '../TsDebugger';
 
 const { Subject } = require('await-notify');
 
-interface IBreakpointRecord {
+interface IBreakpoint {
     bkPath: string;
     bksArray: DebugProtocol.Breakpoint[];
+}
+
+interface ILaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
+    logLevel?: number;
+    docPathReplace?: string[];
 }
 
 export interface ICallbackArgs {
@@ -39,100 +43,90 @@ export interface ICallbackArgs {
     restart?: boolean;
 }
 
-export interface ISendArguments {
-    [key: string]: any;
-}
-
 export class LuaDebugSession extends LoggingDebugSession {
-    public tcpPort!: number; //和客户端连接的端口号，通过VScode的设置赋值
-    private _server?: Net.Server; // adapter 作为server
-    private _breakpointsArray: IBreakpointRecord[] = []; //在socket连接前临时保存断点的数组
-    private _autoReconnect: boolean = false;
+    private tcpPort: number = 8818; //和客户端连接的端口号，通过VScode的设置赋值
+    private replacePath: string[] = []; //替换路径数组
+    private dbCheckBreakpoint: boolean = true; //二次确认同文件断点
+    private autoReconnect: boolean = false; //客户端断开连接时是否等待重新连接
+    private logLevel: number = 1;
+    private isConnected = false; //连接成功的标志位
+    private server: Net.Server | undefined; // adapter 作为server
+    private useLoadstring: boolean = false;
 
-    private _replacePath?: string[]; //替换路径数组
-    //luaDebugRuntime实例
-    private _dataProcessor: DataProcessor;
-
-    private _pathManager: PathManager;
-    private _useLoadstring: boolean = false;
-    private _dbCheckBreakpoint = true;
-    //保存所有活动的LuaDebugSession实例
-    private static _debugSessionArray: Map<number, LuaDebugSession> = new Map<number, LuaDebugSession>();
-    private connectionFlag = false; //连接成功的标志位
-
+    private readonly tsDebugger: TsDebugger;
+    private readonly pathManager: PathManager;
     private readonly threadManager: ThreadManager;
-    private readonly runtime: LuaRuntime;
+    private readonly runtime: LuaRuntime; //luaDebugRuntime实例
     private readonly variableHandles = new Handles<string>(50000);
     private readonly configurationDone = new Subject();
+    private breakpoints: IBreakpoint[] = []; //在socket连接前临时保存断点的数组
 
-    public constructor() {
+    public constructor(tsDebugger: TsDebugger) {
         super('ts-lua-debug.txt');
         this.setDebuggerLinesStartAt1(true);
         this.setDebuggerColumnsStartAt1(true);
 
-        this.threadManager = new ThreadManager(); //线程实例 调用this.threadManager.CUR_THREAD_ID可以获得当前线程号
+        this.tsDebugger = tsDebugger;
+        this.threadManager = new ThreadManager();
+        this.pathManager = new PathManager();
+        this.runtime = new LuaRuntime(this.pathManager);
 
-        this._pathManager = new PathManager(this, this.printLogInDebugConsole);
-        this._runtime = new LuaDebugRuntime(); // _runtime and _dataProcessor 相互持有实例
-        this._dataProcessor = new DataProcessor();
-        this._dataProcessor.runtime = this._runtime;
-        this._runtime.dataProcessor = this._dataProcessor;
-        this._runtime.pathManager = this._pathManager;
-
-        LuaDebugSession._debugSessionArray.set(this.threadManager.CUR_THREAD_ID, this);
-        this._runtime.on('stopOnEntry', () => {
+        this.runtime.on('stopOnEntry', () => {
             this.sendEvent(new StoppedEvent('entry', this.threadManager.CUR_THREAD_ID));
         });
-        this._runtime.on('stopOnStep', () => {
+        this.runtime.on('stopOnStep', () => {
             this.sendEvent(new StoppedEvent('step', this.threadManager.CUR_THREAD_ID));
         });
-        this._runtime.on('stopOnStepIn', () => {
+        this.runtime.on('stopOnStepIn', () => {
             this.sendEvent(new StoppedEvent('step', this.threadManager.CUR_THREAD_ID));
         });
-        this._runtime.on('stopOnStepOut', () => {
+        this.runtime.on('stopOnStepOut', () => {
             this.sendEvent(new StoppedEvent('step', this.threadManager.CUR_THREAD_ID));
         });
-        this._runtime.on('stopOnCodeBreakpoint', () => {
+        this.runtime.on('stopOnCodeBreakpoint', () => {
             // stopOnCodeBreakpoint 指的是遇到 LuaPanda.BP()，因为是代码中的硬断点，VScode中不会保存这个断点信息，故不做校验
             this.sendEvent(new StoppedEvent('breakpoint', this.threadManager.CUR_THREAD_ID));
         });
-        this._runtime.on('stopOnBreakpoint', () => {
+        this.runtime.on('stopOnBreakpoint', () => {
             // 因为lua端所做的断点命中可能出现同名文件错误匹配，这里要再次校验lua端命中的行列号是否在 breakpointsArray 中
             if (this.checkIsRealHitBreakpoint()) {
                 this.sendEvent(new StoppedEvent('breakpoint', this.threadManager.CUR_THREAD_ID));
             } else {
                 // go on running
-                this._runtime.continueWithFakeHitBk(() => {
+                this.runtime.continueWithFakeHitBk(() => {
                     Ui.outputDebug('命中同名文件中的断点, 确认继续运行');
                 });
             }
         });
-        this._runtime.on('stopOnException', () => {
+        this.runtime.on('stopOnException', () => {
             this.sendEvent(new StoppedEvent('exception', this.threadManager.CUR_THREAD_ID));
         });
-        this._runtime.on('stopOnPause', () => {
+        this.runtime.on('stopOnPause', () => {
             this.sendEvent(new StoppedEvent('exception', this.threadManager.CUR_THREAD_ID));
         });
-        this._runtime.on('breakpointValidated', (bp: DebugProtocol.Breakpoint) => {
+        this.runtime.on('breakpointValidated', (bp: ILuaBreakpoint) => {
             this.sendEvent(new BreakpointEvent('changed', <DebugProtocol.Breakpoint>{ verified: bp.verified, id: bp.id }));
         });
-        this._runtime.on('logInDebugConsole', message => {
+        this.runtime.on('logInDebugConsole', (message: string) => {
             this.printLogInDebugConsole(message);
+        });
+        this.runtime.on('end', () => {
+            this.sendEvent(new TerminatedEvent());
         });
     }
 
     // 在有同名文件的情况下，需要再次进行命中判断。
     private checkIsRealHitBreakpoint() {
-        if (!this._dbCheckBreakpoint) {
+        if (!this.dbCheckBreakpoint) {
             // 用户关闭了二次断点校验，直接返回成功
             return true;
         }
 
-        let steak = this._runtime.breakStackArr;
-        let steakPath = steak[0].file;
-        let steakLine = steak[0].line;
-        if (this._breakpointsArray) {
-            for (let bkMap of this._breakpointsArray) {
+        const steak = this.runtime.breakStacks;
+        const steakPath = steak[0].file;
+        const steakLine = steak[0].line;
+        if (this.breakpoints) {
+            for (const bkMap of this.breakpoints) {
                 if (bkMap.bkPath === steakPath) {
                     for (const node of bkMap.bksArray) {
                         if (node.line == steakLine) {
@@ -171,6 +165,7 @@ export class LuaDebugSession extends LoggingDebugSession {
         // response.body.supportsRestartRequest = false;
         // response.body.supportsRestartFrame = false;
         this.sendResponse(response);
+        // this.sendEvent(new InitializedEvent());
     }
 
     /**
@@ -178,140 +173,99 @@ export class LuaDebugSession extends LoggingDebugSession {
      */
     protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments): void {
         super.configurationDoneRequest(response, args);
-        this._configurationDone.notify();
-    }
-
-    /**
-     * Attach 模式初始化代码
-     */
-    protected async attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments) {
-        await this._configurationDone.wait(1000);
-        this.initProcess(response, args);
-        this.sendResponse(response);
+        this.configurationDone.notify();
     }
 
     /**
      * Launch 模式初始化代码
      */
-    protected async launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments) {
-        await this._configurationDone.wait(1000);
-        this.initProcess(response, args);
-        this.sendResponse(response);
-    }
+    protected async launchRequest(response: DebugProtocol.LaunchResponse, args: ILaunchRequestArguments) {
+        await this.configurationDone.wait(1000);
 
-    private async initProcess(response: any, args: any) {
+        this.logLevel = args.logLevel !== undefined ? args.logLevel : 0;
+        if (this.logLevel <= 0) {
+            Ui.enableDebugChannel();
+        }
+        if (args.docPathReplace instanceof Array && args.docPathReplace.length === 2) {
+            this.replacePath = [
+                this.pathManager.genUnifiedPath(String(args.docPathReplace[0])),
+                this.pathManager.genUnifiedPath(String(args.docPathReplace[1])),
+            ];
+        }
+
         const pjg = new ProjectGenerator('maintest.lua');
         await pjg.generate();
         const root = await pjg.getRoot();
 
-        //1. 配置初始化信息
-        this.tcpPort = args.connectionPort;
-        this._pathManager.CWD = root;
-        this._pathManager.rootFolder = root;
-        this._pathManager.useAutoPathMode = !!args.autoPathMode;
-        this._pathManager.pathCaseSensitivity = !!args.pathCaseSensitivity;
-        this._dbCheckBreakpoint = !!args.dbCheckBreakpoint;
+        this.pathManager.rebuildWorkspaceNamePathMap(root);
+        this.pathManager.checkSameNameFile(false);
 
-        if (this._pathManager.useAutoPathMode === true) {
-            Tools.rebuildAcceptExtMap(args.luaFileExtension);
-            this._pathManager.rebuildWorkspaceNamePathMap(root);
-            this._pathManager.checkSameNameFile(!!args.distinguishSameNameFile);
-        }
-
-        if (args.logLevel <= 0) {
-            Ui.enableDebugChannel();
-        }
-
-        const sendArgs = {
-            stopOnEntry: !!args.stopOnEntry,
-            luaFileExtension: args.luaFileExtension,
+        const sendInfo = {
+            stopOnEntry: false,
+            luaFileExtension: '',
             cwd: root,
-            isNeedB64EncodeStr: !!args.isNeedB64EncodeStr,
-            TempFilePath: args.TempFilePath,
-            logLevel: args.logLevel,
-            pathCaseSensitivity: args.pathCaseSensitivity,
+            isNeedB64EncodeStr: true,
+            TempFilePath: root,
+            logLevel: this.logLevel,
+            pathCaseSensitivity: true,
             OSType: os.type(),
-            clibPath: Tools.getClibPathInExtension(),
-            useCHook: args.useCHook,
-            adapterVersion: String(Tools.adapterVersion),
-            autoPathMode: this._pathManager.useAutoPathMode,
-            distinguishSameNameFile: !!args.distinguishSameNameFile,
-            truncatedOPath: String(args.truncatedOPath),
-            DevelopmentMode: String(args.DevelopmentMode),
+            clibPath: '',
+            useCHook: false,
+            adapterVersion: '3.2.0',
+            autoPathMode: true,
+            distinguishSameNameFile: false,
+            truncatedOPath: '',
+            DevelopmentMode: false,
         };
-        Tools.developmentMode = args.DevelopmentMode;
+        this.startServer(sendInfo);
+        this.tsDebugger.startClient();
 
-        if (args.docPathReplace instanceof Array && args.docPathReplace.length === 2) {
-            this._replacePath = [Tools.genUnifiedPath(String(args.docPathReplace[0])), Tools.genUnifiedPath(String(args.docPathReplace[1]))];
-        } else {
-            this._replacePath = undefined;
-        }
-
-        this._autoReconnect = args.autoReconnect;
-
-        //2. 初始化内存分析状态栏
-
-        this.printLogInDebugConsole('[Listening] 调试器 VSCode Server 已启动，正在等待连接。  TargetName:' + args.name + ' Port:' + args.connectionPort);
-        this.startServer(sendArgs);
-
-        this._breakpointsArray = [];
+        this.breakpoints = [];
         this.sendEvent(new InitializedEvent()); //收到返回后，执行setbreakpoint
+        this.sendResponse(response);
     }
 
-    private startServer(sendArgs: any) {
-        this.connectionFlag = false;
-        //3. 启动Adapter的socket   |   VSCode = Server ; Debugger = Client
-        this._server = Net.createServer(socket => {
-            //--connect--
-            this._dataProcessor.socket = socket;
-            //向debugger发送含配置项的初始化协议
-            this._runtime.start((_: any, info: any) => {
-                //之所以使用 connectionFlag 连接成功标志位， 是因为代码进入 Net.createServer 的回调后，仍然可能被client超时断开连接。所以标志位被放入了
-                //_runtime.start 初始化消息发送成功之后。
-                this.connectionFlag = true;
-                this._server?.close(); //_server 已建立连接，不再接受新的连接
-                const connectMessage = '[Connected] VSCode Server 已建立连接! Remote device info  ' + socket.remoteAddress + ':' + socket.remotePort;
-                this.printLogInDebugConsole(connectMessage);
-                this.printLogInDebugConsole('[Tips] 当停止在断点处时，可在调试控制台输入要观察变量或执行表达式');
-
+    private startServer(sendInfo: any) {
+        this.isConnected = false;
+        this.server = Net.createServer(socket => {
+            this.runtime.dataProcessor.socket = socket;
+            this.runtime.start((_, info) => {
+                this.isConnected = true;
+                this.server?.close();
+                this.printLogInDebugConsole('[Connected] 已连接 >> ' + socket.remoteAddress + ':' + socket.remotePort);
                 if (info.UseLoadstring === '1') {
-                    this._useLoadstring = true;
+                    this.useLoadstring = true;
                 } else {
-                    this._useLoadstring = false;
+                    this.useLoadstring = false;
                 }
                 if (info.isNeedB64EncodeStr === 'true') {
-                    this._dataProcessor.isNeedB64EncodeStr = true;
+                    this.runtime.dataProcessor.isNeedB64EncodeStr = true;
                 } else {
-                    this._dataProcessor.isNeedB64EncodeStr = false;
+                    this.runtime.dataProcessor.isNeedB64EncodeStr = false;
                 }
-                if (info.UseHookLib === '1') {
+                for (const bkMap of this.breakpoints) {
+                    this.runtime.setBreakPoint(bkMap.bkPath, bkMap.bksArray);
                 }
-                //已建立连接，并完成初始化
-                //发送断点信息
-                for (let bkMap of this._breakpointsArray) {
-                    this._runtime.setBreakPoint(bkMap.bkPath, bkMap.bksArray, undefined, undefined);
-                }
-            }, sendArgs);
-            //--connect end--
+            }, sendInfo);
             socket.on('end', () => {
-                Ui.outputDebug('Socket end');
+                Ui.outputDebug('[Socket End]');
             });
             socket.on('close', () => {
-                if (this.connectionFlag) {
-                    this.connectionFlag = false;
-                    Ui.outputDebug('Socket close');
-                    vscode.window.showInformationMessage('[LuaPanda] 调试器已断开连接');
-                    // this._dataProcessor._socket 是在建立连接后赋值，所以在断开连接时删除
-                    delete this._dataProcessor.socket;
-                    this.sendEvent(new TerminatedEvent(this._autoReconnect));
+                if (this.isConnected) {
+                    this.isConnected = false;
+                    Ui.outputDebug('[Socket Close]');
+                    vscode.window.showInformationMessage('[Disconnect] 连接已断开');
+                    this.runtime.dataProcessor.socket = undefined;
+                    this.sendEvent(new TerminatedEvent(this.autoReconnect));
                 }
             });
             socket.on('data', data => {
-                Ui.outputDebug('[Get Msg] ' + data);
-                this._dataProcessor.processMsg(data.toString());
+                Ui.outputDebug('[Socket Got Data] ' + data);
+                this.runtime.dataProcessor.resolveMsg(data.toString());
             });
         }).listen(this.tcpPort, 0, () => {
-            Ui.outputDebug('Listening...');
+            Ui.outputDebug('[Socket Listening]');
+            this.printLogInDebugConsole('[Listening] 等待设备连接中...');
         });
     }
 
@@ -321,16 +275,16 @@ export class LuaDebugSession extends LoggingDebugSession {
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
         Ui.outputDebug('setBreakPointsRequest');
         let path = <string>args.source.path;
-        path = Tools.genUnifiedPath(path);
+        path = this.pathManager.genUnifiedPath(path);
 
-        if (this._replacePath && this._replacePath.length === 2) {
-            path = path.replace(this._replacePath[1], this._replacePath[0]);
+        if (this.replacePath && this.replacePath.length === 2) {
+            path = path.replace(this.replacePath[1], this.replacePath[0]);
         }
 
         const vscodeBreakpoints: DebugProtocol.Breakpoint[] = []; //VScode UI识别的断点（起始行号1）
 
-        args.breakpoints!.map(bp => {
-            const id = this._runtime.getBreakPointId();
+        args.breakpoints?.map(bp => {
+            const id = this.runtime.getBreakPointId();
             let breakpoint: DebugProtocol.Breakpoint; // 取出args中的断点并判断类型。
             if (bp.condition) {
                 breakpoint = new ConditionBreakpoint(true, bp.line, bp.condition, id);
@@ -347,12 +301,12 @@ export class LuaDebugSession extends LoggingDebugSession {
         };
 
         // 更新记录数据中的断点
-        if (this._breakpointsArray === undefined) {
-            this._breakpointsArray = [];
+        if (this.breakpoints === undefined) {
+            this.breakpoints = [];
         }
 
         let isbkPathExist = false; //断点路径已经存在于断点列表中
-        for (let bkMap of this._breakpointsArray) {
+        for (let bkMap of this.breakpoints) {
             if (bkMap.bkPath === path) {
                 bkMap['bksArray'] = vscodeBreakpoints;
                 isbkPathExist = true;
@@ -364,23 +318,24 @@ export class LuaDebugSession extends LoggingDebugSession {
                 bkPath: path,
                 bksArray: vscodeBreakpoints,
             };
-            this._breakpointsArray.push(bk);
+            this.breakpoints.push(bk);
         }
 
-        if (this._dataProcessor.socket) {
+        if (this.runtime.dataProcessor.socket) {
             //已建立连接
             const callbackArgs: ICallbackArgs = {
                 instance: this,
                 response: response,
             };
-            this._runtime.setBreakPoint(
+            this.runtime.setBreakPoint(
                 path,
                 vscodeBreakpoints,
-                (arr: ICallbackArgs) => {
+                args => {
                     Ui.outputDebug('确认断点');
-                    const instance = arr.instance!;
-                    const response = arr.response!;
-                    instance.sendResponse(response); //在收到debugger的返回后，通知VSCode, VSCode界面的断点会变成已验证
+                    const { instance, response } = args as ICallbackArgs;
+                    if (instance && response) {
+                        instance.sendResponse(response); //在收到debugger的返回后，通知VSCode, VSCode界面的断点会变成已验证
+                    }
                 },
                 callbackArgs
             );
@@ -397,11 +352,11 @@ export class LuaDebugSession extends LoggingDebugSession {
         const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
         const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
         const endFrame = startFrame + maxLevels;
-        const stk = this._runtime.stack(startFrame, endFrame);
+        const stk = this.runtime.stack(startFrame, endFrame);
         const stkf = stk.frames.map((f: any) => {
             let source = f.file;
-            if (this._replacePath && this._replacePath.length === 2) {
-                source = source.replace(this._replacePath[0], this._replacePath[1]);
+            if (this.replacePath && this.replacePath.length === 2) {
+                source = source.replace(this.replacePath[0], this.replacePath[1]);
             }
             return new StackFrame(f.index, f.name, this.createSource(source), f.line);
         });
@@ -423,7 +378,7 @@ export class LuaDebugSession extends LoggingDebugSession {
         //watch -- 监视窗口
         if (args.context === 'watch' || args.context === 'hover') {
             //把B["A"] ['A'] => B.A形式
-            if (this._useLoadstring == false) {
+            if (this.useLoadstring == false) {
                 let watchString = args.expression;
                 watchString = watchString.replace(/\[/g, '.');
                 watchString = watchString.replace(/\"/g, '');
@@ -432,25 +387,26 @@ export class LuaDebugSession extends LoggingDebugSession {
                 args.expression = watchString;
             }
 
-            this._runtime.getWatchedVariable(
-                (arr: ICallbackArgs, info: any) => {
-                    const instance = arr.instance!;
-                    const response = arr.response!;
-                    if (info.length === 0) {
-                        //没有查到
-                        response.body = {
-                            result: '未能查到变量的值',
-                            type: 'string',
-                            variablesReference: 0,
-                        };
-                    } else {
-                        response.body = {
-                            result: info[0].value,
-                            type: info[0].type,
-                            variablesReference: parseInt(info[0].variablesReference),
-                        };
+            this.runtime.getWatchedVariable(
+                (args, info) => {
+                    const { instance, response } = args as ICallbackArgs;
+                    if (instance && response) {
+                        if (info.length === 0) {
+                            //没有查到
+                            response.body = {
+                                result: '未能查到变量的值',
+                                type: 'string',
+                                variablesReference: 0,
+                            };
+                        } else {
+                            response.body = {
+                                result: info[0].value,
+                                type: info[0].type,
+                                variablesReference: parseInt(info[0].variablesReference),
+                            };
+                        }
+                        instance.sendResponse(response);
                     }
-                    instance.sendResponse(response);
                 },
                 callbackArgs,
                 args.expression,
@@ -458,24 +414,25 @@ export class LuaDebugSession extends LoggingDebugSession {
             );
         } else if (args.context === 'repl') {
             //repl -- 调试控制台
-            this._runtime.getReplExpression(
-                (arr: ICallbackArgs, info: any) => {
-                    const instance = arr.instance!;
-                    const response = arr.response!;
-                    if (info.length === 0) {
-                        //没有查到
-                        response.body = {
-                            result: 'nil',
-                            variablesReference: 0,
-                        };
-                    } else {
-                        response.body = {
-                            result: info[0].value,
-                            type: info[0].type,
-                            variablesReference: parseInt(info[0].variablesReference),
-                        };
+            this.runtime.getReplExpression(
+                (args, info) => {
+                    const { instance, response } = args as ICallbackArgs;
+                    if (instance && response) {
+                        if (info.length === 0) {
+                            //没有查到
+                            response.body = {
+                                result: 'nil',
+                                variablesReference: 0,
+                            };
+                        } else {
+                            response.body = {
+                                result: info[0].value,
+                                type: info[0].type,
+                                variablesReference: parseInt(info[0].variablesReference),
+                            };
+                        }
+                        instance.sendResponse(response);
                     }
-                    instance.sendResponse(response);
                 },
                 callbackArgs,
                 args.expression,
@@ -493,9 +450,9 @@ export class LuaDebugSession extends LoggingDebugSession {
         const frameReference = args.frameId;
         const scopes = new Array<Scope>();
         //local 10000,  global 20000, upvalue 30000
-        scopes.push(new Scope('Local', this._variableHandles.create('10000_' + frameReference), false));
-        scopes.push(new Scope('Global', this._variableHandles.create('20000_' + frameReference), true));
-        scopes.push(new Scope('UpValue', this._variableHandles.create('30000_' + frameReference), false));
+        scopes.push(new Scope('Local', this.variableHandles.create('10000_' + frameReference), false));
+        scopes.push(new Scope('Global', this.variableHandles.create('20000_' + frameReference), true));
+        scopes.push(new Scope('UpValue', this.variableHandles.create('30000_' + frameReference), false));
         response.body = {
             scopes: scopes,
         };
@@ -510,7 +467,7 @@ export class LuaDebugSession extends LoggingDebugSession {
             instance: this,
             response: response,
         };
-        let referenceString = this._variableHandles.get(args.variablesReference);
+        let referenceString = this.variableHandles.get(args.variablesReference);
         let referenceArray: string[] = [];
         if (referenceString != null) {
             referenceArray = referenceString.split('_');
@@ -524,21 +481,22 @@ export class LuaDebugSession extends LoggingDebugSession {
             referenceArray[0] = String(args.variablesReference);
         }
 
-        this._runtime.setVariable(
-            (arr: ICallbackArgs, info: any) => {
-                const instance = arr.instance!;
-                const response = arr.response!;
-                if (info.success === 'true') {
-                    response.body = {
-                        value: String(info.value),
-                        type: String(info.type),
-                        variablesReference: parseInt(info.variablesReference),
-                    };
-                    Ui.outputDebug(info.tip);
-                } else {
-                    Ui.outputError('变量赋值失败 [' + info.tip + ']');
+        this.runtime.setVariable(
+            (args, info) => {
+                const { instance, response } = args as ICallbackArgs;
+                if (instance && response) {
+                    if (info.success === 'true') {
+                        response.body = {
+                            value: String(info.value),
+                            type: String(info.type),
+                            variablesReference: parseInt(info.variablesReference),
+                        };
+                        Ui.outputDebug(info.tip);
+                    } else {
+                        Ui.outputError('变量赋值失败 [' + info.tip + ']');
+                    }
+                    instance.sendResponse(response);
                 }
-                instance.sendResponse(response);
             },
             callbackArgs,
             args.name,
@@ -556,7 +514,7 @@ export class LuaDebugSession extends LoggingDebugSession {
             instance: this,
             response: response,
         };
-        let referenceString = this._variableHandles.get(args.variablesReference);
+        let referenceString = this.variableHandles.get(args.variablesReference);
         let referenceArray: string[] = [];
         if (referenceString != null) {
             referenceArray = referenceString.split('_');
@@ -569,24 +527,26 @@ export class LuaDebugSession extends LoggingDebugSession {
             //_variableHandles 取不到的情况下 referenceString 即为真正的变量ref
             referenceArray[0] = String(args.variablesReference);
         }
-        this._runtime.getVariable(
-            (arr: ICallbackArgs, info: any) => {
-                const instance = arr.instance!;
-                const response = arr.response!;
-                info = info === undefined ? [] : info;
-                const variables: DebugProtocol.Variable[] = [];
-                info.forEach((element: any) => {
-                    variables.push({
-                        name: element.name,
-                        type: element.type,
-                        value: element.value,
-                        variablesReference: parseInt(element.variablesReference),
+
+        this.runtime.getVariable(
+            (args, info) => {
+                const { instance, response } = args as ICallbackArgs;
+                if (instance && response) {
+                    info = info === undefined ? [] : info;
+                    const variables: DebugProtocol.Variable[] = [];
+                    info.forEach((element: any) => {
+                        variables.push({
+                            name: element.name,
+                            type: element.type,
+                            value: element.value,
+                            variablesReference: parseInt(element.variablesReference),
+                        });
                     });
-                });
-                response.body = {
-                    variables: variables,
-                };
-                instance.sendResponse(response);
+                    response.body = {
+                        variables: variables,
+                    };
+                    this.sendResponse(response);
+                }
             },
             callbackArgs,
             parseInt(referenceArray[0]),
@@ -602,11 +562,12 @@ export class LuaDebugSession extends LoggingDebugSession {
             instance: this,
             response: response,
         };
-        this._runtime.continue((arr: ICallbackArgs) => {
+        this.runtime.continue(args => {
             Ui.outputDebug('确认继续运行');
-            const instance = arr.instance!;
-            const response = arr.response!;
-            instance.sendResponse(response);
+            const { instance, response } = args as ICallbackArgs;
+            if (instance && response) {
+                instance.sendResponse(response);
+            }
         }, callbackArgs);
     }
 
@@ -618,11 +579,12 @@ export class LuaDebugSession extends LoggingDebugSession {
             instance: this,
             response: response,
         };
-        this._runtime.step((arr: ICallbackArgs) => {
+        this.runtime.step(args => {
             Ui.outputDebug('确认单步');
-            const instance = arr.instance!;
-            const response = arr.response!;
-            instance.sendResponse(response);
+            const { instance, response } = args as ICallbackArgs;
+            if (instance && response) {
+                instance.sendResponse(response);
+            }
         }, callbackArgs);
     }
 
@@ -634,12 +596,13 @@ export class LuaDebugSession extends LoggingDebugSession {
             instance: this,
             response: response,
         };
-        this._runtime.step(
-            (arr: ICallbackArgs) => {
+        this.runtime.step(
+            args => {
                 Ui.outputDebug('确认StepIn');
-                const instance = arr.instance!;
-                const response = arr.response!;
-                instance.sendResponse(response);
+                const { instance, response } = args as ICallbackArgs;
+                if (instance && response) {
+                    instance.sendResponse(response);
+                }
             },
             callbackArgs,
             'stopOnStepIn'
@@ -654,12 +617,13 @@ export class LuaDebugSession extends LoggingDebugSession {
             instance: this,
             response: response,
         };
-        this._runtime.step(
-            (arr: ICallbackArgs) => {
+        this.runtime.step(
+            args => {
                 Ui.outputDebug('确认StepOut');
-                const instance = arr.instance!;
-                const response = arr.response!;
-                instance.sendResponse(response);
+                const { instance, response } = args as ICallbackArgs;
+                if (instance && response) {
+                    instance.sendResponse(response);
+                }
             },
             callbackArgs,
             'stopOnStepOut'
@@ -681,28 +645,25 @@ export class LuaDebugSession extends LoggingDebugSession {
      * 当lua进程主动停止连接 : socket end -> socket close -> disconnectRequest
      */
     protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-        let disconnectMessage = '[Disconnect Request] 调试器已断开连接.';
-        Ui.output(disconnectMessage);
-        this.printLogInDebugConsole(disconnectMessage);
+        this.printLogInDebugConsole('[Disconnect Request] 已断开连接');
 
         const restart = args.restart;
         // 给lua发消息，让lua client停止运行
         const callbackArgs: ICallbackArgs = {
             restart: restart,
         };
-        this._runtime.stopRun(
-            (arr: ICallbackArgs) => {
+        this.runtime.stopRun(
+            args => {
                 //客户端主动断开连接，这里仅做确认
                 Ui.outputDebug('确认stop');
             },
             callbackArgs,
             'stopRun'
         );
-        this._server?.close(); // 关闭 server, 停止 listen. 放在这里的原因是即使未建立连接，也可以停止listen.
+        this.server?.close(); // 关闭 server, 停止 listen. 放在这里的原因是即使未建立连接，也可以停止listen.
 
         // 删除自身的线程id, 并从LuaDebugSession实例列表中删除自身
         this.threadManager.destructor();
-        LuaDebugSession._debugSessionArray.delete(this.threadManager.CUR_THREAD_ID);
         this.sendResponse(response);
     }
 
@@ -726,6 +687,6 @@ export class LuaDebugSession extends LoggingDebugSession {
     }
 
     public LuaGarbageCollect() {
-        this._runtime.luaGarbageCollect();
+        this.runtime.luaGarbageCollect();
     }
 }

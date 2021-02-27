@@ -1,18 +1,38 @@
+import { DebugProtocol } from 'vscode-debugprotocol';
 import { EventEmitter } from 'events';
-import { DataProcessor } from './DataProcessor';
+import { PathManager } from './PathManager';
+import { ICallbackArgs } from './LuaDebug';
 import Ui from '../ui/Ui';
+import { DataProcessor } from './DataProcessor';
+
+interface ISendInfo {
+    [key: string]: string | DebugProtocol.Breakpoint[];
+}
+
+interface IBreakStack {
+    file: string;
+    oPath: string;
+    line: number;
+}
+
+export interface ILuaBreakpoint {
+    id: number;
+    line: number;
+    verified: boolean;
+}
 
 export class LuaRuntime extends EventEmitter {
     //保存断点处堆栈信息
-    private readonly dataProcessor: DataProcessor;
-    public pathManager!: PathManager;
-    public breakStackArr: IBreakStack[] = [];
-    public tcpSplitChar: string = '|*|';
-    private _breakpointId: number = 1;
+    public readonly tcpSplitChar: string = '|*|';
+    private readonly pathManager: PathManager;
+    public breakStacks: IBreakStack[] = [];
+    private breakpointId: number = 1;
+    public dataProcessor: DataProcessor;
 
-    constructor(dataProcessor: DataProcessor) {
+    constructor(pathManager: PathManager) {
         super();
-        this.dataProcessor = dataProcessor;
+        this.pathManager = pathManager;
+        this.dataProcessor = new DataProcessor(this);
     }
 
     /**
@@ -21,12 +41,12 @@ export class LuaRuntime extends EventEmitter {
      * @param callbackArgs：回调参数
      * @param sendArgs：发给debugger的参数
      */
-    public start(callback: (arg0: any, arg1: any) => void, sendArgs: ISendArguments) {
-        const arrSend: ISendInfo = {};
-        for (let key in sendArgs) {
-            arrSend[key] = String(sendArgs[key]);
+    public start(callback: (args?: ICallbackArgs, info?: any) => void, sendArgs: { [key: string]: any }) {
+        const sendInfo: ISendInfo = {};
+        for (const key in sendArgs) {
+            sendInfo[key] = String(sendArgs[key]);
         }
-        this.dataProcessor.commandToDebugger('initSuccess', arrSend, callback);
+        this.dataProcessor.send('initSuccess', sendInfo, callback);
     }
 
     /**
@@ -35,10 +55,10 @@ export class LuaRuntime extends EventEmitter {
      * @param callbackArgs：回调参数
      * @param event：事件名
      */
-    public continue(callback: (args: ICallbackArgs) => void, callbackArgs: ICallbackArgs, event = 'continue') {
+    public continue(callback: (args?: ICallbackArgs, info?: any) => void, callbackArgs?: ICallbackArgs, event = 'continue') {
         Ui.outputDebug('continue');
-        const arrSend: ISendInfo = {};
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
+        const sendInfo: ISendInfo = {};
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs);
     }
 
     /**
@@ -47,13 +67,14 @@ export class LuaRuntime extends EventEmitter {
      * @param callbackArgs：回调参数
      * @param event：事件名
      */
-    public continueWithFakeHitBk(callback: () => void, callbackArgs = undefined, event = 'continue') {
+    public continueWithFakeHitBk(callback: (args?: ICallbackArgs, info?: any) => void, callbackArgs?: ICallbackArgs, event = 'continue') {
         Ui.outputDebug('continue');
-        const arrSend: ISendInfo = {};
-        arrSend['fakeBKPath'] = String(this.breakStackArr[0].oPath);
-        arrSend['fakeBKLine'] = String(this.breakStackArr[0].line);
-        arrSend['isFakeHit'] = String(true);
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
+        const sendInfo = {
+            fakeBKPath: String(this.breakStacks[0].oPath),
+            fakeBKLine: String(this.breakStacks[0].line),
+            isFakeHit: String(true),
+        };
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs);
     }
 
     /**
@@ -65,17 +86,18 @@ export class LuaRuntime extends EventEmitter {
      * @param event：事件名
      */
     public getWatchedVariable(
-        callback: (args: ICallbackArgs, info: any) => void,
+        callback: (args?: ICallbackArgs, info?: any) => void,
         callbackArgs: ICallbackArgs,
         varName: string,
         frameId = 2,
         event = 'getWatchedVariable'
     ) {
         Ui.outputDebug('getWatchedVariable');
-        const arrSend: ISendInfo = {};
-        arrSend['varName'] = String(varName);
-        arrSend['stackId'] = String(frameId);
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
+        const sendInfo: ISendInfo = {
+            varName: String(varName),
+            stackId: String(frameId),
+        };
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs);
     }
 
     /**
@@ -87,17 +109,18 @@ export class LuaRuntime extends EventEmitter {
      * @param event：事件名
      */
     public getReplExpression(
-        callback: (args: ICallbackArgs, info?: any) => void,
+        callback: (args?: ICallbackArgs, info?: any) => void,
         callbackArgs: ICallbackArgs,
         expression: string,
         frameId = 2,
         event = 'runREPLExpression'
     ) {
         Ui.outputDebug('runREPLExpression');
-        const arrSend: ISendInfo = {};
-        arrSend['Expression'] = String(expression);
-        arrSend['stackId'] = String(frameId);
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
+        const sendInfo: ISendInfo = {
+            Expression: String(expression),
+            stackId: String(frameId),
+        };
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs);
     }
 
     /**
@@ -111,7 +134,7 @@ export class LuaRuntime extends EventEmitter {
      * @param event：事件名
      */
     public setVariable(
-        callback: (args: ICallbackArgs, info: any) => void,
+        callback: (args?: ICallbackArgs, info?: any) => void,
         callbackArgs: ICallbackArgs,
         name: string,
         newValue: string,
@@ -120,12 +143,13 @@ export class LuaRuntime extends EventEmitter {
         event = 'setVariable'
     ) {
         Ui.outputDebug('setVariable');
-        const arrSend: ISendInfo = {};
-        arrSend['varRef'] = String(variableRef);
-        arrSend['stackId'] = String(frameId);
-        arrSend['newValue'] = String(newValue);
-        arrSend['varName'] = String(name);
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
+        const sendInfo: ISendInfo = {
+            varRef: String(variableRef),
+            stackId: String(frameId),
+            newValue: String(newValue),
+            varName: String(name),
+        };
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs);
     }
 
     /**
@@ -137,37 +161,39 @@ export class LuaRuntime extends EventEmitter {
      * @param frameId：当前栈层（变量的值会随切换栈层而改变）
      * @param event：事件名
      */
-    public getVariable(callback: (args: ICallbackArgs, info?: any) => void, callbackArgs: ICallbackArgs, variableRef = 0, frameId = 2, event = 'getVariable') {
+    public getVariable(callback: (args?: ICallbackArgs, info?: any) => void, callbackArgs: ICallbackArgs, variableRef = 0, frameId = 2, event = 'getVariable') {
         Ui.outputDebug('getVariable');
-        const arrSend: ISendInfo = {};
-        arrSend['varRef'] = String(variableRef);
-        arrSend['stackId'] = String(frameId);
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs, 3);
+        const sendInfo: ISendInfo = {
+            varRef: String(variableRef),
+            stackId: String(frameId),
+        };
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs, 3);
     }
 
     /**
      * 通知Debugger停止运行
      */
-    public stopRun(callback: (args: ICallbackArgs) => void, callbackArgs: ICallbackArgs, event = 'stopRun') {
-        const arrSend: ISendInfo = {};
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
+    public stopRun(callback: (args?: ICallbackArgs, info?: any) => void, callbackArgs: ICallbackArgs, event = 'stopRun') {
+        Ui.outputDebug('stopRun');
+        const sendInfo: ISendInfo = {};
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs);
     }
 
     /**
      * 	通知Debugger单步运行
      */
-    public step(callback: (args: ICallbackArgs) => void, callbackArgs: ICallbackArgs, event = 'stopOnStep') {
+    public step(callback: (args?: ICallbackArgs, info?: any) => void, callbackArgs: ICallbackArgs, event = 'stopOnStep') {
         Ui.outputDebug('step:' + event);
-        const arrSend: ISendInfo = {};
-        this.dataProcessor.commandToDebugger(event, arrSend, callback, callbackArgs);
+        const sendInfo: ISendInfo = {};
+        this.dataProcessor.send(event, sendInfo, callback, callbackArgs);
     }
 
     /**
      * 	强制回收内存
      */
     public luaGarbageCollect(event = 'LuaGarbageCollect') {
-        const arrSend: ISendInfo = {};
-        this.dataProcessor.commandToDebugger(event, arrSend);
+        const sendInfo: ISendInfo = {};
+        this.dataProcessor.send(event, sendInfo);
     }
 
     /**
@@ -177,12 +203,13 @@ export class LuaRuntime extends EventEmitter {
      * @param callback：回调信息，用来确认断点
      * @param callbackArgs：回调参数
      */
-    public setBreakPoint(path: string, bks: DebugProtocol.Breakpoint[], callback?: (args: ICallbackArgs) => void, callbackArgs?: ICallbackArgs) {
+    public setBreakPoint(path: string, bks: DebugProtocol.Breakpoint[], callback?: (args?: ICallbackArgs, info?: any) => void, callbackArgs?: ICallbackArgs) {
         Ui.outputDebug('setBreakPoint ' + ' path:' + path);
-        const arrSend: ISendInfo = {};
-        arrSend['path'] = path;
-        arrSend['bks'] = bks;
-        this.dataProcessor.commandToDebugger('setBreakPoint', arrSend, callback, callbackArgs);
+        const sendInfo: ISendInfo = {
+            path: path,
+            bks: bks,
+        };
+        this.dataProcessor.send('setBreakPoint', sendInfo, callback, callbackArgs);
     }
 
     /**
@@ -190,8 +217,8 @@ export class LuaRuntime extends EventEmitter {
      */
     public stack(startFrame: number, endFrame: number) {
         return {
-            frames: this.breakStackArr,
-            count: this.breakStackArr.length, //栈深度
+            frames: this.breakStacks,
+            count: this.breakStacks.length, //栈深度
         };
     }
 
@@ -234,11 +261,11 @@ export class LuaRuntime extends EventEmitter {
             element.file = this.pathManager.checkFullPath(getinfoPath, oPath);
         });
         //先保存堆栈信息，再发暂停请求
-        this.breakStackArr = stack;
+        this.breakStacks = stack;
         this.sendEvent(reason);
     }
 
     public getBreakPointId() {
-        return this._breakpointId++;
+        return this.breakpointId++;
     }
 }
