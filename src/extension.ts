@@ -41,11 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('ts-lua', factory));
     context.subscriptions.push(factory);
 
-    context.subscriptions.push(
-        vscode.commands.registerCommand('extension.test', () => {
-            dbg.test();
-        })
-    );
+    context.subscriptions.push(vscode.commands.registerCommand('extension.test', () => {}));
 
     vscode.commands.executeCommand('extension.startServer');
 }

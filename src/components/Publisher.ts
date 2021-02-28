@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import * as fs from 'fs';
 import * as FormData from 'form-data';
-import Version from './kits/Version';
+import Version from './utils/Version';
 import * as qs from 'querystring';
 import Ui from './ui/Ui';
 import ProjectGenerator from './ProjectGenerator';

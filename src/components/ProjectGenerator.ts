@@ -27,7 +27,6 @@ export interface IRawFile {
 export default class ProjectGenerator {
     public runfile: string;
     private projectRoot: string | undefined;
-    private locateTimes: number = 0;
     private generateMode: GeneratorMode = GeneratorMode.send;
     private includes: string[] = [];
     private ignores: string[] = [];
@@ -59,13 +58,32 @@ export default class ProjectGenerator {
     }
 
     public locateMain() {
-        const focusing = vscode.window.activeTextEditor?.document?.uri;
-        if (!focusing) {
-            return Promise.reject('未指定工程');
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            return Promise.reject('未打开工程');
         }
-        const focusingDir = path.dirname(focusing.fsPath);
-        this.locateDown(focusingDir);
-        this.locateUp(focusingDir);
+        if (workspaceFolders.length === 1) {
+            const workspaceFolder = workspaceFolders[0];
+            const dir = workspaceFolder.uri.fsPath;
+            const files = fs.readdirSync(dir);
+            if (files.indexOf(this.runfile) > -1) {
+                this.projectRoot = dir;
+            }
+        } else {
+            const focusing = vscode.window.activeTextEditor?.document?.uri;
+            if (!focusing) {
+                return Promise.reject('未指定工程');
+            }
+            const workspaceFolder = vscode.workspace.getWorkspaceFolder(focusing);
+            if (!workspaceFolder) {
+                return Promise.reject('所选工程无法正确读取');
+            }
+            const dir = workspaceFolder.uri.fsPath;
+            const files = fs.readdirSync(dir);
+            if (files.indexOf(this.runfile) > -1) {
+                this.projectRoot = dir;
+            }
+        }
         if (!this.projectRoot) {
             return Promise.reject('所选工程不包含引导文件: ' + this.runfile);
         }
@@ -77,46 +95,6 @@ export default class ProjectGenerator {
             return Promise.resolve(this.projectRoot);
         } else {
             return this.locateMain();
-        }
-    }
-
-    private isRoot(files: string[]): boolean {
-        if (files.indexOf(this.runfile) > -1) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private locateDown(dir: string) {
-        if (this.projectRoot) {
-            return;
-        }
-        const files = fs.readdirSync(dir);
-        if (this.isRoot(files)) {
-            this.projectRoot = dir;
-        } else {
-            const dirs = files.map(file => path.join(dir, file));
-            dirs.forEach(d => {
-                const stat = fs.statSync(d);
-                if (stat.isDirectory()) {
-                    this.locateDown(d);
-                }
-            });
-        }
-    }
-
-    private locateUp(dir: string) {
-        if (this.projectRoot) {
-            return;
-        }
-        this.locateTimes++;
-        const files = fs.readdirSync(dir);
-        if (this.isRoot(files)) {
-            this.projectRoot = dir;
-        } else if (this.locateTimes <= 3) {
-            const upDir = path.dirname(dir);
-            this.locateUp(upDir);
         }
     }
 
