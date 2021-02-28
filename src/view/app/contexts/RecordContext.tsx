@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createContext, useState, useCallback } from 'react';
 import { message } from 'antd';
+import Jimp from 'jimp';
 
 export interface IRecord {
     coordinate: string;
@@ -22,9 +23,10 @@ export interface IRecordContext {
     clearRecords: () => void;
     p1: IPoint;
     p2: IPoint;
-    setPoint1: (x: number, y: number) => void;
-    setPoint2: (x: number, y: number) => void;
+    setPoint1: (x: number, y: number, width: number, height: number) => void;
+    setPoint2: (x: number, y: number, width: number, height: number) => void;
     clearPoints: () => void;
+    imgCover: string;
 }
 
 export const RecordContextDefaultValue: IRecordContext = {
@@ -38,6 +40,7 @@ export const RecordContextDefaultValue: IRecordContext = {
     setPoint1: () => null,
     setPoint2: () => null,
     clearPoints: () => null,
+    imgCover: '',
 };
 
 export const RecordContext = createContext<IRecordContext>(RecordContextDefaultValue);
@@ -46,6 +49,7 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
     const [records, setRecords] = useState<IRecord[]>([]);
     const [p1, setP1] = useState<IPoint>({ x: -1, y: -1 });
     const [p2, setP2] = useState<IPoint>({ x: -1, y: -1 });
+    const [imgCover, setImgCover] = useState<string>('');
 
     const addRecordByMouse = useCallback(
         (x: number, y: number, c: string) => {
@@ -86,18 +90,85 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
 
     const clearRecords = useCallback(() => setRecords([]), []);
 
-    const setPoint1 = useCallback((x: number, y: number) => setP1({ x, y }), []);
+    const setPoint1 = useCallback(
+        (x: number, y: number, width: number, height: number) => {
+            setP1({ x, y });
+            new Jimp(width, height, 0, (_, img) => {
+                if (p2.x !== -1 && p2.y !== -1 && x !== p2.x && y !== p2.y) {
+                    const x1 = x < p2.x ? x : p2.x;
+                    const y1 = y < p2.y ? y : p2.y;
+                    const x2 = x > p2.x ? x : p2.x;
+                    const y2 = y > p2.y ? y : p2.y;
+                    for (let i = x1; i < x2; i++) {
+                        for (let j = y1; j < y2; j++) {
+                            img.setPixelColor(0x0078d788, i, j);
+                        }
+                    }
+                } else {
+                    for (let i = x - 10; i < x + 10; i++) {
+                        if (i >= 0 && i <= width) {
+                            img.setPixelColor(0x0078d7ff, i, y);
+                        }
+                    }
+                    for (let i = y - 10; i < y + 10; i++) {
+                        if (i >= 0 && i <= width) {
+                            img.setPixelColor(0x0078d7ff, x, i);
+                        }
+                    }
+                }
+                img.getBase64(Jimp.MIME_PNG, (_, base64) => {
+                    setImgCover(base64);
+                    console.log(x, y, width, height, base64);
+                });
+            });
+        },
+        [p2.x, p2.y]
+    );
 
-    const setPoint2 = useCallback((x: number, y: number) => setP2({ x, y }), []);
+    const setPoint2 = useCallback(
+        (x: number, y: number, width: number, height: number) => {
+            setP2({ x, y });
+            new Jimp(width, height, 0, (_, img) => {
+                if (p1.x !== -1 && p1.y !== -1 && x !== p1.x && y !== p1.y) {
+                    const x1 = x < p1.x ? x : p1.x;
+                    const y1 = y < p1.y ? y : p1.y;
+                    const x2 = x > p1.x ? x : p1.x;
+                    const y2 = y > p1.y ? y : p1.y;
+                    for (let i = x1; i < x2; i++) {
+                        for (let j = y1; j < y2; j++) {
+                            img.setPixelColor(0x0078d788, i, j);
+                        }
+                    }
+                } else {
+                    for (let i = x - 10; i < x + 10; i++) {
+                        if (i >= 0 && i <= width) {
+                            img.setPixelColor(0x0078d7ff, i, y);
+                        }
+                    }
+                    for (let i = y - 10; i < y + 10; i++) {
+                        if (i >= 0 && i <= width) {
+                            img.setPixelColor(0x0078d7ff, x, i);
+                        }
+                    }
+                }
+                img.getBase64(Jimp.MIME_PNG, (_, base64) => {
+                    setImgCover(base64);
+                    console.log(x, y, width, height, base64);
+                });
+            });
+        },
+        [p1.x, p1.y]
+    );
 
     const clearPoints = useCallback(() => {
-        setPoint1(-1, -1);
-        setPoint2(-1, -1);
-    }, [setPoint1, setPoint2]);
+        setP1({ x: -1, y: -1 });
+        setP2({ x: -1, y: -1 });
+        setImgCover('');
+    }, []);
 
     return (
         <RecordContext.Provider
-            value={{ records, addRecordByMouse, addRecordByKeyboard, deleteRecord, clearRecords, p1, p2, setPoint1, setPoint2, clearPoints }}
+            value={{ records, addRecordByMouse, addRecordByKeyboard, deleteRecord, clearRecords, p1, p2, setPoint1, setPoint2, clearPoints, imgCover }}
         >
             {props.children}
         </RecordContext.Provider>

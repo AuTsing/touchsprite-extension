@@ -23,12 +23,14 @@ const App: FC<{ vscode: IVscode }> = ({ vscode }) => {
                     <CoordinateContextProvider>
                         <RecordContextProvider>
                             <Layout>
-                                <Header className='header'>
-                                    <Navbar />
-                                </Header>
-                                <Content className='content'>
-                                    <Canvas />
-                                </Content>
+                                <Layout>
+                                    <Header className='header'>
+                                        <Navbar />
+                                    </Header>
+                                    <Content className='content'>
+                                        <Canvas />
+                                    </Content>
+                                </Layout>
                                 <Sider className='sider' width={315}>
                                     <Zoom />
                                     <CoordinateInfo />

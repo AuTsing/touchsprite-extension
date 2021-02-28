@@ -13,7 +13,7 @@ export interface IPicProps {
 const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate, resetCoordinate } = useContext(CoordinateContext);
     const { activeJimp, rotateJimp, clearCaptures } = useContext(CaptrueContext);
-    const { addRecordByMouse, addRecordByKeyboard, setPoint1, setPoint2 } = useContext(RecordContext);
+    const { addRecordByMouse, addRecordByKeyboard, setPoint1, setPoint2, imgCover } = useContext(RecordContext);
     const imgContainer = useRef<HTMLDivElement>(undefined!);
 
     const handleMouseLeave = useCallback(() => {
@@ -22,8 +22,8 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
 
     const handleMouseMove = useCallback(
         (ev: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
-            const x = ev.clientX - 15 + imgContainer.current.scrollLeft;
-            const y = ev.clientY - 120 + window.pageYOffset;
+            const x = ev.clientX - 10 + imgContainer.current.scrollLeft;
+            const y = ev.clientY - 114 + imgContainer.current.scrollTop;
             updateCoordinate(x, y, activeJimp);
         },
         [activeJimp, updateCoordinate]
@@ -80,7 +80,7 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
 
     const handleKeypress = useCallback(
         (ev: KeyboardEvent) => {
-            if (x === -1 || y === -1) {
+            if (x === -1 || y === -1 || !activeJimp) {
                 return;
             }
             const key = ev.key.toLowerCase();
@@ -89,12 +89,12 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
             } else if (['w', 'a', 's', 'd'].includes(key)) {
                 handlePixelMove(key);
             } else if (key === 'q') {
-                setPoint1(x, y);
+                setPoint1(x, y, activeJimp.bitmap.width, activeJimp.bitmap.height);
             } else if (key === 'e') {
-                setPoint2(x, y);
+                setPoint2(x, y, activeJimp.bitmap.width, activeJimp.bitmap.height);
             }
         },
-        [addRecordByKeyboard, c, handlePixelMove, setPoint1, setPoint2, x, y]
+        [activeJimp, addRecordByKeyboard, c, handlePixelMove, setPoint1, setPoint2, x, y]
     );
 
     useEffect(() => {
@@ -103,31 +103,30 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
     }, [handleKeypress]);
 
     return (
-        <Dropdown
-            overlay={
-                <Menu>
-                    <Menu.SubMenu title='旋转'>
-                        <Menu.Item onClick={() => rotateJimp(90)}>90°</Menu.Item>
-                        <Menu.Item onClick={() => rotateJimp(180)}>180°</Menu.Item>
-                        <Menu.Item onClick={() => rotateJimp(270)}>270°</Menu.Item>
-                    </Menu.SubMenu>
-                    <Menu.Item onClick={handleClickClearCaptures}>关闭所有页面</Menu.Item>
-                </Menu>
-            }
-            trigger={['contextMenu']}
-        >
-            <div className='img-container' ref={imgContainer}>
-                <img
-                    className='img'
-                    src={base64}
-                    alt=''
-                    draggable='false'
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                    onClick={handleClick}
-                />
-            </div>
-        </Dropdown>
+        <div className='img-container' ref={imgContainer}>
+            <Dropdown
+                overlay={
+                    <Menu>
+                        <Menu.SubMenu title='旋转'>
+                            <Menu.Item onClick={() => rotateJimp(90)}>90°</Menu.Item>
+                            <Menu.Item onClick={() => rotateJimp(180)}>180°</Menu.Item>
+                            <Menu.Item onClick={() => rotateJimp(270)}>270°</Menu.Item>
+                        </Menu.SubMenu>
+                        <Menu.Item onClick={handleClickClearCaptures}>关闭所有页面</Menu.Item>
+                    </Menu>
+                }
+                trigger={['contextMenu']}
+            >
+                <div onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleClick}>
+                    <div>
+                        <img className='img-cover' src={imgCover} alt='' draggable='false' />
+                    </div>
+                    <div>
+                        <img className='img' src={base64} alt='' draggable='false' />
+                    </div>
+                </div>
+            </Dropdown>
+        </div>
     );
 };
 

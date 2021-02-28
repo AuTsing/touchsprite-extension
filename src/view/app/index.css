@@ -5,46 +5,71 @@ body {
 }
 
 .sider {
-    height: 100vh;
+    position: absolute;
+    height: 100%;
     overflow: auto;
-    position: fixed;
-    right: 0;
+    right: 0px;
+    top: 0px;
 }
 
 .header {
+    position: absolute;
     width: calc(100% - 315px);
-    z-index: 1;
-    position: fixed;
-    overflow: hidden;
+    overflow: auto;
+    left: 0px;
+    top: 0px;
     padding-left: 10px;
     padding-right: 10px;
 }
 
 .content {
-    margin-right: 315px;
-    margin-top: 64px;
-    /* margin: 24px 16px 0; */
-    overflow: initial;
-}
-
-.img {
-    max-width: none;
-    max-height: none;
-    margin-right: 15px;
-    margin-left: 15px;
+    position: absolute;
+    width: calc(100% - 315px);
+    height: calc(100% - 64px);
+    overflow: auto;
+    left: 0px;
+    top: 64px;
 }
 
 .img-container {
-    overflow-x: scroll;
+    position: absolute;
+    width: calc(100% - 20px);
+    height: calc(100% - 60px);
+    overflow: auto;
+    left: 10px;
+    top: 50px;
 }
 
-.zoom {
+.img-cover {
+    position: absolute;
+    z-index: 2;
+    max-width: none;
+    max-height: none;
+}
+
+.img {
+    position: absolute;
+    z-index: 1;
+    max-width: none;
+    max-height: none;
+}
+
+.zoom-content {
     height: 300px;
     width: 300px;
+    position: absolute;
+    z-index: 1;
+}
+
+.zoom-cursor {
+    height: 300px;
+    width: 300px;
+    position: absolute;
+    z-index: 2;
 }
 
 .coordinate-info {
-    margin: 15px;
+    margin: 315px 15px 15px 15px;
     width: 300px;
 }
 
