@@ -5,6 +5,9 @@ const AntdDayjsWebpackPlugin = require('antd-dayjs-webpack-plugin');
 
 module.exports = {
     entry: './src/view/app/index.tsx',
+    stats: {
+        modules: false,
+    },
     output: {
         path: path.resolve(__dirname, 'assets', 'webview'),
         filename: 'main.js',
