@@ -13,10 +13,12 @@ export default class Server {
     private attachingDevice: Device | undefined;
     private hostIp: string | undefined;
     private loggerPort: number;
+    private readonly extensionGlobalState: vscode.Memento;
 
-    constructor() {
+    constructor(context: vscode.ExtensionContext) {
         this.loggerPort = Math.round(Math.random() * (20000 - 24999 + 1) + 24999);
         this.setLogger();
+        this.extensionGlobalState = context.globalState;
     }
 
     private getAccessKey(): Promise<string> {
@@ -96,6 +98,7 @@ export default class Server {
             .then(([id, auth, name, osType]) => {
                 const device = new Device(ip, id, auth, name, osType);
                 this.attachingDevice = device;
+                this.extensionGlobalState.update('device', ip);
                 Ui.output(`连接设备成功: ${name} >> ${ip}`);
                 Ui.attachDevice(this.attachingDevice);
             })
@@ -176,12 +179,18 @@ export default class Server {
             });
     }
 
-    public getAttachingDevice() {
+    public async getAttachingDevice() {
         if (this.attachingDevice) {
             return Promise.resolve(this.attachingDevice);
-        } else {
-            return Promise.reject('未连接设备');
         }
+        const ip = this.extensionGlobalState.get<string>('device');
+        if (ip) {
+            await this.attachDevice(ip);
+        }
+        if (this.attachingDevice) {
+            return Promise.resolve(this.attachingDevice);
+        }
+        return Promise.reject('未连接设备');
     }
 
     public getHostIp() {

@@ -9,7 +9,7 @@ import LuaDebugAdapterFactory from './components/debug/LuaDebugAdapterFactory';
 import LuaConfigurationProvider from './components/debug/LuaConfigurationProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-    const server = new Server();
+    const server = new Server(context);
     context.subscriptions.push(vscode.commands.registerCommand('extension.startServer', () => Ui.output('触动插件已启用', 1)));
     context.subscriptions.push(vscode.commands.registerCommand('extension.attachDeviceThroughInput', () => server.attachDeviceThroughInput()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.detachDevice', () => server.detachDevice()));
