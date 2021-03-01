@@ -218,7 +218,11 @@ export class LuaDebugSession extends LoggingDebugSession {
             DevelopmentMode: false,
         };
         this.startServer(sendInfo);
-        this.tsDebugger.startClient();
+        const ret = await this.tsDebugger.startClient();
+        if (!ret) {
+            this.sendEvent(new TerminatedEvent(this.autoReconnect));
+            return;
+        }
 
         this.breakpoints = [];
         this.sendEvent(new InitializedEvent()); //收到返回后，执行setbreakpoint

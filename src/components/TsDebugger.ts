@@ -44,8 +44,10 @@ export default class TsDebugger {
             const runfile: string = vscode.workspace.getConfiguration().get('touchsprite-extension.testRunFile') || 'maintest.lua';
             this.server.runProject(runfile, 'boot.lua');
             Ui.output(`启用调试成功`);
+            return true;
         } catch (err) {
             Ui.outputError(`启动调试失败: ${err.toString()}`);
+            return false;
         }
     }
 
