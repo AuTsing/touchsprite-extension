@@ -324,8 +324,9 @@ class Publisher {
         if (this.publishCookie) {
             return Promise.resolve();
         }
-        const configCookie = vscode.workspace.getConfiguration('touchsprite-extension');
-        const cookie: string = configCookie.cookie;
+        const configCookie: string = vscode.workspace.getConfiguration('touchsprite-extension').cookie;
+        const cookies = configCookie.split(';').map(str => str.trim());
+        const cookie = cookies.find(cookie => cookie.slice(0, 9) === '_identity');
         if (!cookie) {
             return Promise.reject('登陆cookie未定义, 请在设置中填入cookie后重试');
         }

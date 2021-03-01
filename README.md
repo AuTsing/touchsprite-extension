@@ -103,7 +103,7 @@ main()
 
     ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/master/assets/images/readme/20210129165159.png)
 
-7. 找到`Headers` - `Request Headers` - `cookie` 项，复制该项的值填入设置中即可
+7. 找到`Headers` - `Request Headers` - `cookie` 项，复制该项的值填入设置中即可，请使用选取复制而非右键复制，否则有可能会导致 cookie 无法识别
 
     ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/master/assets/images/readme/20210129165429.png)
 
