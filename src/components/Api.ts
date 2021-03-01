@@ -158,4 +158,15 @@ export default class Api {
             },
         });
     }
+
+    public getStatus(ip: string, auth: string) {
+        return this.instance.get<string>(`/status`, {
+            baseURL: `http://${ip}:50005`,
+            headers: {
+                Connection: 'close',
+                'Content-Length': 0,
+                auth: auth,
+            },
+        });
+    }
 }

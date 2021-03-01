@@ -220,29 +220,34 @@ export default class Server {
             const attachingDevice = await this.getAttachingDevice();
             const hostIp = await this.getHostIp();
             const { ip, auth, osType } = attachingDevice;
-            const resp1 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
-            if (resp1.data !== 'ok') {
+            const resp1 = await this.api.getStatus(ip, auth);
+            if (resp1.data !== 'f00') {
+                await this.stopScript();
+            }
+            const resp2 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
+            if (resp2.data !== 'ok') {
                 throw new Error('设置日志服务器失败');
             }
-            const resp2 = await this.api.setLuaPath(ip, auth, boot, osType);
-            if (resp2.data !== 'ok') {
+            const resp3 = await this.api.setLuaPath(ip, auth, boot, osType);
+            if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
             const pjg = new ProjectGenerator(runfile);
             const pjfs = await pjg.generate();
-            const resp3: string[] = [];
+            const resp4: string[] = [];
             for (const pjf of pjfs) {
                 const resp = await this.api.upload(ip, auth, pjf);
-                resp3.push(resp.data);
+                resp4.push(resp.data);
             }
-            if (resp3.some(resp => resp !== 'ok')) {
+            if (resp4.some(resp => resp !== 'ok')) {
                 throw new Error('上传工程失败');
             }
-            const resp4 = await this.api.runLua(ip, auth);
-            if (resp4.data !== 'ok') {
+            const resp5 = await this.api.runLua(ip, auth);
+            if (resp5.data !== 'ok') {
                 throw new Error('运行引导文件失败');
             }
             Ui.output('运行工程成功');
+            this.watchScript(attachingDevice);
         } catch (err) {
             Ui.outputWarn(`运行工程失败: ${err.toString()}`);
         }
@@ -267,12 +272,16 @@ export default class Server {
             }
             const hostIp = await this.getHostIp();
             const { ip, auth, osType } = attachingDevice;
-            const resp1 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
-            if (resp1.data !== 'ok') {
+            const resp1 = await this.api.getStatus(ip, auth);
+            if (resp1.data !== 'f00') {
+                await this.stopScript();
+            }
+            const resp2 = await this.api.setLogServer(ip, auth, hostIp, this.loggerPort);
+            if (resp2.data !== 'ok') {
                 throw new Error('设置日志服务器失败');
             }
-            const resp2 = await this.api.setLuaPath(ip, auth, path.basename(focusing.fileName), osType);
-            if (resp2.data !== 'ok') {
+            const resp3 = await this.api.setLuaPath(ip, auth, path.basename(focusing.fileName), osType);
+            if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
             const pjf: IProjectFile = {
@@ -281,15 +290,16 @@ export default class Server {
                 filename: path.basename(focusing.fileName),
                 root: ProjectFileRoot.lua,
             };
-            const resp3 = await this.api.upload(ip, auth, pjf);
-            if (resp3.data !== 'ok') {
+            const resp4 = await this.api.upload(ip, auth, pjf);
+            if (resp4.data !== 'ok') {
                 throw new Error('上传脚本失败');
             }
-            const resp4 = await this.api.runLua(ip, auth);
-            if (resp4.data !== 'ok') {
+            const resp5 = await this.api.runLua(ip, auth);
+            if (resp5.data !== 'ok') {
                 throw new Error('运行引导文件失败');
             }
             Ui.output(`运行脚本成功`);
+            this.watchScript(attachingDevice);
         } catch (err) {
             Ui.outputWarn(`运行脚本失败: ${err.toString()}`);
         }
@@ -376,6 +386,23 @@ export default class Server {
                     Ui.outputWarn(`设置本机IP地址失败: ${err.toString()}`);
                 }
             );
+    }
+
+    private watchScript(device: Device) {
+        const runningDisposer = Ui.doing('脚本运行中', '📲');
+        const toClear = setInterval(() => {
+            this.api
+                .getStatus(device.ip, device.auth)
+                .then(resp => {
+                    if (resp.data !== 'f01' && resp.data !== 'f01(pause)') {
+                        return Promise.reject(resp.data);
+                    }
+                })
+                .catch(err => {
+                    runningDisposer();
+                    clearInterval(toClear);
+                });
+        }, 1000);
     }
 
     public test() {}

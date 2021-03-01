@@ -8,7 +8,7 @@ export default class Ui {
     private static outputChannel: Output = new Output();
     private static pop: Pop = new Pop();
 
-    public static doing = (text: string) => Ui.statusBar.doing(text);
+    public static doing = (text: string, prefix?: string) => Ui.statusBar.doing(text, prefix);
     public static attachDevice = (device: Device) => Ui.statusBar.attachDevice(device);
     public static detachDevice = () => Ui.statusBar.detachDevice();
 

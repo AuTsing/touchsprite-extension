@@ -43,8 +43,8 @@ class StatusBar {
         }
     }
 
-    public doing(text: string) {
-        const task: ITaks = { prefix: '$(loading~spin)', text: text, surfix: '...' };
+    public doing(text: string, prefix: string = '$(loading~spin)') {
+        const task: ITaks = { prefix: prefix, text: text, surfix: '...' };
         this.taskList.push(task);
         this.refresh();
         return () => {
