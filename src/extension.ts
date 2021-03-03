@@ -6,7 +6,6 @@ import Snapshoter from './view/Snapshoter';
 import Ui from './components/ui/Ui';
 import Publisher from './components/Publisher';
 import LuaDebugAdapterFactory from './components/debug/LuaDebugAdapterFactory';
-import LuaConfigurationProvider from './components/debug/LuaConfigurationProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     const server = new Server(context);
@@ -35,8 +34,6 @@ export function activate(context: vscode.ExtensionContext) {
     const dbg = new TsDebugger(server, context);
     context.subscriptions.push(vscode.commands.registerCommand('extension.debug', () => dbg.debug()));
 
-    // const provider = new LuaConfigurationProvider();
-    // context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('ts-lua', provider));
     const factory = new LuaDebugAdapterFactory(dbg);
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('ts-lua', factory));
     context.subscriptions.push(factory);
