@@ -8,7 +8,7 @@
             "label": "watch extension",
             "type": "npm",
             "script": "watch:extension",
-            "problemMatcher": "$tsc-watch",
+            "problemMatcher": ["$ts-webpack-watch", "$tslint-webpack-watch"],
             "isBackground": true,
             "presentation": { "reveal": "never" },
             "group": { "kind": "build", "isDefault": true },
@@ -17,30 +17,8 @@
         {
             "label": "watch extension webview",
             "type": "npm",
-            "script": "watch:views",
-            "problemMatcher": {
-                "owner": "webpack",
-                "fileLocation": "absolute",
-                "pattern": [
-                    {
-                        "regexp": "^\\[tsl\\] (ERROR|WARNING) in (.*)\\((\\d+),(\\d+)\\)$",
-                        "severity": 1,
-                        "file": 2,
-                        "line": 3,
-                        "column": 4
-                    },
-                    {
-                        "regexp": "^\\s*TS(\\d+):\\s*(.*)$",
-                        "code": 1,
-                        "message": 2
-                    }
-                ],
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": "^\\s*Hash: .*",
-                    "endsPattern": "^\\s*TS(\\d+):\\s*(.*)$|^Entrypoint"
-                }
-            },
+            "script": "watch:webview",
+            "problemMatcher": ["$ts-webpack-watch", "$tslint-webpack-watch"],
             "isBackground": true,
             "presentation": { "reveal": "never" },
             "group": "build"

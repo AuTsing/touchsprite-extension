@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createContext, useState, useCallback } from 'react';
-import Jimp from 'jimp';
+import Jimp from 'jimp/es';
 
 export interface ICoordinateContext {
     x: number;

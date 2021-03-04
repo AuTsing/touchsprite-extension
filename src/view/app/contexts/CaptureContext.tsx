@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createContext, useState, useEffect, useCallback } from 'react';
-import Jimp from 'jimp';
+import Jimp from 'jimp/es';
 import { message } from 'antd';
 
 import { IVscodeMessageEventData } from '../contexts/VscodeContext';

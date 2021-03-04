@@ -1,13 +1,12 @@
-// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const webpack = require('webpack');
 const path = require('path');
 const AntdDayjsWebpackPlugin = require('antd-dayjs-webpack-plugin');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 module.exports = {
+    mode: 'development',
     entry: './src/view/app/index.tsx',
-    stats: {
-        modules: false,
-    },
     output: {
         path: path.resolve(__dirname, 'assets', 'webview'),
         filename: 'main.js',
@@ -15,6 +14,9 @@ module.exports = {
     devtool: 'eval-source-map',
     resolve: {
         extensions: ['.js', '.ts', '.tsx', '.json'],
+        fallback: {
+            fs: false,
+        },
     },
     module: {
         rules: [
@@ -29,14 +31,12 @@ module.exports = {
             },
         ],
     },
-    performance: {
-        hints: false,
-    },
     plugins: [
+        // new BundleAnalyzerPlugin(),
         new webpack.DefinePlugin({
             'process.browser': 'true',
         }),
         new AntdDayjsWebpackPlugin(),
-        // new BundleAnalyzerPlugin(),
+        new NodePolyfillPlugin(),
     ],
 };

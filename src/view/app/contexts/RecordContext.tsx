@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createContext, useState, useCallback } from 'react';
 import { message } from 'antd';
-import Jimp from 'jimp';
+import Jimp from 'jimp/es';
 
 export interface IRecord {
     coordinate: string;
