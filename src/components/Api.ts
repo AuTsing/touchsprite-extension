@@ -169,4 +169,31 @@ export default class Api {
             },
         });
     }
+
+    public removeFiles(ip: string, auth: string, file: string) {
+        return this.instance.get<string>(`/rmFile`, {
+            baseURL: `http://${ip}:50005`,
+            headers: {
+                Connection: 'close',
+                'Content-Length': 0,
+                auth: auth,
+                root: 'lua',
+                path: '/',
+                file: file,
+            },
+        });
+    }
+
+    public getFileList(ip: string, auth: string, dir: string) {
+        return this.instance.get<{ Dirs: string[] | null; Files: string[]; ret: boolean }>(`/getFileList`, {
+            baseURL: `http://${ip}:50005`,
+            headers: {
+                Connection: 'close',
+                'Content-Length': 0,
+                auth: auth,
+                root: 'lua',
+                path: dir,
+            },
+        });
+    }
 }

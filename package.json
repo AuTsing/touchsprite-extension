@@ -113,6 +113,11 @@
                     "default": "maintest.lua",
                     "scope": "resource",
                     "description": "测试工程引导文件"
+                },
+                "touchsprite-extension.clearDir": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "运行工程前清空lua文件夹"
                 }
             }
         },

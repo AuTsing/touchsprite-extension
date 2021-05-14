@@ -32,9 +32,7 @@ export default class Server {
 
     private setLogger() {
         const logger = net.createServer((socket: net.Socket) => {
-            socket.on('data', data => {
-                Ui.output(data.toString('utf8', 4, data.length - 2));
-            });
+            socket.on('data', data => Ui.output(data.toString('utf8', 4, data.length - 2)));
         });
         logger.on('error', err => {
             logger.close();
@@ -232,6 +230,10 @@ export default class Server {
             if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
+            const isClearDir = vscode.workspace.getConfiguration().get('touchsprite-extension.clearDir');
+            if (isClearDir === true) {
+                await this.clearDir();
+            }
             const pjg = new ProjectGenerator(runfile);
             const pjfs = await pjg.generate();
             const resp4: string[] = [];
@@ -283,6 +285,10 @@ export default class Server {
             const resp3 = await this.api.setLuaPath(ip, auth, path.basename(focusing.fileName), osType);
             if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
+            }
+            const isClearDir = vscode.workspace.getConfiguration().get('touchsprite-extension.clearDir');
+            if (isClearDir === true) {
+                await this.clearDir();
             }
             const pjf: IProjectFile = {
                 url: focusing.fileName,
@@ -403,6 +409,42 @@ export default class Server {
                     clearInterval(toClear);
                 });
         }, 1000);
+    }
+
+    public async clearDir() {
+        try {
+            const attachingDevice = await this.getAttachingDevice();
+            const { ip, auth } = attachingDevice;
+            const dirs: string[] = ['/'];
+            const dirsToRemove: string[] = [];
+            const files: string[] = [];
+
+            while (dirs.length > 0) {
+                const dir = dirs.shift()!;
+                const resp = await this.api.getFileList(ip, auth, dir);
+                if (resp.data.ret !== true) {
+                    throw new Error('获取文件列表失败');
+                }
+                resp.data.Dirs?.forEach(nextDir => dirs.push(dir + nextDir + '/'));
+                resp.data.Files?.forEach(file => files.push(dir + file));
+                dir !== '/' ? dirsToRemove.push(dir) : undefined;
+            }
+
+            const resp2: string[] = [];
+            for (const file of files) {
+                const resp = await this.api.removeFiles(ip, auth, file);
+                resp2.push(resp.data);
+            }
+            for (const dir of dirsToRemove.reverse()) {
+                const resp = await this.api.removeFiles(ip, auth, dir);
+                resp2.push(resp.data);
+            }
+            if (resp2.some(resp => resp !== 'ok')) {
+                throw new Error('清空脚本失败');
+            }
+        } catch (err) {
+            Ui.outputWarn(`清空脚本失败: ${err.toString()}`);
+        }
     }
 
     public test() {}
