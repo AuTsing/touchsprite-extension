@@ -16,7 +16,7 @@
     "categories": [
         "Other"
     ],
-    "icon": "assets/images/logo.png",
+    "icon": "https://raw.githubusercontent.com/AuTsing/touchsprite-extension/main/assets/images/logo.png",
     "activationEvents": [
         "onLanguage:lua",
         "onCommand:extension.startServer"
