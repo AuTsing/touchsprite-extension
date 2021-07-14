@@ -6,7 +6,7 @@ import { VscodeContext } from '../contexts/VscodeContext';
 import { CaptrueContext } from '../contexts/CaptureContext';
 import CodeMaker from './CodeMaker';
 import PicComparator from './PicComparator';
-import PicBinarization from './PicBinarization';
+import Ziku from './Ziku';
 
 const Navbar: FC = () => {
     const vscode = useContext(VscodeContext);
@@ -50,7 +50,7 @@ const Navbar: FC = () => {
                 </Button>
                 <CodeMaker />
                 <PicComparator />
-                <PicBinarization />
+                <Ziku />
             </Space>
         </div>
     );

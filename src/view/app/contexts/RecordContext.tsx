@@ -99,8 +99,8 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
                     const y1 = y < p2.y ? y : p2.y;
                     const x2 = x > p2.x ? x : p2.x;
                     const y2 = y > p2.y ? y : p2.y;
-                    for (let i = x1; i < x2; i++) {
-                        for (let j = y1; j < y2; j++) {
+                    for (let i = x1; i <= x2; i++) {
+                        for (let j = y1; j <= y2; j++) {
                             img.setPixelColor(0x0078d788, i, j);
                         }
                     }
@@ -118,7 +118,6 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
                 }
                 img.getBase64(Jimp.MIME_PNG, (_, base64) => {
                     setImgCover(base64);
-                    console.log(x, y, width, height, base64);
                 });
             });
         },
@@ -153,7 +152,6 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
                 }
                 img.getBase64(Jimp.MIME_PNG, (_, base64) => {
                     setImgCover(base64);
-                    console.log(x, y, width, height, base64);
                 });
             });
         },

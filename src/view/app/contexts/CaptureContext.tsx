@@ -23,7 +23,6 @@ export interface ICaptureContext {
     setActiveJimp: (jimp: Jimp) => void;
     rotateJimp: (deg: number) => void;
     compareJimp: (jimp1: ICapture, jimp2: ICapture, tolerance: string) => void;
-    binaryJimp: (color: string, tolerance: string) => void;
     clearCaptures: () => void;
     setAddedCallback: (cb: () => void) => void;
 }
@@ -39,7 +38,6 @@ export const CaptrueContextDefaultValue: ICaptureContext = {
     setActiveJimp: () => null,
     rotateJimp: () => null,
     compareJimp: () => null,
-    binaryJimp: () => null,
     clearCaptures: () => null,
     setAddedCallback: () => null,
 };
@@ -214,45 +212,6 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
         [addCapture]
     );
 
-    const binaryJimp = useCallback(
-        (color: string, tolerance: string) => {
-            if (!activeJimp) {
-                return;
-            }
-            const colors = color.split(',').map(c => Jimp.intToRGBA(parseInt(c.trim() + 'ff')));
-            const toleranceNumber = parseInt(tolerance);
-            activeJimp.clone((_, copy) => {
-                copy.scan(
-                    0,
-                    0,
-                    copy.bitmap.width,
-                    copy.bitmap.height,
-                    (x, y, idx) => {
-                        const r = copy.bitmap.data[idx + 0];
-                        const g = copy.bitmap.data[idx + 1];
-                        const b = copy.bitmap.data[idx + 2];
-                        if (
-                            colors.some(
-                                rgba =>
-                                    Math.abs(rgba.r - r) <= toleranceNumber &&
-                                    Math.abs(rgba.g - g) <= toleranceNumber &&
-                                    Math.abs(rgba.b - b) <= toleranceNumber
-                            )
-                        ) {
-                            copy.setPixelColor(0x000000ff, x, y);
-                        } else {
-                            copy.setPixelColor(0xffffffff, x, y);
-                        }
-                    },
-                    (_, newJimp) => {
-                        addCapture([newJimp]);
-                    }
-                );
-            });
-        },
-        [activeJimp, addCapture]
-    );
-
     const handleMessage = useCallback(
         (event: MessageEvent) => {
             const eventData: IVscodeMessageEventData = event.data;
@@ -295,7 +254,6 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                 setActiveJimp,
                 rotateJimp,
                 compareJimp,
-                binaryJimp,
                 clearCaptures,
                 setAddedCallback,
             }}
