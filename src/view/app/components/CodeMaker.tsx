@@ -4,6 +4,7 @@ import { Button, Modal, Form, Input, message, Table } from 'antd';
 
 import { VscodeContext, IVscodeMessageEventData } from '../contexts/VscodeContext';
 import { RecordContext } from '../contexts/RecordContext';
+import { KeyboardContext } from '../contexts/KeyboardContext';
 
 const { Column } = Table;
 
@@ -15,6 +16,7 @@ interface ITemplate {
 const CodeMaker: FC = () => {
     const vscode = useContext(VscodeContext);
     const { records, p1, p2, clearRecords, clearPoints } = useContext(RecordContext);
+    const { listen, leave } = useContext(KeyboardContext);
 
     const [templates, setTemplates] = useState<ITemplate[]>([
         { key: '1', content: "{'untitled',{$pointList}}," },
@@ -110,9 +112,11 @@ const CodeMaker: FC = () => {
         switch (eventData.command) {
             case 'loadTemplates':
                 const templates = (eventData.data as { templates: string }).templates;
-                const preSave = JSON.parse(templates);
-                if (preSave && preSave.length > 0) {
-                    setTemplates(preSave);
+                if (templates) {
+                    const preSave = JSON.parse(templates);
+                    if (preSave && preSave.length > 0) {
+                        setTemplates(preSave);
+                    }
                 }
                 break;
             default:
@@ -141,9 +145,9 @@ const CodeMaker: FC = () => {
     );
 
     useEffect(() => {
-        window.addEventListener('keypress', handleKeypress);
-        return () => window.removeEventListener('keypress', handleKeypress);
-    }, [handleKeypress]);
+        listen('keypress', handleKeypress);
+        return () => leave('keypress', handleKeypress);
+    }, [handleKeypress, leave, listen]);
 
     return (
         <div>

@@ -7,6 +7,7 @@ import VscodeContextProvider from './contexts/VscodeContext';
 import CaptrueContextProvider from './contexts/CaptureContext';
 import CoordinateContextProvider from './contexts/CoordinateContext';
 import RecordContextProvider from './contexts/RecordContext';
+import { KeyboardContextProvider } from './contexts/KeyboardContext';
 import Navbar from './components/Navbar';
 import Canvas from './components/Canvas';
 import Zoom from './components/Zoom';
@@ -19,27 +20,29 @@ const App: FC<{ vscode: IVscode }> = ({ vscode }) => {
     return (
         <div>
             <VscodeContextProvider vscode={vscode}>
-                <CaptrueContextProvider>
-                    <CoordinateContextProvider>
-                        <RecordContextProvider>
-                            <Layout>
+                <KeyboardContextProvider>
+                    <CaptrueContextProvider>
+                        <CoordinateContextProvider>
+                            <RecordContextProvider>
                                 <Layout>
-                                    <Header className='header'>
-                                        <Navbar />
-                                    </Header>
-                                    <Content className='content'>
-                                        <Canvas />
-                                    </Content>
+                                    <Layout>
+                                        <Header className='header'>
+                                            <Navbar />
+                                        </Header>
+                                        <Content className='content'>
+                                            <Canvas />
+                                        </Content>
+                                    </Layout>
+                                    <Sider className='sider' width={315}>
+                                        <Zoom />
+                                        <CoordinateInfo />
+                                        <RecordList />
+                                    </Sider>
                                 </Layout>
-                                <Sider className='sider' width={315}>
-                                    <Zoom />
-                                    <CoordinateInfo />
-                                    <RecordList />
-                                </Sider>
-                            </Layout>
-                        </RecordContextProvider>
-                    </CoordinateContextProvider>
-                </CaptrueContextProvider>
+                            </RecordContextProvider>
+                        </CoordinateContextProvider>
+                    </CaptrueContextProvider>
+                </KeyboardContextProvider>
             </VscodeContextProvider>
         </div>
     );

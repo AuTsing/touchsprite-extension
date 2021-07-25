@@ -7,6 +7,7 @@ import Jimp from 'jimp/es';
 import { VscodeContext } from '../contexts/VscodeContext';
 import { RecordContext } from '../contexts/RecordContext';
 import { CaptrueContext } from '../contexts/CaptureContext';
+import { KeyboardContext } from '../contexts/KeyboardContext';
 
 const { Column } = Table;
 
@@ -35,6 +36,7 @@ const Ziku: FC = () => {
     const vscode = useContext(VscodeContext);
     const { records, p1, p2 } = useContext(RecordContext);
     const { activeJimp } = useContext(CaptrueContext);
+    const { pause, resume } = useContext(KeyboardContext);
 
     const [visible, setVisible] = useState<boolean>(false);
     const [tolerance, setTolerance] = useState<number>(0);
@@ -258,10 +260,25 @@ const Ziku: FC = () => {
 
     return (
         <>
-            <Button type='primary' size='large' onClick={() => setVisible(true)}>
+            <Button
+                type='primary'
+                size='large'
+                onClick={() => {
+                    setVisible(true);
+                    pause();
+                }}
+            >
                 制作字库
             </Button>
-            <Modal title='制作字库' visible={visible} footer={null} onCancel={() => setVisible(false)}>
+            <Modal
+                title='制作字库'
+                visible={visible}
+                footer={null}
+                onCancel={() => {
+                    setVisible(false);
+                    resume();
+                }}
+            >
                 <Divider orientation='left' plain>
                     已选择范围
                 </Divider>

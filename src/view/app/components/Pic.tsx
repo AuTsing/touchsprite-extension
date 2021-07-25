@@ -5,6 +5,7 @@ import { Dropdown, Menu } from 'antd';
 import { CoordinateContext } from '../contexts/CoordinateContext';
 import { CaptrueContext } from '../contexts/CaptureContext';
 import { RecordContext } from '../contexts/RecordContext';
+import { KeyboardContext } from '../contexts/KeyboardContext';
 
 export interface IPicProps {
     base64: string;
@@ -14,6 +15,7 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate, resetCoordinate } = useContext(CoordinateContext);
     const { activeJimp, rotateJimp, clearCaptures } = useContext(CaptrueContext);
     const { addRecordByMouse, addRecordByKeyboard, setPoint1, setPoint2, imgCover } = useContext(RecordContext);
+    const { listen, leave } = useContext(KeyboardContext);
     const imgContainer = useRef<HTMLDivElement>(undefined!);
 
     const handleMouseLeave = useCallback(() => {
@@ -98,9 +100,9 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
     );
 
     useEffect(() => {
-        window.addEventListener('keypress', handleKeypress);
-        return () => window.removeEventListener('keypress', handleKeypress);
-    }, [handleKeypress]);
+        listen('keypress', handleKeypress);
+        return () => leave('keypress', handleKeypress);
+    }, [handleKeypress, leave, listen]);
 
     return (
         <div className='img-container' ref={imgContainer}>
