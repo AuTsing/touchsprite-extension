@@ -54,6 +54,11 @@
                     "scope": "resource",
                     "description": "截图保存文件夹"
                 },
+                "touchsprite-extension.snapshotClassifyByDpi": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "截图按分辨率分类"
+                },
                 "touchsprite-extension.osType": {
                     "type": "string",
                     "default": "自动",
@@ -268,7 +273,7 @@
         "await-notify": "^1.0.1",
         "axios": "^0.21.1",
         "changelog-parser": "^2.8.0",
-        "css-loader": "^5.0.1",
+        "css-loader": "^5.2.7",
         "dayjs": "^1.10.2",
         "eslint": "^7.17.0",
         "eslint-plugin-react-hooks": "0.0.0-8e5adfbd7",

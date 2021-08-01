@@ -121,9 +121,21 @@ class Snapshoter {
                 command: 'add',
                 data: { imgs: [Buffer.from(resp1.data, resp1.data.byteLength).toString('base64')] },
             } as IVscodeMessageEventData);
-            const snapshotSavePath: string | undefined = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir');
+            const snapshotSavePath: string = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir') || '';
+            const snapshotClassifyByDpi: boolean = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotClassifyByDpi') || false;
             if (snapshotSavePath) {
-                fs.writeFile(path.join(snapshotSavePath, `PIC_${Date.now()}.png`), resp1.data, 'binary', err => {
+                let dir = '';
+                if (snapshotClassifyByDpi) {
+                    const dpi = `${resp1.headers.width}_${resp1.headers.height}`;
+                    dir = path.join(snapshotSavePath, dpi);
+                } else {
+                    dir = snapshotSavePath;
+                }
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir);
+                }
+                const url = path.join(dir, `PIC_${Date.now()}.png`);
+                fs.writeFile(url, resp1.data, 'binary', err => {
                     if (err) {
                         Ui.outputWarn(`保存截图至本地失败: ${err.toString()}`);
                     }
