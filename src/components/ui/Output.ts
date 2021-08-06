@@ -10,7 +10,7 @@ class Output {
 
     private getTimestamp() {
         const time = new Date().toLocaleString('chinese', { hour12: false });
-        return `[${time.slice(0, -8)} ${time.slice(-8)}]`;
+        return `[${time}]`;
     }
 
     public output(content: string, level: number = 0) {

@@ -197,30 +197,31 @@
                 "command": "extension.runTestProject",
                 "key": "f5",
                 "mac": "f5",
-                "when": "editorTextFocus"
+                "when": "editorLangId == lua"
             },
             {
                 "command": "extension.runProject",
                 "key": "f6",
                 "mac": "f6",
-                "when": "editorTextFocus"
+                "when": "editorLangId == lua"
             },
             {
                 "command": "extension.runScript",
                 "key": "f7",
                 "mac": "f7",
-                "when": "editorTextFocus"
+                "when": "editorLangId == lua"
             },
             {
                 "command": "extension.snapshoter",
                 "key": "f8",
-                "mac": "f8"
+                "mac": "f8",
+                "when": "editorLangId == lua"
             },
             {
                 "command": "extension.stopScript",
                 "key": "shift+f5",
                 "mac": "shift+f5",
-                "when": "editorTextFocus"
+                "when": "editorLangId == lua"
             }
         ],
         "breakpoints": [
