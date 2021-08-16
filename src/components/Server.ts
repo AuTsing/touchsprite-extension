@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
+import * as fs from 'fs';
 import Device from './Device';
 import Api from './Api';
 import Ui from './ui/Ui';
@@ -445,6 +446,66 @@ export default class Server {
         } catch (err) {
             Ui.outputWarn(`清空脚本失败: ${err.toString()}`);
         }
+    }
+
+    public async createProject() {
+        let uri: vscode.Uri | undefined = undefined;
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length === 1) {
+            uri = workspaceFolders[0].uri;
+            const uriFiles = fs.readdirSync(uri.fsPath);
+            if (uriFiles.length > 0) {
+                const isContinue = await vscode.window.showWarningMessage(
+                    `所选文件夹(${uri.fsPath})非空，这有可能会覆盖你的文件，请确认是否继续创建？`,
+                    '是',
+                    '否'
+                );
+                if (isContinue !== '是') {
+                    Ui.outputWarn(`新建工程失败: 已取消`);
+                    return;
+                }
+            }
+        } else {
+            uri = (
+                await vscode.window.showOpenDialog({
+                    canSelectFiles: false,
+                    canSelectFolders: true,
+                    openLabel: '在此处新建工程',
+                })
+            )?.[0];
+        }
+        if (!uri) {
+            Ui.outputWarn(`新建工程失败: 未指定路径`);
+            return;
+        }
+        const docs = [
+            { dir: path.join(uri.fsPath, 'main.lua'), txt: `local main = function() toast('Hello,world!') end\nmain()` },
+            { dir: path.join(uri.fsPath, 'maintest.lua'), txt: `local main = function() toast('Hello,test!') end\nmain()` },
+            {
+                dir: path.join(uri.fsPath, 'luaconfig.lua'),
+                txt: `return {\n['id'] = '123456',\n['version'] = '1.0.0',\n}`,
+            },
+            {
+                dir: path.join(uri.fsPath, 'CHANGELOG.md'),
+                txt: `# [0.0.1]\n\n-   initial commit`,
+            },
+            {
+                dir: path.join(uri.fsPath, 'README.md'),
+                txt: `## 使用帮助\n\n现在已经创建好了基础的工程文件，你可以随时删除和修改他们。\n\n-   main.lua 工程主引导文件\n-   maintest.lua 工程主引导文件\n-   luaconfig.lua 配置文件\n-   CHANGELOG.md 更新日志文件\n-   README.md 说明文\n\n使用以下快捷键进行操作\n-   F5 运行主工程引导文件\n-   F6 运行测试工程引导文件\n-   F7 运行单脚本文件\n-   F8 打开取色器\n\nEnjoy~`,
+            },
+        ];
+        try {
+            docs.forEach(doc => {
+                fs.writeFileSync(doc.dir, doc.txt);
+            });
+        } catch (e) {
+            Ui.outputWarn(`新建工程失败: ${e.toString()}`);
+            return;
+        }
+        if (!workspaceFolders) {
+            await vscode.commands.executeCommand('vscode.openFolder', uri);
+        }
+        Ui.output(`新建工程成功`);
     }
 
     public test() {}

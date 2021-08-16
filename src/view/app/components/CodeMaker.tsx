@@ -67,7 +67,7 @@ const CodeMaker: FC = () => {
 
     const makeCode = useCallback(
         (key: string) => {
-            const unEmptyRecords = records.filter(record => record.coordinate !== '');
+            const unEmptyRecords = records.filter(record => record.coordinate.x !== -1 || record.coordinate.y !== -1);
             let template: string = templates[0].content;
             switch (key) {
                 case 'f':
@@ -82,13 +82,10 @@ const CodeMaker: FC = () => {
                 default:
                     break;
             }
-            const pointList = unEmptyRecords.map(record => ({
-                x: record.coordinate.split(',')[0],
-                y: record.coordinate.split(',')[1],
-                c: record.color,
-            }));
-            const pointStringList = pointList.map(point => `{${point.x},${point.y},${point.c}}`);
-            const delta = pointList.map(point => `${parseInt(point.x) - parseInt(pointList[0].x)}|${parseInt(point.y) - parseInt(pointList[0].y)}|${point.c}`);
+            const pointStringList = unEmptyRecords.map(record => `{${record.coordinate.x},${record.coordinate.y},${record.color}}`);
+            const delta = unEmptyRecords.map(
+                record => `${record.coordinate.x - unEmptyRecords[0].coordinate.x}|${record.coordinate.y - unEmptyRecords[0].coordinate.y}|${record.color}`
+            );
             delta.shift();
 
             const code = template
@@ -96,9 +93,9 @@ const CodeMaker: FC = () => {
                 .replace(/\$delta/g, delta.join(','))
                 .replace(/\$p1/g, `${p1.x},${p1.y}`)
                 .replace(/\$p2/g, `${p2.x},${p2.y}`)
-                .replace(/\$point\[[1-9]\]\[x\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.x)
-                .replace(/\$point\[[1-9]\]\[y\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.y)
-                .replace(/\$point\[[1-9]\]\[c\]/g, str => pointList[parseInt(str.slice(7, 8)) - 1]?.c)
+                .replace(/\$point\[[1-9]\]\[x\]/g, str => unEmptyRecords[parseInt(str.slice(7, 8)) - 1].coordinate.x.toString())
+                .replace(/\$point\[[1-9]\]\[y\]/g, str => unEmptyRecords[parseInt(str.slice(7, 8)) - 1].coordinate.y.toString())
+                .replace(/\$point\[[1-9]\]\[c\]/g, str => unEmptyRecords[parseInt(str.slice(7, 8)) - 1].color)
                 .replace(/\$point\[[1-9]\]/g, str => pointStringList[parseInt(str.slice(7, 8)) - 1]);
 
             vscode.postMessage({ command: 'copy', data: code });

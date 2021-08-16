@@ -4,7 +4,7 @@ import { message } from 'antd';
 import Jimp from 'jimp/es';
 
 export interface IRecord {
-    coordinate: string;
+    coordinate: IPoint;
     color: string;
     preview: string;
     key: string;
@@ -27,6 +27,7 @@ export interface IRecordContext {
     setPoint2: (x: number, y: number, width: number, height: number) => void;
     clearPoints: () => void;
     imgCover: string;
+    refreshPoints: (activeJimp: Jimp) => void;
 }
 
 export const RecordContextDefaultValue: IRecordContext = {
@@ -41,6 +42,7 @@ export const RecordContextDefaultValue: IRecordContext = {
     setPoint2: () => null,
     clearPoints: () => null,
     imgCover: '',
+    refreshPoints: () => null,
 };
 
 export const RecordContext = createContext<IRecordContext>(RecordContextDefaultValue);
@@ -57,7 +59,7 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
                 message.warning('最大取点数为9个');
                 return;
             }
-            setRecords([...records, { coordinate: `${x},${y}`, color: c, preview: c, key: (records.length + 1).toString() }]);
+            setRecords([...records, { coordinate: { x, y }, color: c, preview: c, key: (records.length + 1).toString() }]);
         },
         [records]
     );
@@ -68,10 +70,10 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
             const copy = [...records];
             for (let i = 0; i < index; i++) {
                 if (!copy[i]) {
-                    copy[i] = { key: (i + 1).toString(), coordinate: '', color: '', preview: '' };
+                    copy[i] = { key: (i + 1).toString(), coordinate: { x: -1, y: -1 }, color: '', preview: '' };
                 }
             }
-            copy[index] = { coordinate: `${x},${y}`, color: c, preview: c, key: key };
+            copy[index] = { coordinate: { x, y }, color: c, preview: c, key: key };
             setRecords(copy);
         },
         [records]
@@ -133,8 +135,8 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
                     const y1 = y < p1.y ? y : p1.y;
                     const x2 = x > p1.x ? x : p1.x;
                     const y2 = y > p1.y ? y : p1.y;
-                    for (let i = x1; i < x2; i++) {
-                        for (let j = y1; j < y2; j++) {
+                    for (let i = x1; i <= x2; i++) {
+                        for (let j = y1; j <= y2; j++) {
                             img.setPixelColor(0x0078d788, i, j);
                         }
                     }
@@ -164,9 +166,33 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
         setImgCover('');
     }, []);
 
+    const refreshPoints = useCallback(
+        (activeJimp: Jimp) => {
+            const refreshedRecords = records.map(record => {
+                const color = `0x` + `000000${activeJimp.getPixelColor(record.coordinate.x, record.coordinate.y).toString(16).slice(0, -2)}`.slice(-6);
+                return { ...record, color, preview: color };
+            });
+            setRecords(refreshedRecords);
+        },
+        [records]
+    );
+
     return (
         <RecordContext.Provider
-            value={{ records, addRecordByMouse, addRecordByKeyboard, deleteRecord, clearRecords, p1, p2, setPoint1, setPoint2, clearPoints, imgCover }}
+            value={{
+                records,
+                addRecordByMouse,
+                addRecordByKeyboard,
+                deleteRecord,
+                clearRecords,
+                p1,
+                p2,
+                setPoint1,
+                setPoint2,
+                clearPoints,
+                imgCover,
+                refreshPoints,
+            }}
         >
             {props.children}
         </RecordContext.Provider>

@@ -126,7 +126,7 @@ class Snapshoter {
             if (snapshotSavePath) {
                 let dir = '';
                 if (snapshotClassifyByDpi) {
-                    const dpi = `${resp1.headers.width}_${resp1.headers.height}`;
+                    const dpi = resp1.headers.width ? `${resp1.headers.width}_${resp1.headers.height}` : 'undefined';
                     dir = path.join(snapshotSavePath, dpi);
                 } else {
                     dir = snapshotSavePath;

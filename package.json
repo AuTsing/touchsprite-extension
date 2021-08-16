@@ -19,7 +19,8 @@
     "icon": "assets/images/logo.png",
     "activationEvents": [
         "onLanguage:lua",
-        "onCommand:extension.startServer"
+        "onCommand:extension.startServer",
+        "onCommand:extension.createProject"
     ],
     "main": "./dist/extension",
     "license": "GPL-3.0",
@@ -190,6 +191,10 @@
             {
                 "command": "extension.test",
                 "title": "触动插件: TEST(普通用户请勿使用)"
+            },
+            {
+                "command": "extension.createProject",
+                "title": "触动插件: 新建工程"
             }
         ],
         "keybindings": [

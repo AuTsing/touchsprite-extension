@@ -14,7 +14,7 @@ export interface IPicProps {
 const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate, resetCoordinate } = useContext(CoordinateContext);
     const { activeJimp, rotateJimp, clearCaptures } = useContext(CaptrueContext);
-    const { addRecordByMouse, addRecordByKeyboard, setPoint1, setPoint2, imgCover } = useContext(RecordContext);
+    const { addRecordByMouse, addRecordByKeyboard, setPoint1, setPoint2, imgCover, refreshPoints } = useContext(RecordContext);
     const { listen, leave } = useContext(KeyboardContext);
     const imgContainer = useRef<HTMLDivElement>(undefined!);
 
@@ -24,8 +24,8 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
 
     const handleMouseMove = useCallback(
         (ev: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
-            const x = ev.clientX - 10 + imgContainer.current.scrollLeft;
-            const y = ev.clientY - 114 + imgContainer.current.scrollTop;
+            const x = ev.clientX - 10 + Math.round(imgContainer.current.scrollLeft);
+            const y = ev.clientY - 114 + Math.round(imgContainer.current.scrollTop);
             updateCoordinate(x, y, activeJimp);
         },
         [activeJimp, updateCoordinate]
@@ -94,9 +94,11 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
                 setPoint1(x, y, activeJimp.bitmap.width, activeJimp.bitmap.height);
             } else if (key === 'e') {
                 setPoint2(x, y, activeJimp.bitmap.width, activeJimp.bitmap.height);
+            } else if (key === 'r') {
+                refreshPoints(activeJimp);
             }
         },
-        [activeJimp, addRecordByKeyboard, c, handlePixelMove, setPoint1, setPoint2, x, y]
+        [activeJimp, addRecordByKeyboard, c, handlePixelMove, refreshPoints, setPoint1, setPoint2, x, y]
     );
 
     useEffect(() => {

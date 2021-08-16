@@ -14,7 +14,7 @@ const RecordList: FC = () => {
 
     const copyRecord = useCallback(
         (record: IRecord) => {
-            const code = `{${record.coordinate},${record.color}}`;
+            const code = `{${record.coordinate.x},${record.coordinate.y},${record.color}}`;
             vscode.postMessage({ command: 'copy', data: code });
             message.info(`${code.slice(0, 30)}${code.length > 30 ? '...' : ''} 已复制到剪贴板`);
         },
@@ -45,16 +45,16 @@ const RecordList: FC = () => {
                     <Column
                         title='坐标'
                         dataIndex='coordinate'
-                        render={(text: string, record: IRecord, index: number) => {
+                        render={(point: IPoint, record: IRecord, index: number) => {
                             const exceptIt = records.filter(rcd => rcd !== record);
-                            if (exceptIt.find(rcd => rcd.coordinate === text)) {
-                                return { children: text, props: { style: { background: `#FF0000` } } };
+                            if (exceptIt.find(rcd => `${rcd.coordinate.x},${rcd.coordinate.y}` === `${point.x},${point.y}`)) {
+                                return { children: `${point.x},${point.y}`, props: { style: { background: `#FF0000` } } };
                             } else {
-                                return text;
+                                return `${point.x},${point.y}`;
                             }
                         }}
                         width='25%'
-                        onCell={(record: IRecord) => ({ onClick: () => copyInfo(record.coordinate) })}
+                        onCell={(record: IRecord) => ({ onClick: () => copyInfo(`${record.coordinate.x},${record.coordinate.y}`) })}
                     />
                     <Column
                         title='颜色值'

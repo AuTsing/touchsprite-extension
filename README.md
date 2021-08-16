@@ -157,9 +157,9 @@ main()
 -   ~~[x] 发布工程模块允许更多自定义~~
 -   ~~[x] 调试模块精简 1 期~~
 -   ~~[x] 字库代码生成~~
+-   ~~[x] 脚手架生成~~
 -   [ ] 调试模块精简 2 期
 -   [ ] 触动函数代码补全
--   [ ] 脚手架生成
 
 插件目前由我一个人进行开发并进行维护，由于时间精力有限，难免会存在 BUG 以及一些其他问题。如果你发现了任何错误，或者愿意协助我开发插件，或者有什么更好的意见建议，请[告诉我](https://github.com/AuTsing/touchsprite-extension/issues)或使用[Pull Requests](https://github.com/AuTsing/touchsprite-extension/pulls)提交，同时也可以通过加群进行反馈。
 
