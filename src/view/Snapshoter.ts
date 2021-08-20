@@ -75,6 +75,8 @@ class Snapshoter {
                         return this.handleLoadImgFromDevice(this.panel);
                     case 'loadImgFromLocal':
                         return this.handleLoadImgFromLocal(this.panel);
+                    case 'loadImgFromLocalWithUris':
+                        return this.handleLoadImgFromLocal(this.panel, msg.data);
                     case 'loadTemplates':
                         return this.handleLoadTemplates(this.panel);
                     case 'saveTemplates':
@@ -154,16 +156,19 @@ class Snapshoter {
         statusBarDisposer();
     }
 
-    private async handleLoadImgFromLocal(panel: vscode.WebviewPanel) {
+    private async handleLoadImgFromLocal(panel: vscode.WebviewPanel, paths?: string[]) {
         try {
-            const uris = await vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: true,
-                filters: { Img: ['png'] },
-            });
-            if (uris && uris.length > 0) {
-                const imgs = uris.map(uri => Buffer.from(fs.readFileSync(uri.fsPath)).toString('base64'));
+            if (!paths) {
+                const uris = await vscode.window.showOpenDialog({
+                    canSelectFiles: true,
+                    canSelectFolders: false,
+                    canSelectMany: true,
+                    filters: { Img: ['png'] },
+                });
+                paths = uris?.map(uri => uri.fsPath);
+            }
+            if (paths && paths.length > 0) {
+                const imgs = paths.map(p => Buffer.from(fs.readFileSync(p)).toString('base64'));
                 panel.webview.postMessage({
                     command: 'add',
                     data: { imgs },

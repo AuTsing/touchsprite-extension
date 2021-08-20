@@ -106,6 +106,15 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
         return () => leave('keypress', handleKeypress);
     }, [handleKeypress, leave, listen]);
 
+    const handleFileDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        console.log(e.dataTransfer.files);
+    };
+
     return (
         <div className='img-container' ref={imgContainer}>
             <Dropdown
@@ -121,7 +130,13 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
                 }
                 trigger={['contextMenu']}
             >
-                <div onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleClick}>
+                <div
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={handleClick}
+                    onDragOver={handleFileDragOver}
+                    onDrop={handleFileDrop}
+                >
                     <div>
                         <img className='img-cover' src={imgCover} alt='' draggable='false' />
                     </div>

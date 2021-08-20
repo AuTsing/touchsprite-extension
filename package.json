@@ -274,7 +274,7 @@
         "@types/vscode": "^1.42.0",
         "@typescript-eslint/eslint-plugin": "^4.12.0",
         "@typescript-eslint/parser": "^4.12.0",
-        "antd": "^4.10.0",
+        "antd": "^4.16.12",
         "antd-dayjs-webpack-plugin": "^1.0.4",
         "await-notify": "^1.0.1",
         "axios": "^0.21.1",

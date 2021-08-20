@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FC, useState, useContext, useCallback } from 'react';
+import { FC, useContext, useCallback } from 'react';
 import { Button, Space } from 'antd';
 
 import { VscodeContext } from '../contexts/VscodeContext';
@@ -10,42 +10,25 @@ import Ziku from './Ziku';
 
 const Navbar: FC = () => {
     const vscode = useContext(VscodeContext);
-    const { setAddedCallback } = useContext(CaptrueContext);
-
-    const [handleLoadImgFromDeviceLoading, setHandleImgFromDeviceLoading] = useState<boolean>(false);
-    const [handleLoadImgFromLocalLoading, setHandleLoadImgFromLocalLoading] = useState<boolean>(false);
+    const { captureLoading, setCaptureLoading } = useContext(CaptrueContext);
 
     const handleLoadImgFromDevice = useCallback(() => {
-        setAddedCallback(() => () => setHandleImgFromDeviceLoading(false));
-        setHandleImgFromDeviceLoading(true);
+        setCaptureLoading(true);
         vscode.postMessage({ command: 'loadImgFromDevice' });
-    }, [setAddedCallback, vscode]);
+    }, [setCaptureLoading, vscode]);
 
     const handleLoadImgFromLocal = useCallback(() => {
-        setAddedCallback(() => () => setHandleLoadImgFromLocalLoading(false));
-        setHandleLoadImgFromLocalLoading(true);
+        setCaptureLoading(true);
         vscode.postMessage({ command: 'loadImgFromLocal' });
-    }, [setAddedCallback, vscode]);
+    }, [setCaptureLoading, vscode]);
 
     return (
         <div>
             <Space size={10}>
-                <Button
-                    type='primary'
-                    size='large'
-                    onClick={handleLoadImgFromDevice}
-                    loading={handleLoadImgFromDeviceLoading}
-                    disabled={handleLoadImgFromDeviceLoading || handleLoadImgFromLocalLoading}
-                >
+                <Button type='primary' size='large' onClick={handleLoadImgFromDevice} loading={captureLoading} disabled={captureLoading}>
                     设备截图
                 </Button>
-                <Button
-                    type='primary'
-                    size='large'
-                    onClick={handleLoadImgFromLocal}
-                    loading={handleLoadImgFromLocalLoading}
-                    disabled={handleLoadImgFromDeviceLoading || handleLoadImgFromLocalLoading}
-                >
+                <Button type='primary' size='large' onClick={handleLoadImgFromLocal} loading={captureLoading} disabled={captureLoading}>
                     本地打开
                 </Button>
                 <CodeMaker />
