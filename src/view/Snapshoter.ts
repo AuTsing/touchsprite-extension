@@ -164,10 +164,14 @@ class Snapshoter {
                     canSelectFolders: false,
                     canSelectMany: true,
                     filters: { Img: ['png'] },
+                    defaultUri: this.extensionGlobalState.get<string>('defaultLoadingPath')
+                        ? vscode.Uri.file(this.extensionGlobalState.get<string>('defaultLoadingPath')!)
+                        : undefined,
                 });
                 paths = uris?.map(uri => uri.fsPath);
             }
             if (paths && paths.length > 0) {
+                this.extensionGlobalState.update('defaultLoadingPath', paths[0]);
                 const imgs = paths.map(p => Buffer.from(fs.readFileSync(p)).toString('base64'));
                 panel.webview.postMessage({
                     command: 'add',

@@ -23,19 +23,17 @@ const Navbar: FC = () => {
     }, [setCaptureLoading, vscode]);
 
     return (
-        <div>
-            <Space size={10}>
-                <Button type='primary' size='large' onClick={handleLoadImgFromDevice} loading={captureLoading} disabled={captureLoading}>
-                    设备截图
-                </Button>
-                <Button type='primary' size='large' onClick={handleLoadImgFromLocal} loading={captureLoading} disabled={captureLoading}>
-                    本地打开
-                </Button>
-                <CodeMaker />
-                <PicComparator />
-                <Ziku />
-            </Space>
-        </div>
+        <Space size={10}>
+            <Button type='primary' size='large' onClick={handleLoadImgFromDevice} loading={captureLoading} disabled={captureLoading}>
+                设备截图
+            </Button>
+            <Button type='primary' size='large' onClick={handleLoadImgFromLocal} loading={captureLoading} disabled={captureLoading}>
+                本地打开
+            </Button>
+            <CodeMaker />
+            <PicComparator />
+            <Ziku />
+        </Space>
     );
 };
 

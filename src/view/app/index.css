@@ -4,31 +4,93 @@ body {
     padding: 0;
 }
 
-.sider {
-    position: absolute;
-    height: 100%;
-    overflow: auto;
-    right: 0px;
-    top: 0px;
+.app {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
 }
 
-.header {
-    position: absolute;
-    width: calc(100% - 315px);
-    overflow: auto;
-    left: 0px;
-    top: 0px;
-    padding-left: 10px;
-    padding-right: 10px;
+.sider-container {
+    background-color: #1f1f1f;
+    width: 310px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
-.content {
+.zoom-container {
+    height: 300px;
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.zoom-content {
+    width: 300px;
+    height: 300px;
     position: absolute;
-    width: calc(100% - 315px);
-    height: calc(100% - 64px);
+}
+
+.zoom-cursor {
+    width: 300px;
+    height: 300px;
+    position: absolute;
+}
+
+.coordinate-info-container {
+    width: 300px;
+    display: flex;
+    justify-content: center;
+    padding: 16px 16px;
+}
+
+.coordinate-info {
+    width: 134px;
+}
+
+.record-list {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+}
+
+.record-list-empty {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.header-and-content-container {
+    width: calc(100vw - 310px);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header-container {
+    background-color: #1f1f1f;
+    height: 64px;
+    display: flex;
+    align-items: center;
     overflow: auto;
-    left: 0px;
-    top: 64px;
+    padding: 0 10px;
+}
+
+.content-container {
+    width: calc(100vw - 310px);
+    height: calc(100vh - 64px);
+}
+
+.loading-image {
+    width: calc(100vw - 310px);
+    height: calc(100vh - 64px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.tabs {
+    width: calc(100vw - 310px);
+    height: calc(100vh - 64px);
 }
 
 .img-container {
@@ -42,41 +104,24 @@ body {
 
 .img-cover {
     position: absolute;
-    z-index: 2;
     max-width: none;
     max-height: none;
-}
-
-.img {
-    position: absolute;
-    z-index: 1;
-    max-width: none;
-    max-height: none;
-}
-
-.zoom-content {
-    height: 300px;
-    width: 300px;
-    position: absolute;
-    z-index: 1;
-}
-
-.zoom-cursor {
-    height: 300px;
-    width: 300px;
-    position: absolute;
     z-index: 2;
 }
 
-.coordinate-info {
-    margin: 315px 15px 15px 15px;
-    width: 300px;
-}
-
-.record-list {
-    width: 300px;
+.img-content {
+    position: absolute;
+    max-width: none;
+    max-height: none;
+    z-index: 1;
 }
 
 .empty {
-    margin-top: 300px;
+    width: calc(100vw - 310px);
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
 }

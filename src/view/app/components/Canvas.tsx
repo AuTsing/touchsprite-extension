@@ -1,21 +1,18 @@
 import * as React from 'react';
-import { FC, useContext, useCallback, useState } from 'react';
-import { Tabs, Button, Tooltip, Upload } from 'antd';
-import { CloseCircleOutlined, InboxOutlined } from '@ant-design/icons';
+import { FC, useContext, useCallback } from 'react';
+import { Tabs, Button, Tooltip, Empty } from 'antd';
+import { CloseCircleOutlined, RotateRightOutlined } from '@ant-design/icons';
 
-import { VscodeContext } from '../contexts/VscodeContext';
 import { CoordinateContext } from '../contexts/CoordinateContext';
 import { CaptrueContext } from '../contexts/CaptureContext';
 import Pic from './Pic';
+import LoadingImage from './LoadingImage';
 
 const { TabPane } = Tabs;
-const { Dragger } = Upload;
 
 const Canvas: FC = () => {
-    const vscode = useContext(VscodeContext);
-    const { captures, activeKey, setActiveKey, removeCapture, setActiveJimp, clearCaptures, captureLoading, setCaptureLoading } = useContext(CaptrueContext);
+    const { captures, activeKey, setActiveKey, removeCapture, setActiveJimp, clearCaptures, rotateJimp } = useContext(CaptrueContext);
     const { resetCoordinate } = useContext(CoordinateContext);
-    const [fileList] = useState([]);
 
     const onEdit = useCallback(
         (key: string | any, action: string) => {
@@ -40,58 +37,46 @@ const Canvas: FC = () => {
         resetCoordinate();
     }, [clearCaptures, resetCoordinate]);
 
-    const handleUpload = useCallback(
-        info => {
-            const { file, fileList } = info;
-            if (file.uid !== fileList[fileList.length - 1].uid) {
-                return;
-            }
-            setCaptureLoading(true);
-            const paths: string[] = fileList.map((f: any) => f.originFileObj.path);
-            setTimeout(() => vscode.postMessage({ command: 'loadImgFromLocalWithUris', data: paths }), 400);
-        },
-        [setCaptureLoading, vscode]
-    );
+    const handleRotate = useCallback(() => rotateJimp(90), [rotateJimp]);
 
-    return captures.length <= 0 ? (
-        <Dragger
-            className='dragger'
-            beforeUpload={() => false}
-            fileList={fileList}
-            showUploadList={false}
-            onChange={handleUpload}
-            openFileDialogOnClick={false}
-            multiple={true}
-            accept='.png'
-            disabled={captureLoading}
-        >
-            <p className='ant-upload-drag-icon'>
-                <InboxOutlined />
-            </p>
-            <p className='ant-upload-text'>将图片拖入以打开图片</p>
-        </Dragger>
-    ) : (
-        <Tabs
-            hideAdd
-            onChange={handleChange}
-            activeKey={activeKey}
-            type='editable-card'
-            onEdit={onEdit}
-            tabBarExtraContent={{
-                right: (
-                    <Tooltip title='关闭所有页面'>
-                        <Button type='text' size='large' icon={<CloseCircleOutlined onClick={handleClickClearCaptures} />} />
-                    </Tooltip>
-                ),
-            }}
-        >
-            {captures.map(capture => (
-                <TabPane tab={capture.title} key={capture.key}>
-                    <Pic base64={capture.base64} />
-                </TabPane>
-            ))}
-        </Tabs>
-    );
+    if (captures.length <= 0) {
+        return (
+            <LoadingImage>
+                <Empty className='empty' image={Empty.PRESENTED_IMAGE_SIMPLE} description='将图片拖入打开图片' />
+            </LoadingImage>
+        );
+    } else {
+        return (
+            <LoadingImage>
+                <Tabs
+                    className='tabs'
+                    hideAdd
+                    onChange={handleChange}
+                    activeKey={activeKey}
+                    type='editable-card'
+                    onEdit={onEdit}
+                    tabBarExtraContent={{
+                        right: (
+                            <div>
+                                <Tooltip title='顺时针旋转90°'>
+                                    <Button type='text' size='large' icon={<RotateRightOutlined onClick={handleRotate} />} />
+                                </Tooltip>
+                                <Tooltip title='关闭所有页面'>
+                                    <Button type='text' size='large' icon={<CloseCircleOutlined onClick={handleClickClearCaptures} />} />
+                                </Tooltip>
+                            </div>
+                        ),
+                    }}
+                >
+                    {captures.map(capture => (
+                        <TabPane tab={capture.title} key={capture.key}>
+                            <Pic base64={capture.base64} />
+                        </TabPane>
+                    ))}
+                </Tabs>
+            </LoadingImage>
+        );
+    }
 };
 
 export default Canvas;

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { FC } from 'react';
-import { Layout } from 'antd';
 
 import { IVscode } from './contexts/VscodeContext';
 import VscodeContextProvider from './contexts/VscodeContext';
@@ -14,37 +13,33 @@ import Zoom from './components/Zoom';
 import CoordinateInfo from './components/CoordinateInfo';
 import RecordList from './components/RecordList';
 
-const { Header, Sider, Content } = Layout;
-
 const App: FC<{ vscode: IVscode }> = ({ vscode }) => {
     return (
-        <div>
-            <VscodeContextProvider vscode={vscode}>
-                <KeyboardContextProvider>
-                    <CaptrueContextProvider>
-                        <CoordinateContextProvider>
-                            <RecordContextProvider>
-                                <Layout>
-                                    <Layout>
-                                        <Header className='header'>
-                                            <Navbar />
-                                        </Header>
-                                        <Content className='content'>
-                                            <Canvas />
-                                        </Content>
-                                    </Layout>
-                                    <Sider className='sider' width={315}>
-                                        <Zoom />
-                                        <CoordinateInfo />
-                                        <RecordList />
-                                    </Sider>
-                                </Layout>
-                            </RecordContextProvider>
-                        </CoordinateContextProvider>
-                    </CaptrueContextProvider>
-                </KeyboardContextProvider>
-            </VscodeContextProvider>
-        </div>
+        <VscodeContextProvider vscode={vscode}>
+            <KeyboardContextProvider>
+                <CaptrueContextProvider>
+                    <CoordinateContextProvider>
+                        <RecordContextProvider>
+                            <div className='app'>
+                                <div className='header-and-content-container'>
+                                    <div className='header-container'>
+                                        <Navbar />
+                                    </div>
+                                    <div className='content-container'>
+                                        <Canvas />
+                                    </div>
+                                </div>
+                                <div className='sider-container'>
+                                    <Zoom />
+                                    <CoordinateInfo />
+                                    <RecordList />
+                                </div>
+                            </div>
+                        </RecordContextProvider>
+                    </CoordinateContextProvider>
+                </CaptrueContextProvider>
+            </KeyboardContextProvider>
+        </VscodeContextProvider>
     );
 };
 
