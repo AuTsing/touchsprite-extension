@@ -46,7 +46,9 @@ export default class TsDebugger {
             Ui.output(`启用调试成功`);
             return true;
         } catch (err) {
-            Ui.outputError(`启动调试失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputError(`启动调试失败: ${err.toString()}`);
+            }
             return false;
         }
     }

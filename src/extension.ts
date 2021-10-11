@@ -21,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('extension.uploadFiles', () => server.uploadFiles()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.setHostIp', () => server.setHostIp()));
     context.subscriptions.push(vscode.commands.registerCommand('extension.createProject', () => server.createProject()));
+    context.subscriptions.push(vscode.commands.registerCommand('extension.clearDir', () => server.clearDir()));
 
     const publisher = new Publisher();
     context.subscriptions.push(vscode.commands.registerCommand('extension.publish', () => publisher.publish()));

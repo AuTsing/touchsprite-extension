@@ -22,6 +22,8 @@ const CodeMaker: FC = () => {
         { key: '1', content: "{'untitled',{$pointList}}," },
         { key: '2', content: "{'untitled',{$point[1][c],'$delta'}}," },
         { key: '3', content: '{$pointList},' },
+        { key: '4', content: '' },
+        { key: '5', content: '' },
     ]);
     const [visible, setVisible] = useState<boolean>(false);
     const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
@@ -45,6 +47,8 @@ const CodeMaker: FC = () => {
                     { key: '1', content: values.template1 },
                     { key: '2', content: values.template2 },
                     { key: '3', content: values.template3 },
+                    { key: '4', content: values.template4 },
+                    { key: '5', content: values.template5 },
                 ];
                 setTemplates(newTemplates);
                 return Promise.resolve(newTemplates);
@@ -79,6 +83,12 @@ const CodeMaker: FC = () => {
                 case 'h':
                     template = templates[2].content;
                     break;
+                case 'j':
+                    template = templates[3].content;
+                    break;
+                case 'k':
+                    template = templates[4].content;
+                    break;
                 default:
                     break;
             }
@@ -104,22 +114,31 @@ const CodeMaker: FC = () => {
         [p1.x, p1.y, p2.x, p2.y, records, templates, vscode]
     );
 
-    const handleMessage = useCallback((event: MessageEvent) => {
-        const eventData: IVscodeMessageEventData = event.data;
-        switch (eventData.command) {
-            case 'loadTemplates':
-                const templates = (eventData.data as { templates: string }).templates;
-                if (templates) {
-                    const preSave = JSON.parse(templates);
-                    if (preSave && preSave.length > 0) {
-                        setTemplates(preSave);
+    const handleMessage = useCallback(
+        (event: MessageEvent) => {
+            const eventData: IVscodeMessageEventData = event.data;
+            switch (eventData.command) {
+                case 'loadTemplates':
+                    try {
+                        const oldTemplatesString = (eventData.data as { templates: string }).templates;
+                        const oldTemplates = JSON.parse(oldTemplatesString);
+                        const newTemplates = [...templates];
+                        if (oldTemplates instanceof Array) {
+                            oldTemplates.forEach((template, index) => {
+                                newTemplates[index].content = template.content;
+                            });
+                        }
+                        setTemplates(newTemplates);
+                    } catch (error) {
+                        message.warning('读取模板失败，请在模板设置中重新保存模板');
                     }
-                }
-                break;
-            default:
-                break;
-        }
-    }, []);
+                    break;
+                default:
+                    break;
+            }
+        },
+        [templates]
+    );
 
     useEffect(() => {
         window.addEventListener('message', handleMessage);
@@ -130,7 +149,7 @@ const CodeMaker: FC = () => {
     const handleKeypress = useCallback(
         (ev: KeyboardEvent) => {
             const key = ev.key.toLowerCase();
-            if (['f', 'g', 'h'].includes(key)) {
+            if (['f', 'g', 'h', 'j', 'k'].includes(key)) {
                 makeCode(key);
             } else if (key === 'z') {
                 clearRecords();
@@ -155,7 +174,13 @@ const CodeMaker: FC = () => {
                 <Form
                     form={form}
                     name='templatesForm'
-                    initialValues={{ template1: templates[0].content, template2: templates[1].content, template3: templates[2].content }}
+                    initialValues={{
+                        template1: templates[0].content,
+                        template2: templates[1].content,
+                        template3: templates[2].content,
+                        template4: templates[3].content,
+                        template5: templates[4].content,
+                    }}
                 >
                     <Form.Item name='template1' label='模板1'>
                         <Input />
@@ -164,6 +189,12 @@ const CodeMaker: FC = () => {
                         <Input />
                     </Form.Item>
                     <Form.Item name='template3' label='模板3'>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name='template4' label='模板4'>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name='template5' label='模板5'>
                         <Input />
                     </Form.Item>
                 </Form>

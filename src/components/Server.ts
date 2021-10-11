@@ -231,10 +231,6 @@ export default class Server {
             if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
-            const isClearDir = vscode.workspace.getConfiguration().get('touchsprite-extension.clearDir');
-            if (isClearDir === true) {
-                await this.clearDir();
-            }
             const pjg = new ProjectGenerator(runfile);
             const pjfs = await pjg.generate();
             const resp4: string[] = [];
@@ -252,7 +248,9 @@ export default class Server {
             Ui.output('运行工程成功');
             this.watchScript(attachingDevice);
         } catch (err) {
-            Ui.outputWarn(`运行工程失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`运行工程失败: ${err.toString()}`);
+            }
         }
         statusBarDisposer();
     }
@@ -287,10 +285,6 @@ export default class Server {
             if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
-            const isClearDir = vscode.workspace.getConfiguration().get('touchsprite-extension.clearDir');
-            if (isClearDir === true) {
-                await this.clearDir();
-            }
             const pjf: IProjectFile = {
                 url: focusing.fileName,
                 path: '/',
@@ -308,7 +302,9 @@ export default class Server {
             Ui.output(`运行脚本成功`);
             this.watchScript(attachingDevice);
         } catch (err) {
-            Ui.outputWarn(`运行脚本失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`运行脚本失败: ${err.toString()}`);
+            }
         }
         statusBarDisposer();
     }
@@ -323,7 +319,9 @@ export default class Server {
             }
             Ui.output(`停止脚本成功`);
         } catch (err) {
-            Ui.outputWarn(`停止脚本失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`停止脚本失败: ${err.toString()}`);
+            }
         }
     }
 
@@ -363,7 +361,9 @@ export default class Server {
             }
             Ui.output(`上次文件成功: ${resp1.length}`);
         } catch (err) {
-            Ui.outputWarn(`上传文件失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`上传文件失败: ${err.toString()}`);
+            }
         }
         statusBarDisposer();
     }
@@ -413,6 +413,7 @@ export default class Server {
     }
 
     public async clearDir() {
+        const statusBarDisposer = Ui.doing('清空脚本中');
         try {
             const attachingDevice = await this.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -443,9 +444,13 @@ export default class Server {
             if (resp2.some(resp => resp !== 'ok')) {
                 throw new Error('清空脚本失败');
             }
+            Ui.output(`清空脚本成功`);
         } catch (err) {
-            Ui.outputWarn(`清空脚本失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`清空脚本失败: ${err.toString()}`);
+            }
         }
+        statusBarDisposer();
     }
 
     public async createProject() {
@@ -498,8 +503,10 @@ export default class Server {
             docs.forEach(doc => {
                 fs.writeFileSync(doc.dir, doc.txt);
             });
-        } catch (e) {
-            Ui.outputWarn(`新建工程失败: ${e.toString()}`);
+        } catch (err) {
+            if (err instanceof Error) {
+                Ui.outputWarn(`新建工程失败: ${err.toString()}`);
+            }
             return;
         }
         if (!workspaceFolders) {

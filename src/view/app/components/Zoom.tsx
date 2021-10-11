@@ -13,7 +13,7 @@ const Zoom: FC = () => {
                 alt=''
                 draggable='false'
             />
-            <img className='zoom-conetnt' src={preview} alt='' draggable='false' />
+            <img className='zoom-content' src={preview} alt='' draggable='false' />
         </div>
     );
 };

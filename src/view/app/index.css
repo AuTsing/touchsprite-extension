@@ -29,12 +29,14 @@ body {
     width: 300px;
     height: 300px;
     position: absolute;
+    z-index: 1;
 }
 
 .zoom-cursor {
     width: 300px;
     height: 300px;
     position: absolute;
+    z-index: 2;
 }
 
 .coordinate-info-container {

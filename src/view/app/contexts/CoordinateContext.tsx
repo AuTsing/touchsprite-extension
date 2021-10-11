@@ -22,17 +22,20 @@ export const CoordinateContextDefaultValue: ICoordinateContext = {
 
 export const CoordinateContext = createContext<ICoordinateContext>(CoordinateContextDefaultValue);
 
+const defaultPreview =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY2BgYGAAAAAFAAGKM+MAAAAAAElFTkSuQmCC';
+
 const CoordinateContextProvider = (props: { children: React.ReactNode }) => {
     const [x, setX] = useState<number>(-1);
     const [y, setY] = useState<number>(-1);
     const [c, setC] = useState<string>('0x000000');
-    const [preview, setPreview] = useState<string>('');
+    const [preview, setPreview] = useState<string>(defaultPreview);
 
     const resetCoordinate = useCallback(() => {
         setX(-1);
         setY(-1);
         setC('0x000000');
-        setPreview('');
+        setPreview(defaultPreview);
     }, []);
 
     const updateCoordinate = useCallback(
