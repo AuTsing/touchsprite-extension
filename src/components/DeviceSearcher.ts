@@ -16,7 +16,7 @@ class DeviceSearcher {
     }
 
     public async search() {
-        const statusBarDisposer = Ui.doing('搜索设备中');
+        const { disposer } = Ui.doing('搜索设备中');
         const port: number = Math.round(Math.random() * (19999 - 15000 + 1) + 15000);
         let isAttached: boolean = false;
         try {
@@ -51,19 +51,21 @@ class DeviceSearcher {
                     Ui.outputError(`搜索失败: ${err.toString()}`);
                     finder.close();
                     sender.close();
-                    statusBarDisposer();
+                    disposer();
                     return;
                 }
                 setTimeout(() => {
                     Ui.output(`搜索成功: 共搜索到 ${devices.length} 台设备`);
                     finder.close();
                     sender.close();
-                    statusBarDisposer();
+                    disposer();
                 }, 3000);
             });
         } catch (err) {
-            Ui.outputWarn(`搜索失败: ${err.toString()}`);
-            statusBarDisposer();
+            if (err instanceof Error) {
+                Ui.outputWarn(`搜索失败: ${err.toString()}`);
+            }
+            disposer();
         }
     }
 }

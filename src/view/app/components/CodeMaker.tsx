@@ -142,9 +142,12 @@ const CodeMaker: FC = () => {
 
     useEffect(() => {
         window.addEventListener('message', handleMessage);
-        vscode.postMessage({ command: 'loadTemplates' });
         return () => window.removeEventListener('message', handleMessage);
     }, [handleMessage, vscode]);
+
+    useEffect(() => {
+        vscode.postMessage({ command: 'loadTemplates' });
+    }, [vscode]);
 
     const handleKeypress = useCallback(
         (ev: KeyboardEvent) => {

@@ -111,7 +111,7 @@ class Snapshoter {
     }
 
     private async handleLoadImgFromDevice(panel: vscode.WebviewPanel) {
-        const statusBarDisposer = Ui.doing('截图中');
+        const { disposer } = Ui.doing('截图中');
         try {
             const attachingDevice = await this.server.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -144,16 +144,18 @@ class Snapshoter {
                 });
             }
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `设备截图失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `设备截图失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
             panel.webview.postMessage({
                 command: 'loadedImg',
                 data: {},
             } as IVscodeMessageEventData);
         }
-        statusBarDisposer();
+        disposer();
     }
 
     private async handleLoadImgFromLocal(panel: vscode.WebviewPanel, paths?: string[]) {
@@ -184,10 +186,12 @@ class Snapshoter {
                 } as IVscodeMessageEventData);
             }
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `打开本地图片失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `打开本地图片失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
             panel.webview.postMessage({
                 command: 'loadedImg',
                 data: {},
@@ -202,10 +206,12 @@ class Snapshoter {
                 data: { templates: this.extensionGlobalState.get<string>('templates') || '' },
             });
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `读取模板失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `读取模板失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
         }
     }
 
@@ -217,10 +223,12 @@ class Snapshoter {
                 data: { message: `保存模板成功` },
             } as IVscodeMessageEventData);
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `保存模板失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `保存模板失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
         }
     }
 
@@ -228,10 +236,12 @@ class Snapshoter {
         try {
             vscode.env.clipboard.writeText(data);
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `复制失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `复制失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
         }
     }
 }
