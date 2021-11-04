@@ -24,7 +24,8 @@ export interface ICaptureContext {
     rotateJimp: (deg: number) => void;
     compareJimp: (jimp1: ICapture, jimp2: ICapture, tolerance: string) => void;
     clearCaptures: () => void;
-    setAddedCallback: (cb: () => void) => void;
+    captureLoading: boolean;
+    setCaptureLoading: (loading: boolean) => void;
 }
 
 export const CaptrueContextDefaultValue: ICaptureContext = {
@@ -39,7 +40,8 @@ export const CaptrueContextDefaultValue: ICaptureContext = {
     rotateJimp: () => null,
     compareJimp: () => null,
     clearCaptures: () => null,
-    setAddedCallback: () => null,
+    captureLoading: false,
+    setCaptureLoading: () => null,
 };
 
 export const CaptrueContext = createContext<ICaptureContext>(CaptrueContextDefaultValue);
@@ -49,7 +51,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
     const [captures, setCaptures] = useState<ICapture[]>([]);
     const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
     const [activeJimp, setActiveJimp] = useState<Jimp | undefined>(undefined);
-    const [addedCaptureCallback, setAddedCallback] = useState<() => void>(() => {});
+    const [captureLoading, setCaptureLoading] = useState<boolean>(false);
 
     const addCapture = useCallback(
         (imgs: Jimp[]) => {
@@ -81,15 +83,14 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
     );
 
     const addCaptureByString = useCallback(
-        (imgs: string[]) => {
+        (imgs: string[]) =>
             Promise.all(
                 imgs.map(async img => {
                     return await Jimp.read(Buffer.from(img, 'base64'));
                 })
             ).then(jimps => {
                 return addCapture(jimps);
-            });
-        },
+            }),
         [addCapture]
     );
 
@@ -213,27 +214,27 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
     );
 
     const handleMessage = useCallback(
-        (event: MessageEvent) => {
+        async (event: MessageEvent) => {
             const eventData: IVscodeMessageEventData = event.data;
             switch (eventData.command) {
                 case 'add':
                     const imgs = (eventData.data as { imgs: string[] }).imgs;
-                    addCaptureByString(imgs);
-                    addedCaptureCallback();
+                    await addCaptureByString(imgs);
+                    setCaptureLoading(false);
                     break;
                 case 'showMessage':
                     const msg = (eventData.data as { message: string }).message;
                     message.info(msg);
-                    addedCaptureCallback();
+                    setCaptureLoading(false);
                     break;
                 case 'loadedImg':
-                    addedCaptureCallback();
+                    setCaptureLoading(false);
                     break;
                 default:
                     break;
             }
         },
-        [addCaptureByString, addedCaptureCallback]
+        [addCaptureByString]
     );
 
     useEffect(() => {
@@ -255,7 +256,8 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                 rotateJimp,
                 compareJimp,
                 clearCaptures,
-                setAddedCallback,
+                captureLoading,
+                setCaptureLoading,
             }}
         >
             {props.children}

@@ -43,7 +43,7 @@ export default class Server {
     }
 
     public attachDevice(ip: string) {
-        const statusBarDisposer = Ui.doing('连接中');
+        const { disposer } = Ui.doing('连接中');
         return this.api
             .getDeviceId(ip)
             .then(resp => {
@@ -105,7 +105,7 @@ export default class Server {
                 Ui.outputWarn(`连接设备失败: ${err}`);
             })
             .finally(() => {
-                statusBarDisposer();
+                disposer();
             });
     }
 
@@ -153,7 +153,7 @@ export default class Server {
     public zipProject() {
         const pjg = new ProjectGenerator().useZip();
         const zipper = new Zipper();
-        const statusBarDisposer = Ui.doing('打包工程中');
+        const { disposer } = Ui.doing('打包工程中');
         return pjg
             .generate()
             .then(pjfs => {
@@ -174,7 +174,7 @@ export default class Server {
                 Ui.outputWarn(`打包工程失败: ${err.toString()}`);
             })
             .finally(() => {
-                statusBarDisposer();
+                disposer();
             });
     }
 
@@ -213,7 +213,7 @@ export default class Server {
     }
 
     public async runProject(runfile = 'main.lua', boot?: string): Promise<void> {
-        const statusBarDisposer = Ui.doing('发送工程中');
+        const { disposer, setProgress } = Ui.doing('发送工程中');
         try {
             boot = boot ? boot : runfile;
             const attachingDevice = await this.getAttachingDevice();
@@ -231,16 +231,15 @@ export default class Server {
             if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
-            const isClearDir = vscode.workspace.getConfiguration().get('touchsprite-extension.clearDir');
-            if (isClearDir === true) {
-                await this.clearDir();
-            }
             const pjg = new ProjectGenerator(runfile);
             const pjfs = await pjg.generate();
             const resp4: string[] = [];
+            const total = pjfs.length;
+            let progress = 0;
             for (const pjf of pjfs) {
                 const resp = await this.api.upload(ip, auth, pjf);
                 resp4.push(resp.data);
+                setProgress(++progress / total);
             }
             if (resp4.some(resp => resp !== 'ok')) {
                 throw new Error('上传工程失败');
@@ -252,9 +251,11 @@ export default class Server {
             Ui.output('运行工程成功');
             this.watchScript(attachingDevice);
         } catch (err) {
-            Ui.outputWarn(`运行工程失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`运行工程失败: ${err.toString()}`);
+            }
         }
-        statusBarDisposer();
+        disposer();
     }
 
     public runTestProject() {
@@ -263,7 +264,7 @@ export default class Server {
     }
 
     public async runScript(): Promise<void> {
-        const statusBarDisposer = Ui.doing('发送脚本中');
+        const { disposer } = Ui.doing('发送脚本中');
         try {
             const attachingDevice = await this.getAttachingDevice();
             const focusing = vscode.window.activeTextEditor?.document;
@@ -287,10 +288,6 @@ export default class Server {
             if (resp3.data !== 'ok') {
                 throw new Error('设置引导文件失败');
             }
-            const isClearDir = vscode.workspace.getConfiguration().get('touchsprite-extension.clearDir');
-            if (isClearDir === true) {
-                await this.clearDir();
-            }
             const pjf: IProjectFile = {
                 url: focusing.fileName,
                 path: '/',
@@ -308,9 +305,11 @@ export default class Server {
             Ui.output(`运行脚本成功`);
             this.watchScript(attachingDevice);
         } catch (err) {
-            Ui.outputWarn(`运行脚本失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`运行脚本失败: ${err.toString()}`);
+            }
         }
-        statusBarDisposer();
+        disposer();
     }
 
     public async stopScript(): Promise<void> {
@@ -323,12 +322,14 @@ export default class Server {
             }
             Ui.output(`停止脚本成功`);
         } catch (err) {
-            Ui.outputWarn(`停止脚本失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`停止脚本失败: ${err.toString()}`);
+            }
         }
     }
 
     public async uploadFiles(): Promise<void> {
-        const statusBarDisposer = Ui.doing('上传文件中');
+        const { disposer } = Ui.doing('上传文件中');
         try {
             const attachingDevice = await this.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -363,9 +364,11 @@ export default class Server {
             }
             Ui.output(`上次文件成功: ${resp1.length}`);
         } catch (err) {
-            Ui.outputWarn(`上传文件失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`上传文件失败: ${err.toString()}`);
+            }
         }
-        statusBarDisposer();
+        disposer();
     }
 
     public setHostIp() {
@@ -396,7 +399,7 @@ export default class Server {
     }
 
     private watchScript(device: Device) {
-        const runningDisposer = Ui.doing('脚本运行中', '📲');
+        const { disposer } = Ui.doing('脚本运行中', '📲');
         const toClear = setInterval(() => {
             this.api
                 .getStatus(device.ip, device.auth)
@@ -406,13 +409,14 @@ export default class Server {
                     }
                 })
                 .catch(err => {
-                    runningDisposer();
+                    disposer();
                     clearInterval(toClear);
                 });
         }, 1000);
     }
 
     public async clearDir() {
+        const { disposer } = Ui.doing('清空脚本中');
         try {
             const attachingDevice = await this.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -443,9 +447,13 @@ export default class Server {
             if (resp2.some(resp => resp !== 'ok')) {
                 throw new Error('清空脚本失败');
             }
+            Ui.output(`清空脚本成功`);
         } catch (err) {
-            Ui.outputWarn(`清空脚本失败: ${err.toString()}`);
+            if (err instanceof Error) {
+                Ui.outputWarn(`清空脚本失败: ${err.toString()}`);
+            }
         }
+        disposer();
     }
 
     public async createProject() {
@@ -498,8 +506,10 @@ export default class Server {
             docs.forEach(doc => {
                 fs.writeFileSync(doc.dir, doc.txt);
             });
-        } catch (e) {
-            Ui.outputWarn(`新建工程失败: ${e.toString()}`);
+        } catch (err) {
+            if (err instanceof Error) {
+                Ui.outputWarn(`新建工程失败: ${err.toString()}`);
+            }
             return;
         }
         if (!workspaceFolders) {

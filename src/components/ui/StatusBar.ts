@@ -47,8 +47,14 @@ class StatusBar {
         const task: ITaks = { prefix: prefix, text: text, surfix: '...' };
         this.taskList.push(task);
         this.refresh();
-        return () => {
-            this.taskList.splice(this.taskList.indexOf(task), 1);
+        return {
+            disposer: () => {
+                this.taskList.splice(this.taskList.indexOf(task), 1);
+            },
+            setProgress: (percent: number) => {
+                this.taskList[this.taskList.indexOf(task)].prefix = `${Math.round(percent * 100)}%`;
+                this.refresh();
+            },
         };
     }
 

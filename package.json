@@ -7,7 +7,7 @@
         "触动精灵",
         "触动"
     ],
-    "version": "1.9.0",
+    "version": "1.10.2",
     "engines": {
         "vscode": "^1.42.0"
     },
@@ -119,11 +119,6 @@
                     "default": "maintest.lua",
                     "scope": "resource",
                     "description": "测试工程引导文件"
-                },
-                "touchsprite-extension.clearDir": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "运行工程前清空lua文件夹"
                 }
             }
         },
@@ -195,6 +190,10 @@
             {
                 "command": "extension.createProject",
                 "title": "触动插件: 新建工程"
+            },
+            {
+                "command": "extension.clearDir",
+                "title": "触动插件: 清空设备lua目录"
             }
         ],
         "keybindings": [
@@ -274,7 +273,7 @@
         "@types/vscode": "^1.42.0",
         "@typescript-eslint/eslint-plugin": "^4.12.0",
         "@typescript-eslint/parser": "^4.12.0",
-        "antd": "^4.10.0",
+        "antd": "^4.16.12",
         "antd-dayjs-webpack-plugin": "^1.0.4",
         "await-notify": "^1.0.1",
         "axios": "^0.21.1",

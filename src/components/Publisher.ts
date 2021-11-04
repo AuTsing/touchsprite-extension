@@ -49,7 +49,7 @@ class Publisher {
     }
 
     public publish() {
-        const statusBarDisposer = Ui.doing('发布中');
+        const { disposer } = Ui.doing('发布中');
         this.askPublishCookie()
             .then(() => {
                 const pjg = new ProjectGenerator();
@@ -111,7 +111,7 @@ class Publisher {
                 Ui.output(`发布版本失败: ${err}`);
             })
             .finally(() => {
-                statusBarDisposer();
+                disposer();
             });
     }
 
@@ -128,7 +128,7 @@ class Publisher {
     }
 
     public inquiry() {
-        const statusBarDisposer = Ui.doing('查询中');
+        const { disposer } = Ui.doing('查询中');
         this.askPublishCookie()
             .then(() => {
                 return new ProjectGenerator().getRoot();
@@ -152,11 +152,11 @@ class Publisher {
                 const ver = resp.data.version.version;
                 const updatedAt = resp.data.version.created_at;
                 Ui.output(`查询成功: ID >> ${id}; NAME >> ${name}; VER >> ${ver}; UPDATEDAT >> ${updatedAt};`);
-                statusBarDisposer();
+                disposer();
             })
             .catch(err => {
                 Ui.outputWarn(`查询失败: ${err}`);
-                statusBarDisposer();
+                disposer();
             });
     }
 

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { FC, useRef, useContext, useEffect, useCallback } from 'react';
-import { Dropdown, Menu } from 'antd';
 
 import { CoordinateContext } from '../contexts/CoordinateContext';
 import { CaptrueContext } from '../contexts/CaptureContext';
@@ -13,7 +12,7 @@ export interface IPicProps {
 
 const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate, resetCoordinate } = useContext(CoordinateContext);
-    const { activeJimp, rotateJimp, clearCaptures } = useContext(CaptrueContext);
+    const { activeJimp } = useContext(CaptrueContext);
     const { addRecordByMouse, addRecordByKeyboard, setPoint1, setPoint2, imgCover, refreshPoints } = useContext(RecordContext);
     const { listen, leave } = useContext(KeyboardContext);
     const imgContainer = useRef<HTMLDivElement>(undefined!);
@@ -75,11 +74,6 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
         addRecordByMouse(x, y, c);
     }, [addRecordByMouse, c, x, y]);
 
-    const handleClickClearCaptures = useCallback(() => {
-        clearCaptures();
-        resetCoordinate();
-    }, [clearCaptures, resetCoordinate]);
-
     const handleKeypress = useCallback(
         (ev: KeyboardEvent) => {
             if (x === -1 || y === -1 || !activeJimp) {
@@ -107,29 +101,9 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
     }, [handleKeypress, leave, listen]);
 
     return (
-        <div className='img-container' ref={imgContainer}>
-            <Dropdown
-                overlay={
-                    <Menu>
-                        <Menu.SubMenu title='旋转'>
-                            <Menu.Item onClick={() => rotateJimp(90)}>90°</Menu.Item>
-                            <Menu.Item onClick={() => rotateJimp(180)}>180°</Menu.Item>
-                            <Menu.Item onClick={() => rotateJimp(270)}>270°</Menu.Item>
-                        </Menu.SubMenu>
-                        <Menu.Item onClick={handleClickClearCaptures}>关闭所有页面</Menu.Item>
-                    </Menu>
-                }
-                trigger={['contextMenu']}
-            >
-                <div onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleClick}>
-                    <div>
-                        <img className='img-cover' src={imgCover} alt='' draggable='false' />
-                    </div>
-                    <div>
-                        <img className='img' src={base64} alt='' draggable='false' />
-                    </div>
-                </div>
-            </Dropdown>
+        <div className='img-container' ref={imgContainer} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleClick}>
+            <img className='img-cover' src={imgCover} alt='' draggable='false' />
+            <img className='img-content' src={base64} alt='' draggable='false' />
         </div>
     );
 };

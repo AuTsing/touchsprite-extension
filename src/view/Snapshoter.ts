@@ -75,6 +75,8 @@ class Snapshoter {
                         return this.handleLoadImgFromDevice(this.panel);
                     case 'loadImgFromLocal':
                         return this.handleLoadImgFromLocal(this.panel);
+                    case 'loadImgFromLocalWithUris':
+                        return this.handleLoadImgFromLocal(this.panel, msg.data);
                     case 'loadTemplates':
                         return this.handleLoadTemplates(this.panel);
                     case 'saveTemplates':
@@ -109,7 +111,7 @@ class Snapshoter {
     }
 
     private async handleLoadImgFromDevice(panel: vscode.WebviewPanel) {
-        const statusBarDisposer = Ui.doing('截图中');
+        const { disposer } = Ui.doing('截图中');
         try {
             const attachingDevice = await this.server.getAttachingDevice();
             const { ip, auth } = attachingDevice;
@@ -142,28 +144,37 @@ class Snapshoter {
                 });
             }
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `设备截图失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `设备截图失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
             panel.webview.postMessage({
                 command: 'loadedImg',
                 data: {},
             } as IVscodeMessageEventData);
         }
-        statusBarDisposer();
+        disposer();
     }
 
-    private async handleLoadImgFromLocal(panel: vscode.WebviewPanel) {
+    private async handleLoadImgFromLocal(panel: vscode.WebviewPanel, paths?: string[]) {
         try {
-            const uris = await vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: true,
-                filters: { Img: ['png'] },
-            });
-            if (uris && uris.length > 0) {
-                const imgs = uris.map(uri => Buffer.from(fs.readFileSync(uri.fsPath)).toString('base64'));
+            if (!paths) {
+                const uris = await vscode.window.showOpenDialog({
+                    canSelectFiles: true,
+                    canSelectFolders: false,
+                    canSelectMany: true,
+                    filters: { Img: ['png'] },
+                    defaultUri: this.extensionGlobalState.get<string>('defaultLoadingPath')
+                        ? vscode.Uri.file(this.extensionGlobalState.get<string>('defaultLoadingPath')!)
+                        : undefined,
+                });
+                paths = uris?.map(uri => uri.fsPath);
+            }
+            if (paths && paths.length > 0) {
+                this.extensionGlobalState.update('defaultLoadingPath', paths[0]);
+                const imgs = paths.map(p => Buffer.from(fs.readFileSync(p)).toString('base64'));
                 panel.webview.postMessage({
                     command: 'add',
                     data: { imgs },
@@ -175,10 +186,12 @@ class Snapshoter {
                 } as IVscodeMessageEventData);
             }
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `打开本地图片失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `打开本地图片失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
             panel.webview.postMessage({
                 command: 'loadedImg',
                 data: {},
@@ -193,10 +206,12 @@ class Snapshoter {
                 data: { templates: this.extensionGlobalState.get<string>('templates') || '' },
             });
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `读取模板失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `读取模板失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
         }
     }
 
@@ -208,10 +223,12 @@ class Snapshoter {
                 data: { message: `保存模板成功` },
             } as IVscodeMessageEventData);
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `保存模板失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `保存模板失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
         }
     }
 
@@ -219,10 +236,12 @@ class Snapshoter {
         try {
             vscode.env.clipboard.writeText(data);
         } catch (err) {
-            panel.webview.postMessage({
-                command: 'showMessage',
-                data: { message: `复制失败: ${err.toString()}` },
-            } as IVscodeMessageEventData);
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `复制失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
         }
     }
 }
