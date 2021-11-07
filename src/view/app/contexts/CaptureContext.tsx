@@ -1,4 +1,7 @@
 import * as React from 'react';
+// TEVTEMP 增加md5模块
+import * as crypto from 'crypto';
+
 import { createContext, useState, useEffect, useCallback } from 'react';
 import Jimp from 'jimp/es';
 import { message } from 'antd';
@@ -52,10 +55,13 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
     const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
     const [activeJimp, setActiveJimp] = useState<Jimp | undefined>(undefined);
     const [captureLoading, setCaptureLoading] = useState<boolean>(false);
+    // 增加记录值
+    const md5 = crypto.createHash('md5')
 
     const addCapture = useCallback(
-        (imgs: Jimp[]) => {
+        (imgs: Jimp[], name?: string) => {
             let keyRecord = newTabIndex;
+            var capture: any
             const capturesRecord = [...captures];
             Promise.all(
                 imgs.map(async (img: Jimp) => {
@@ -66,31 +72,42 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                         jimp = img;
                     }
                     const base64 = await jimp.getBase64Async(Jimp.MIME_PNG);
-                    keyRecord++;
-                    const key = `newTab${keyRecord}`;
-                    const title = `图片${keyRecord}`;
-                    capturesRecord.push({ title, jimp, base64, key });
+                    // DEVTEMP 标签值改为md5值
+                    let key = `${md5.update(base64).digest('hex')}`;
+                    capture = captures.find(capture => capture.key === key);
+                    if (!capture) {
+                        keyRecord++;
+                        let title = `图片${keyRecord}`
+                        if (name){
+                            title = name;
+                        }
+                        capturesRecord.push({ title, jimp, base64, key });
+                    }
                 })
             ).then(() => {
+                // DEVTEMP 当已经存在key,就不需要新增
                 setCaptures(capturesRecord);
-                const lastCapture = capturesRecord.slice(-1)[0];
-                setNewTabIndex(keyRecord);
-                setActiveKey(lastCapture.key);
-                setActiveJimp(lastCapture.jimp);
+                if (!capture) {
+                    setNewTabIndex(keyRecord);
+                    capture = capturesRecord.slice(-1)[0];
+                }
+                setActiveKey(capture.key);
+                setActiveJimp(capture.jimp);
             });
         },
         [newTabIndex, captures]
     );
 
     const addCaptureByString = useCallback(
-        (imgs: string[]) =>
+        (imgs: string[], name?: string) => {
             Promise.all(
                 imgs.map(async img => {
                     return await Jimp.read(Buffer.from(img, 'base64'));
                 })
             ).then(jimps => {
-                return addCapture(jimps);
-            }),
+                return addCapture(jimps, name);
+            });
+        },
         [addCapture]
     );
 
@@ -216,11 +233,29 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
     const handleMessage = useCallback(
         async (event: MessageEvent) => {
             const eventData: IVscodeMessageEventData = event.data;
+            // DEVTEMP 刷新标题
             switch (eventData.command) {
                 case 'add':
-                    const imgs = (eventData.data as { imgs: string[] }).imgs;
-                    await addCaptureByString(imgs);
+                    const data = (eventData.data as { imgs: string[], colorinfo: any });
+                    if (data.colorinfo) {
+                        await addCaptureByString(data.imgs,data.colorinfo.label2);
+                    } else {
+                        await addCaptureByString(data.imgs);
+                    }
                     setCaptureLoading(false);
+                    break;
+                case 'updateTitle':
+                    const colorinfo = (eventData.data as { colorinfo: any }).colorinfo;
+                    // setRecordByFile(colorinfo)
+                    const copy = [...captures];
+                    setCaptures(
+                        copy.map(capture => {
+                            if (capture.key === colorinfo.md5) {
+                                capture.title = colorinfo.label2;
+                            }
+                            return capture;
+                        })
+                    );
                     break;
                 case 'showMessage':
                     const msg = (eventData.data as { message: string }).message;
@@ -234,7 +269,7 @@ const CaptrueContextProvider = (props: { children: React.ReactNode }) => {
                     break;
             }
         },
-        [addCaptureByString]
+        [addCaptureByString,captures]
     );
 
     useEffect(() => {

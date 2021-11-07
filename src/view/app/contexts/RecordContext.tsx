@@ -1,7 +1,10 @@
 import * as React from 'react';
-import { createContext, useState, useCallback } from 'react';
+import { createContext, useState, useCallback, useEffect, useContext } from 'react';
 import { message } from 'antd';
 import Jimp from 'jimp/es';
+// DEVTEMP
+import { IVscodeMessageEventData } from '../contexts/VscodeContext';
+import { CaptrueContext } from '../contexts/CaptureContext';
 
 export interface IRecord {
     coordinate: IPoint;
@@ -21,6 +24,7 @@ export interface IRecordContext {
     addRecordByKeyboard: (key: string, x: number, y: number, c: string) => void;
     deleteRecord: (key: string) => void;
     clearRecords: () => void;
+    setRecordByFile: (colorinfo: any) => void;
     p1: IPoint;
     p2: IPoint;
     setPoint1: (x: number, y: number, width: number, height: number) => void;
@@ -40,6 +44,7 @@ export const RecordContextDefaultValue: IRecordContext = {
     p2: { x: -1, y: -1 },
     setPoint1: () => null,
     setPoint2: () => null,
+    setRecordByFile: () => null,
     clearPoints: () => null,
     imgCover: '',
     refreshPoints: () => null,
@@ -52,6 +57,7 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
     const [p1, setP1] = useState<IPoint>({ x: -1, y: -1 });
     const [p2, setP2] = useState<IPoint>({ x: -1, y: -1 });
     const [imgCover, setImgCover] = useState<string>('');
+    const { activeJimp } = useContext(CaptrueContext);
 
     const addRecordByMouse = useCallback(
         (x: number, y: number, c: string) => {
@@ -77,6 +83,23 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
             setRecords(copy);
         },
         [records]
+    );
+    
+    //DEVTEMP 增加加载json信息的方法 
+    const setRecordByFile = useCallback(
+        (colorinfo: any) => {
+            clearRecords()
+            setRecords(colorinfo.records);
+            if (activeJimp) {
+                setPoint1(colorinfo.p1.x, colorinfo.p1.y, activeJimp.bitmap.width, activeJimp.bitmap.height);
+                setPoint2(colorinfo.p2.x, colorinfo.p2.y, activeJimp.bitmap.width, activeJimp.bitmap.height);
+            } else {
+                setP1(colorinfo.p1);
+                setP2(colorinfo.p2);
+            }
+            // setTitel(colorinfo.md5,colorinfo.label2)
+        },
+        [records,activeJimp]
     );
 
     const deleteRecord = useCallback(
@@ -177,6 +200,26 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
         [records]
     );
 
+    const handleMessage = useCallback(
+        async (event: MessageEvent) => {
+            const eventData: IVscodeMessageEventData = event.data;
+            switch (eventData.command) {
+                case 'load':
+                    const colorinfo = (eventData.data as { colorinfo: any }).colorinfo;
+                    setRecordByFile(colorinfo)
+                    break;
+                default:
+                    break;
+            }
+        },
+        [setRecordByFile]
+    );
+
+    useEffect(() => {
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [records, handleMessage]);
+
     return (
         <RecordContext.Provider
             value={{
@@ -192,6 +235,7 @@ const RecordContextProvider = (props: { children: React.ReactNode }) => {
                 clearPoints,
                 imgCover,
                 refreshPoints,
+                setRecordByFile,
             }}
         >
             {props.children}

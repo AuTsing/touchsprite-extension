@@ -6,16 +6,21 @@ import { CaptrueContext } from '../contexts/CaptureContext';
 import { RecordContext } from '../contexts/RecordContext';
 import { KeyboardContext } from '../contexts/KeyboardContext';
 
+// DEVTEMP 新增引入
+import { VscodeContext } from '../contexts/VscodeContext';
+
 export interface IPicProps {
     base64: string;
 }
 
 const Pic: FC<IPicProps> = ({ base64 }) => {
     const { x, y, c, updateCoordinate, resetCoordinate } = useContext(CoordinateContext);
-    const { activeJimp } = useContext(CaptrueContext);
+    const { activeJimp, captures, activeKey } = useContext(CaptrueContext);
     const { addRecordByMouse, addRecordByKeyboard, setPoint1, setPoint2, imgCover, refreshPoints } = useContext(RecordContext);
     const { listen, leave } = useContext(KeyboardContext);
     const imgContainer = useRef<HTMLDivElement>(undefined!);
+    // DEVTEMP 读取配置文件时用到
+    const vscode = useContext(VscodeContext);
 
     const handleMouseLeave = useCallback(() => {
         resetCoordinate();
@@ -90,6 +95,15 @@ const Pic: FC<IPicProps> = ({ base64 }) => {
                 setPoint2(x, y, activeJimp.bitmap.width, activeJimp.bitmap.height);
             } else if (key === 'r') {
                 refreshPoints(activeJimp);
+            } else if (key === 'l') {
+                //  DEVTEMP 临时测试,读取
+                const capture = captures.find(capture => capture.key === activeKey)
+                if (capture) {
+                    vscode.postMessage({
+                        command: 'loadImgInfo',
+                        data: capture.title
+                    });
+                } 
             }
         },
         [activeJimp, addRecordByKeyboard, c, handlePixelMove, refreshPoints, setPoint1, setPoint2, x, y]

@@ -3,7 +3,8 @@ import { createContext } from 'react';
 
 export interface IVscodeMessageEventData {
     command: string;
-    data: { message: string } | { imgs: string[] } | { templates: string };
+    // DEVTEMP 新增colorinfo
+    data: { message: string } | { imgs: string[] } | { templates: string } | { colorinfo: any };
 }
 
 export interface IPostdata {

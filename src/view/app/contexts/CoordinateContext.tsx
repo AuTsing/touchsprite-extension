@@ -74,7 +74,7 @@ const CoordinateContextProvider = (props: { children: React.ReactNode }) => {
                                             if (ii == 0 || ii == 13 || jj == 0 || jj == 13) {
                                                 previewJimp.setPixelColor(0xFF0000FF, x1, y1);
                                             }else{
-                                                previewJimp.setPixelColor(0xFFFFFFFF, x1, y1);
+                                                previewJimp.setPixelColor(0x00FF00FF, x1, y1);
                                             }
                                         }else{
                                             previewJimp.setPixelColor(cc, x1, y1);

@@ -7,7 +7,8 @@ import Ui from '../components/ui/Ui';
 
 export interface IVscodeMessageEventData {
     command: string;
-    data: { message: string } | { imgs: string[] } | { templates: string } | {};
+    // DEVTEMP 新增colorinfo
+    data: { message: string } | { imgs: string[] } | { templates: string } | { colorinfo: any };
 }
 
 export interface IPostdata {
@@ -71,6 +72,11 @@ class Snapshoter {
                     return;
                 }
                 switch (msg.command) {
+                    // DEVTEMP 新增两个方法
+                    case 'loadImgInfo':
+                        return this.handleLoadImgInfo(this.panel, msg.data);
+                    case 'saveImgInfo':
+                        return this.handleSaveImgInfo(this.panel, msg.data);
                     case 'loadImgFromDevice':
                         return this.handleLoadImgFromDevice(this.panel);
                     case 'loadImgFromLocal':
@@ -123,26 +129,27 @@ class Snapshoter {
                 command: 'add',
                 data: { imgs: [Buffer.from(resp1.data, resp1.data.byteLength).toString('base64')] },
             } as IVscodeMessageEventData);
-            const snapshotSavePath: string = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir') || '';
-            const snapshotClassifyByDpi: boolean = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotClassifyByDpi') || false;
-            if (snapshotSavePath) {
-                let dir = '';
-                if (snapshotClassifyByDpi) {
-                    const dpi = resp1.headers.width ? `${resp1.headers.width}_${resp1.headers.height}` : 'undefined';
-                    dir = path.join(snapshotSavePath, dpi);
-                } else {
-                    dir = snapshotSavePath;
-                }
-                if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir);
-                }
-                const url = path.join(dir, `PIC_${Date.now()}.png`);
-                fs.writeFile(url, resp1.data, 'binary', err => {
-                    if (err) {
-                        Ui.outputWarn(`保存截图至本地失败: ${err.toString()}`);
-                    }
-                });
-            }
+            // DEVTEMP 回头再改自动保存逻辑,暂时去除
+            // const snapshotSavePath: string = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir') || '';
+            // const snapshotClassifyByDpi: boolean = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotClassifyByDpi') || false;
+            // if (snapshotSavePath) {
+            //     let dir = '';
+            //     if (snapshotClassifyByDpi) {
+            //         const dpi = resp1.headers.width ? `${resp1.headers.width}_${resp1.headers.height}` : 'undefined';
+            //         dir = path.join(snapshotSavePath, dpi);
+            //     } else {
+            //         dir = snapshotSavePath;
+            //     }
+            //     if (!fs.existsSync(dir)) {
+            //         fs.mkdirSync(dir);
+            //     }
+            //     const url = path.join(dir, `PIC_${Date.now()}.png`);
+            //     fs.writeFile(url, resp1.data, 'binary', err => {
+            //         if (err) {
+            //             Ui.outputWarn(`保存截图至本地失败: ${err.toString()}`);
+            //         }
+            //     });
+            // }
         } catch (err) {
             if (err instanceof Error) {
                 panel.webview.postMessage({
@@ -165,7 +172,8 @@ class Snapshoter {
                     canSelectFiles: true,
                     canSelectFolders: false,
                     canSelectMany: true,
-                    filters: { Img: ['png'] },
+                    // DEVTEMP 临时新增json格式
+                    filters: { Img: ['png','color']},
                     defaultUri: this.extensionGlobalState.get<string>('defaultLoadingPath')
                         ? vscode.Uri.file(this.extensionGlobalState.get<string>('defaultLoadingPath')!)
                         : undefined,
@@ -174,11 +182,41 @@ class Snapshoter {
             }
             if (paths && paths.length > 0) {
                 this.extensionGlobalState.update('defaultLoadingPath', paths[0]);
-                const imgs = paths.map(p => Buffer.from(fs.readFileSync(p)).toString('base64'));
-                panel.webview.postMessage({
-                    command: 'add',
-                    data: { imgs },
-                } as IVscodeMessageEventData);
+                // DEVTEMP 临时增加读取json中的地址
+                if (paths.toString().slice(-5) == "color") {
+                    const colorinfo = JSON.parse(fs.readFileSync(paths.toString(), "utf8"))
+                    paths[0] = colorinfo.imgpath
+                    if (fs.existsSync(paths.toString())) {
+                        const imgs = paths.map(p => Buffer.from(fs.readFileSync(p)).toString('base64'));
+                        panel.webview.postMessage({
+                            command: 'add',
+                            data: { imgs, colorinfo},
+                        } as IVscodeMessageEventData);
+                    }else{
+                        panel.webview.postMessage({
+                            command: 'showMessage',
+                            data: { message: `配置图片文件不存在` },
+                        } as IVscodeMessageEventData);
+                    }
+                    panel.webview.postMessage({
+                        command: 'load',
+                        data: { colorinfo },
+                    } as IVscodeMessageEventData);
+                    panel.webview.postMessage({
+                        command: 'updateTitle',
+                        data: { colorinfo },
+                    } as IVscodeMessageEventData);
+                    panel.webview.postMessage({
+                        command: 'showMessage',
+                        data: { message: `取点配置成功导入` },
+                    } as IVscodeMessageEventData);
+                }else{
+                    const imgs = paths.map(p => Buffer.from(fs.readFileSync(p)).toString('base64'));
+                    panel.webview.postMessage({
+                        command: 'add',
+                        data: { imgs },
+                    } as IVscodeMessageEventData);
+                }
             } else {
                 panel.webview.postMessage({
                     command: 'loadedImg',
@@ -198,6 +236,59 @@ class Snapshoter {
             } as IVscodeMessageEventData);
         }
     }
+
+    //  DEVTEMP 临时测试,保存json
+    private handleSaveImgInfo(panel: vscode.WebviewPanel, data: any) {
+        const colorInfoSavePath: string = vscode.workspace.getConfiguration().get('touchsprite-extension.colorInfoDir') || '';
+        const snapshotSavePath: string = vscode.workspace.getConfiguration().get('touchsprite-extension.snapshotDir') || '';
+        
+        if (!fs.existsSync(colorInfoSavePath)) {
+            fs.mkdirSync(colorInfoSavePath);
+        }
+        const url = path.join(colorInfoSavePath, `${data.colorinfo.label2}.color`);
+        const imagePath = path.join(snapshotSavePath, `${data.colorinfo.md5}.png`);
+        if (!fs.existsSync(imagePath)) {
+            const dataBuffer = Buffer.from(data.base64.replace(/^data:image\/\w+;base64,/, ""), 'base64');
+            fs.writeFileSync(imagePath,dataBuffer)
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `保存图片成功` },
+            } as IVscodeMessageEventData);
+        }
+        data.colorinfo.imgpath = imagePath
+        fs.writeFileSync(url,JSON.stringify(data.colorinfo))
+        panel.webview.postMessage({
+            command: 'updateTitle',
+            data: { colorinfo: data.colorinfo },
+        } as IVscodeMessageEventData);
+        panel.webview.postMessage({
+            command: 'showMessage',
+            data: { message: `保存取色成功` },
+        } as IVscodeMessageEventData);
+    }
+
+        //  DEVTEMP 临时测试,读取json
+        private handleLoadImgInfo(panel: vscode.WebviewPanel, data: any) {
+            const colorInfoSavePath: string = vscode.workspace.getConfiguration().get('touchsprite-extension.colorInfoDir') || '';
+            const colorinfofile = path.join(colorInfoSavePath, `${data}.color`);
+            if (!fs.existsSync(colorinfofile)) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `未找到配置文件` },
+                } as IVscodeMessageEventData);
+            }else{
+                const colorinfo = JSON.parse(fs.readFileSync(colorinfofile, "utf8"))
+                panel.webview.postMessage({
+                    command: 'load',
+                    data: { colorinfo },
+                } as IVscodeMessageEventData);
+            }
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `配置载入成功` },
+            } as IVscodeMessageEventData);
+        }
+    
 
     private handleLoadTemplates(panel: vscode.WebviewPanel) {
         try {

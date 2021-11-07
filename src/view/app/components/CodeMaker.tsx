@@ -5,6 +5,8 @@ import { Button, Modal, Form, Input, message, Table } from 'antd';
 import { VscodeContext, IVscodeMessageEventData } from '../contexts/VscodeContext';
 import { RecordContext } from '../contexts/RecordContext';
 import { KeyboardContext } from '../contexts/KeyboardContext';
+// DEVTEMP 新增引用
+import { CaptrueContext } from '../contexts/CaptureContext';
 
 const { Column } = Table;
 
@@ -17,6 +19,8 @@ const CodeMaker: FC = () => {
     const vscode = useContext(VscodeContext);
     const { records, p1, p2, clearRecords, clearPoints } = useContext(RecordContext);
     const { listen, leave } = useContext(KeyboardContext);
+    // DEVTMEP 新增图像
+    const { captures, activeKey} = useContext(CaptrueContext);
 
     const [templates, setTemplates] = useState<ITemplate[]>([
         { key: '1', content: "{'untitled',{$pointList}}," },
@@ -91,7 +95,7 @@ const CodeMaker: FC = () => {
                     break;
                 default:
                     break;
-            }
+            }            
             const pointStringList = unEmptyRecords.map(record => `{${record.coordinate.x},${record.coordinate.y},${record.color}}`);
             const delta = unEmptyRecords.map(
                 record => `${record.coordinate.x - unEmptyRecords[0].coordinate.x}|${record.coordinate.y - unEmptyRecords[0].coordinate.y}|${record.color}`
@@ -158,9 +162,32 @@ const CodeMaker: FC = () => {
                 clearRecords();
             } else if (key === 'x') {
                 clearPoints();
+            //DEVTEMP 临时增加p,因为暂时使用模板的数据作为记录测试,所以放到这里
+            } else if (key === 'p') {
+                //  DEVTEMP 临时测试,保存json
+                const unEmptyRecords = records.filter(record => record.coordinate.x !== -1 || record.coordinate.y !== -1);
+                const capture = captures.find(capture => capture.key === activeKey)
+                if (capture){ 
+                    vscode.postMessage({
+                        command: 'saveImgInfo',
+                        data: {
+                            colorinfo: {
+                                records: unEmptyRecords,
+                                p1: p1,
+                                p2: p2,
+                                imgpath: '',
+                                md5: capture.key,
+                                label1: templates[3].content,
+                                label2: templates[4].content
+
+                            },
+                            base64: capture.base64,
+                        },
+                    });
+                }
             }
         },
-        [clearPoints, clearRecords, makeCode]
+        [clearPoints, clearRecords, makeCode, captures]
     );
 
     useEffect(() => {
