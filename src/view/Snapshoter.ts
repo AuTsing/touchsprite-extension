@@ -245,6 +245,9 @@ class Snapshoter {
         if (!fs.existsSync(colorInfoSavePath)) {
             fs.mkdirSync(colorInfoSavePath);
         }
+        if (!fs.existsSync(snapshotSavePath)) {
+            fs.mkdirSync(snapshotSavePath);
+        }
         const url = path.join(colorInfoSavePath, `${data.colorinfo.label2}.color`);
         const imagePath = path.join(snapshotSavePath, `${data.colorinfo.md5}.png`);
         if (!fs.existsSync(imagePath)) {
@@ -276,6 +279,7 @@ class Snapshoter {
                     command: 'showMessage',
                     data: { message: `未找到配置文件` },
                 } as IVscodeMessageEventData);
+                return
             }else{
                 const colorinfo = JSON.parse(fs.readFileSync(colorinfofile, "utf8"))
                 panel.webview.postMessage({
