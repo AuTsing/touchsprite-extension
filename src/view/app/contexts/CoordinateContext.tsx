@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { createContext, useState, useCallback } from 'react';
+import { createContext, useState, useCallback, useContext } from 'react';
 import Jimp from 'jimp/es';
+
+import { SettingContext } from '../contexts/SettingContext';
 
 export interface ICoordinateContext {
     x: number;
@@ -32,6 +34,8 @@ const zoomDisplayRatio = 14;
 const zoomSideLengthDisplay = zoomSideLength * zoomDisplayRatio;
 
 const CoordinateContextProvider = (props: { children: React.ReactNode }) => {
+    const { showSamePixelInZoomValue } = useContext(SettingContext);
+
     const [x, setX] = useState<number>(-1);
     const [y, setY] = useState<number>(-1);
     const [c, setC] = useState<string>('0x000000');
@@ -43,6 +47,7 @@ const CoordinateContextProvider = (props: { children: React.ReactNode }) => {
         setY(-1);
         setC('0x000000');
         setPreview(defaultPreview);
+        setPreviewCover(defaultPreview);
     }, []);
 
     const updateCoordinate = useCallback(
@@ -74,41 +79,43 @@ const CoordinateContextProvider = (props: { children: React.ReactNode }) => {
                 });
             });
 
-            new Jimp(zoomSideLengthDisplay, zoomSideLengthDisplay, 0, (_, previewJimp) => {
-                for (let i = -zoomRadius; i <= zoomRadius; ++i) {
-                    for (let j = -zoomRadius; j <= zoomRadius; ++j) {
-                        const xx = i + x0;
-                        const yy = j + y0;
-                        if (xx >= 0 && xx < activeJimp.bitmap.width && yy >= 0 && yy < activeJimp.bitmap.height) {
-                            const cc = activeJimp.getPixelColor(xx, yy);
-                            if (cc === c0) {
-                                for (let i2 = 1; i2 <= zoomDisplayRatio; ++i2) {
-                                    for (let j2 = 1; j2 <= zoomDisplayRatio; ++j2) {
-                                        if (i2 === 1 || i2 === zoomDisplayRatio || j2 === 1 || j2 === zoomDisplayRatio) {
-                                            previewJimp.setPixelColor(
-                                                0xff0000ff,
-                                                (i + zoomRadius) * zoomDisplayRatio + i2,
-                                                (j + zoomRadius) * zoomDisplayRatio + j2
-                                            );
-                                        } else if (i2 === 2 || i2 === zoomDisplayRatio - 1 || j2 === 2 || j2 === zoomDisplayRatio - 1) {
-                                            previewJimp.setPixelColor(
-                                                0xffffffff,
-                                                (i + zoomRadius) * zoomDisplayRatio + i2,
-                                                (j + zoomRadius) * zoomDisplayRatio + j2
-                                            );
+            if (showSamePixelInZoomValue) {
+                new Jimp(zoomSideLengthDisplay, zoomSideLengthDisplay, 0, (_, previewJimp) => {
+                    for (let i = -zoomRadius; i <= zoomRadius; ++i) {
+                        for (let j = -zoomRadius; j <= zoomRadius; ++j) {
+                            const xx = i + x0;
+                            const yy = j + y0;
+                            if (xx >= 0 && xx < activeJimp.bitmap.width && yy >= 0 && yy < activeJimp.bitmap.height) {
+                                const cc = activeJimp.getPixelColor(xx, yy);
+                                if (cc === c0) {
+                                    for (let i2 = 1; i2 <= zoomDisplayRatio; ++i2) {
+                                        for (let j2 = 1; j2 <= zoomDisplayRatio; ++j2) {
+                                            if (i2 === 1 || i2 === zoomDisplayRatio || j2 === 1 || j2 === zoomDisplayRatio) {
+                                                previewJimp.setPixelColor(
+                                                    0xff0000ff,
+                                                    (i + zoomRadius) * zoomDisplayRatio + i2,
+                                                    (j + zoomRadius) * zoomDisplayRatio + j2
+                                                );
+                                            } else if (i2 === 2 || i2 === zoomDisplayRatio - 1 || j2 === 2 || j2 === zoomDisplayRatio - 1) {
+                                                previewJimp.setPixelColor(
+                                                    0xffffffff,
+                                                    (i + zoomRadius) * zoomDisplayRatio + i2,
+                                                    (j + zoomRadius) * zoomDisplayRatio + j2
+                                                );
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                previewJimp.getBase64(Jimp.MIME_PNG, (_, base64) => {
-                    setPreviewCover(base64);
+                    previewJimp.getBase64(Jimp.MIME_PNG, (_, base64) => {
+                        setPreviewCover(base64);
+                    });
                 });
-            });
+            }
         },
-        [resetCoordinate]
+        [resetCoordinate, showSamePixelInZoomValue]
     );
 
     return (
