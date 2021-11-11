@@ -179,7 +179,7 @@ export default class Api {
                 auth: auth,
                 root: 'lua',
                 path: '/',
-                file: file,
+                file: encodeURIComponent(file),
             },
         });
     }
