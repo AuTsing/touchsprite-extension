@@ -3,7 +3,7 @@ import { FC, useContext } from 'react';
 import { CoordinateContext } from '../contexts/CoordinateContext';
 
 const Zoom: FC = () => {
-    const { preview } = useContext(CoordinateContext);
+    const { preview, previewCover } = useContext(CoordinateContext);
 
     return (
         <div className='zoom-container'>
@@ -13,6 +13,7 @@ const Zoom: FC = () => {
                 alt=''
                 draggable='false'
             />
+            <img className='zoom-cover' src={previewCover} alt='' draggable='false' />
             <img className='zoom-content' src={preview} alt='' draggable='false' />
         </div>
     );
