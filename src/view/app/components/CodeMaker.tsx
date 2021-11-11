@@ -171,9 +171,9 @@ const CodeMaker: FC = () => {
     return (
         <div>
             <Button type='primary' size='large' onClick={() => setVisible(true)}>
-                模板设置
+                生成代码
             </Button>
-            <Modal title='模板设置' visible={visible} okText='保存' cancelText='取消' onOk={handleOk} confirmLoading={confirmLoading} onCancel={handleCancel}>
+            <Modal title='生成代码' visible={visible} okText='保存' cancelText='取消' onOk={handleOk} confirmLoading={confirmLoading} onCancel={handleCancel}>
                 <Form
                     form={form}
                     name='templatesForm'
@@ -185,19 +185,19 @@ const CodeMaker: FC = () => {
                         template5: templates[4].content,
                     }}
                 >
-                    <Form.Item name='template1' label='模板1'>
+                    <Form.Item name='template1' label='模板1(F键生成)'>
                         <Input />
                     </Form.Item>
-                    <Form.Item name='template2' label='模板2'>
+                    <Form.Item name='template2' label='模板2(G键生成)'>
                         <Input />
                     </Form.Item>
-                    <Form.Item name='template3' label='模板3'>
+                    <Form.Item name='template3' label='模板3(H键生成)'>
                         <Input />
                     </Form.Item>
-                    <Form.Item name='template4' label='模板4'>
+                    <Form.Item name='template4' label='模板4(J键生成)'>
                         <Input />
                     </Form.Item>
-                    <Form.Item name='template5' label='模板5'>
+                    <Form.Item name='template5' label='模板5(K键生成)'>
                         <Input />
                     </Form.Item>
                 </Form>

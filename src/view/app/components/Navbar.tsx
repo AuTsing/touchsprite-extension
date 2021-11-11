@@ -7,6 +7,7 @@ import { CaptrueContext } from '../contexts/CaptureContext';
 import CodeMaker from './CodeMaker';
 import PicComparator from './PicComparator';
 import Ziku from './Ziku';
+import Setting from './Setting';
 
 const Navbar: FC = () => {
     const vscode = useContext(VscodeContext);
@@ -30,9 +31,10 @@ const Navbar: FC = () => {
             <Button type='primary' size='large' onClick={handleLoadImgFromLocal} loading={captureLoading} disabled={captureLoading}>
                 本地打开
             </Button>
-            <CodeMaker />
             <PicComparator />
             <Ziku />
+            <CodeMaker />
+            <Setting />
         </Space>
     );
 };

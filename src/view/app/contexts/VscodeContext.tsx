@@ -3,7 +3,7 @@ import { createContext } from 'react';
 
 export interface IVscodeMessageEventData {
     command: string;
-    data: { message: string } | { imgs: string[] } | { templates: string };
+    data: { message: string } | { imgs: string[] } | { templates: string } | { key: string; value: any };
 }
 
 export interface IPostdata {

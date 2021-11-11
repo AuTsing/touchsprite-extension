@@ -21,7 +21,7 @@ export const KeyboardContext = createContext<IKeyboardContext>(KeyboardContextDe
 let listeners: { type: string; listener: () => void }[] = [];
 let pauseList: { type: string; listener: () => void }[] = [];
 
-export const KeyboardContextProvider = (props: { children: React.ReactNode }) => {
+const KeyboardContextProvider = (props: { children: React.ReactNode }) => {
     const listen = useCallback((type: string, listener: (...args: any) => void) => {
         window.addEventListener(type, listener);
         listeners.push({ type, listener });
@@ -67,3 +67,5 @@ export const KeyboardContextProvider = (props: { children: React.ReactNode }) =>
         </KeyboardContext.Provider>
     );
 };
+
+export default KeyboardContextProvider;

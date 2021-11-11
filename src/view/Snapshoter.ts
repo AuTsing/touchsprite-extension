@@ -83,6 +83,10 @@ class Snapshoter {
                         return this.handleSaveTemplates(this.panel, msg.data);
                     case 'copy':
                         return this.handleCopy(this.panel, msg.data);
+                    case 'putValue':
+                        return this.handlePutValue(this.panel, msg.data.key, msg.data.value);
+                    case 'getValue':
+                        return this.handleGetValue(this.panel, msg.data.key);
                     default:
                         Ui.output(`取色器操作失败: 未知命令 "${msg.command}"`);
                 }
@@ -240,6 +244,40 @@ class Snapshoter {
                 panel.webview.postMessage({
                     command: 'showMessage',
                     data: { message: `复制失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
+        }
+    }
+
+    private handlePutValue(panel: vscode.WebviewPanel, key: string, data: any) {
+        try {
+            this.extensionGlobalState.update(key, data);
+            panel.webview.postMessage({
+                command: 'showMessage',
+                data: { message: `保存成功` },
+            } as IVscodeMessageEventData);
+        } catch (err) {
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `保存失败: ${err.toString()}` },
+                } as IVscodeMessageEventData);
+            }
+        }
+    }
+
+    private handleGetValue(panel: vscode.WebviewPanel, key: string) {
+        try {
+            const data = this.extensionGlobalState.get(key);
+            panel.webview.postMessage({
+                command: 'getValue-' + key,
+                data: { key: key, value: data },
+            } as IVscodeMessageEventData);
+        } catch (err) {
+            if (err instanceof Error) {
+                panel.webview.postMessage({
+                    command: 'showMessage',
+                    data: { message: `读取失败: ${err.toString()}` },
                 } as IVscodeMessageEventData);
             }
         }
