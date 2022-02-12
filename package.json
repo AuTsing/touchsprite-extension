@@ -1,0 +1,73 @@
+{
+    "name": "touchsprite-extension",
+    "displayName": "TouchSprite Extension",
+    "description": "用于触动精灵脚本开发的插件",
+    "version": "0.0.1",
+    "publisher": "autsing",
+    "keywords": [
+        "touchsprite",
+        "触动精灵",
+        "触动"
+    ],
+    "engines": {
+        "vscode": "^1.64.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onLanguage:lua"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "configuration": {
+            "title": "触动精灵开发插件",
+            "properties": {
+                "touchsprite-extension.accessKey": {
+                    "type": "string",
+                    "default": "",
+                    "description": "开发者AccessKey，可在开发者后台中获取，获取详情请查看插件介绍页"
+                },
+                "touchsprite-extension.cookie": {
+                    "type": "string",
+                    "default": "",
+                    "description": "登陆Cookie，发布版本用，可在开发者后台网页中获取，获取详情请查看插件介绍页"
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "touchsprite-extension.attach-device-by-input",
+                "title": "触动插件: 连接设备(手动输入)"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run package",
+        "compile": "webpack",
+        "watch": "webpack --watch",
+        "package": "webpack --mode production --devtool hidden-source-map",
+        "compile-tests": "tsc -p . --outDir out",
+        "watch-tests": "tsc -p . -w --outDir out",
+        "pretest": "npm run compile-tests && npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.2.0",
+        "@types/mocha": "^9.0.0",
+        "@types/node": "14.x",
+        "@types/vscode": "^1.64.0",
+        "@typescript-eslint/eslint-plugin": "^5.9.1",
+        "@typescript-eslint/parser": "^5.9.1",
+        "@vscode/test-electron": "^2.0.3",
+        "axios": "^0.25.0",
+        "eslint": "^8.6.0",
+        "glob": "^7.2.0",
+        "mocha": "^9.1.3",
+        "ts-loader": "^9.2.6",
+        "typescript": "^4.5.4",
+        "webpack": "^5.66.0",
+        "webpack-cli": "^4.9.1"
+    }
+}
