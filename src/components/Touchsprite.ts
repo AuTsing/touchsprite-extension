@@ -1,9 +1,9 @@
 import * as Vscode from 'vscode';
-import * as Path from 'path';
-import * as Fs from 'fs';
+import * as Os from 'os';
 import Axios from 'axios';
 import Device from './Device';
 import * as Ui from './Ui';
+import DeviceSearcher from './DeviceSearcher';
 
 interface ITsOpenApiResponseData {
     status: number;
@@ -16,8 +16,9 @@ interface ITsOpenApiResponseData {
 
 export default class Touchsprite {
     private usingDevice?: Device;
-    private output: Ui.Output;
-    private statusBar: Ui.StatusBar;
+    private hostIp?: string;
+    private readonly output: Ui.Output;
+    private readonly statusBar: Ui.StatusBar;
 
     constructor() {
         this.output = Ui.useOutput();
@@ -32,12 +33,13 @@ export default class Touchsprite {
             valid: 3600,
             time: Math.floor(Date.now() / 1000),
         });
+        const postDataLength = Buffer.byteLength(postData);
         const resp = await Axios.post<ITsOpenApiResponseData>(`/api/openapi`, postData, {
             baseURL: 'http://openapi.touchsprite.com',
             headers: {
                 Connection: 'close',
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData),
+                'Content-Length': postDataLength,
             },
         });
         if (!resp.data.auth) {
@@ -59,6 +61,32 @@ export default class Touchsprite {
         return accessKey;
     }
 
+    public getHostIp(): string {
+        if (!this.hostIp) {
+            const interfaces = Os.networkInterfaces();
+            for (const interfaceKey in interfaces) {
+                if (interfaceKey.toLocaleLowerCase().indexOf('vmware') >= 0) {
+                    continue;
+                }
+                if (interfaceKey.toLocaleLowerCase().indexOf('virtualbox') >= 0) {
+                    continue;
+                }
+                for (const alias of interfaces[interfaceKey]!) {
+                    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                        this.hostIp = alias.address;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!this.hostIp) {
+            throw Error('无法获取本机IP');
+        }
+
+        return this.hostIp;
+    }
+
     private async attachDevice(ip: string): Promise<Device> {
         const accessKey = await this.getAccessKey();
         const axios = Axios.create({ baseURL: `http://${ip}:50005`, timeout: 10000 });
@@ -66,19 +94,11 @@ export default class Touchsprite {
         const auth = await this.getAuth(accessKey, id);
         const name = (await axios.get<string>('/devicename', { headers: { Connection: 'close', 'Content-Length': 0, auth } })).data;
 
-        const selectedPlatform = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('platform') ?? '自动';
-        let platform!: string;
-        if (selectedPlatform === '自动') {
-            if (name === 'iPhone') {
-                platform = 'ios';
-            } else {
-                platform = 'android';
-            }
-        }
-        if (selectedPlatform === '苹果') {
+        let platform!: 'ios' | 'android';
+        if (id.length === 32) {
             platform = 'ios';
         }
-        if (selectedPlatform === '安卓') {
+        if (id.length === 33) {
             platform = 'android';
         }
 
@@ -111,5 +131,21 @@ export default class Touchsprite {
         doing.dispose();
     }
 
-    public async attachDeviceBySearch() {}
+    public async attachDeviceBySearch() {
+        let doing: Ui.StatusBarItem | undefined;
+        const deviceSearcher = new DeviceSearcher(this);
+        try {
+            const device = await deviceSearcher.search();
+            doing = this.statusBar.doing('连接中');
+            await this.attachDevice(device.ip);
+            console.log(this.usingDevice);
+            
+            this.statusBar.attach(device.ip);
+        } catch (e) {
+            this.output.error('连接设备失败: ' + (e as Error).message);
+        }
+        if (doing) {
+            doing.dispose();
+        }
+    }
 }

@@ -76,7 +76,7 @@ export class Pop {
     }
 }
 
-class StatusBarItem {
+export class StatusBarItem {
     public prefix: string;
     public text: string;
     public surfix: string;

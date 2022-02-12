@@ -5,6 +5,7 @@ import { useOutput } from './components/Ui';
 export function activate(context: Vscode.ExtensionContext) {
     const touchsprite = new Touchsprite();
     context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.attach-device-by-input', () => touchsprite.attachDeviceByInput()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.attach-device-by-search', () => touchsprite.attachDeviceBySearch()));
 
     const output = useOutput();
     output.info('触动插件已启用', 1);

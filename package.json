@@ -39,6 +39,10 @@
             {
                 "command": "touchsprite-extension.attach-device-by-input",
                 "title": "触动插件: 连接设备(手动输入)"
+            },
+            {
+                "command": "touchsprite-extension.attach-device-by-search",
+                "title": "触动插件: 连接设备(搜索设备)"
             }
         ]
     },
