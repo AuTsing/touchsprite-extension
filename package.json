@@ -132,6 +132,10 @@
             {
                 "command": "touchsprite-extension.clear-script",
                 "title": "触动插件: 清空脚本"
+            },
+            {
+                "command": "touchsprite-extension.zip-project",
+                "title": "触动插件: 打包工程"
             }
         ]
     },
@@ -157,6 +161,7 @@
         "axios": "^0.25.0",
         "eslint": "^8.6.0",
         "glob": "^7.2.0",
+        "jszip": "^3.7.1",
         "mocha": "^9.1.3",
         "ts-loader": "^9.2.6",
         "typescript": "^4.5.4",

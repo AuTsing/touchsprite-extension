@@ -1,6 +1,7 @@
 import * as Vscode from 'vscode';
 import * as Os from 'os';
 import * as Path from 'path';
+import * as Net from 'net';
 import Axios from 'axios';
 import * as Ui from './Ui';
 import Device, { ETsFileRoot, ITsFile, ETsApiStatusResponseData } from './Device';
@@ -30,6 +31,18 @@ export default class Touchsprite {
         this.output = Ui.useOutput();
         this.statusBar = Ui.useStatusBar();
         this.loggerPort = Math.round(Math.random() * (20000 - 24999 + 1) + 24999);
+        this.runLogger();
+    }
+
+    private async runLogger() {
+        const logger = Net.createServer(socket => {
+            socket.on('data', data => this.output.info(data.toString('utf8', 4, data.length - 2)));
+        });
+        logger.on('error', e => {
+            logger.close();
+            this.output.error('日志服务器启用失败，这可能导致设备日志无法正常接收: ' + e.message);
+        });
+        logger.listen(this.loggerPort);
     }
 
     private async getAuth(accessKey: string, id: string): Promise<string> {
