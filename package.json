@@ -24,14 +24,75 @@
             "title": "触动精灵开发插件",
             "properties": {
                 "touchsprite-extension.accessKey": {
+                    "description": "开发者AccessKey，可在开发者后台中获取，获取详情请查看插件介绍页",
                     "type": "string",
-                    "default": "",
-                    "description": "开发者AccessKey，可在开发者后台中获取，获取详情请查看插件介绍页"
+                    "default": ""
                 },
                 "touchsprite-extension.cookie": {
+                    "description": "登陆Cookie，发布版本用，可在开发者后台网页中获取，获取详情请查看插件介绍页",
                     "type": "string",
-                    "default": "",
-                    "description": "登陆Cookie，发布版本用，可在开发者后台网页中获取，获取详情请查看插件介绍页"
+                    "default": ""
+                },
+                "touchsprite-extension.snapOrient": {
+                    "description": "截图方向",
+                    "type": "string",
+                    "default": "home键在右",
+                    "enum": [
+                        "home键在下",
+                        "home键在右",
+                        "home键在左"
+                    ]
+                },
+                "touchsprite-extension.snapDir": {
+                    "description": "截图保存文件夹",
+                    "type": "string",
+                    "default": ""
+                },
+                "touchsprite-extension.includeWhenSend": {
+                    "description": "发送工程包含文件(夹)，请填写绝对路径，发送工程时以下文件(夹)会被发送至设备",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "touchsprite-extension.excludeWhenSend": {
+                    "description": "发送工程排除文件(夹)，请填写文件(夹)名，发送工程时以下文件(夹)不会被发送至设备",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        ".git",
+                        ".gitignore",
+                        ".vscode",
+                        "CHANGELOG.md"
+                    ]
+                },
+                "touchsprite-extension.includeWhenZip": {
+                    "description": "打包工程包含文件(夹)，请填写绝对路径，打包工程时以下文件(夹)会被打包",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "touchsprite-extension.excludeWhenZip": {
+                    "description": "打包工程排除文件(夹)，请填写文件(夹)名，打包工程时以下文件(夹)不会被打包",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        ".git",
+                        ".gitignore",
+                        ".vscode",
+                        "maintest.lua",
+                        "CHANGELOG.md"
+                    ]
+                },
+                "touchsprite-extension.mainTestFilename": {
+                    "description": "测试工程引导文件名",
+                    "type": "string",
+                    "default": "maintest.lua"
                 }
             }
         },
@@ -43,6 +104,34 @@
             {
                 "command": "touchsprite-extension.attach-device-by-search",
                 "title": "触动插件: 连接设备(搜索设备)"
+            },
+            {
+                "command": "touchsprite-extension.detach-device",
+                "title": "触动插件: 断开连接"
+            },
+            {
+                "command": "touchsprite-extension.run-project",
+                "title": "触动插件: 运行工程"
+            },
+            {
+                "command": "touchsprite-extension.run-test-project",
+                "title": "触动插件: 运行测试工程"
+            },
+            {
+                "command": "touchsprite-extension.run-script",
+                "title": "触动插件: 运行当前脚本"
+            },
+            {
+                "command": "touchsprite-extension.stop-script",
+                "title": "触动插件: 停止运行"
+            },
+            {
+                "command": "touchsprite-extension.upload-files",
+                "title": "触动插件: 上传文件"
+            },
+            {
+                "command": "touchsprite-extension.clear-script",
+                "title": "触动插件: 清空脚本"
             }
         ]
     },

@@ -18,7 +18,7 @@ export enum ETsFileRoot {
     res = 'res',
 }
 
-export interface ITsUploadFile {
+export interface ITsFile {
     url: string;
     root: ETsFileRoot;
     path: string;
@@ -27,8 +27,8 @@ export interface ITsUploadFile {
 
 export interface ITsApiFileListResponseData {
     ret: boolean;
-    Dirs: string[];
-    Files: string[];
+    Dirs?: string[];
+    Files?: string[];
 }
 
 export default class Device {
@@ -79,7 +79,7 @@ export default class Device {
         }
     }
 
-    public async upload(file: ITsUploadFile): Promise<boolean> {
+    public async upload(file: ITsFile): Promise<boolean> {
         const postData = Fs.readFileSync(file.url);
         const postDataLength = Buffer.byteLength(postData);
         const root = encodeURIComponent(file.root);
@@ -149,7 +149,7 @@ export default class Device {
     }
 
     public async setLuaPath(filename: string): Promise<boolean> {
-        const path = Path.join(this.userPath, 'lua', filename);
+        const path = Path.join(this.userPath, 'lua', filename).replace(/\\/g, '/');
         const postData = JSON.stringify({ path });
         const postDataLength = Buffer.byteLength(postData);
 

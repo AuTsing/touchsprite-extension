@@ -81,12 +81,10 @@ export class StatusBarItem {
     public text: string;
     public surfix: string;
     private readonly list: StatusBarItem[];
-    private readonly refresh: () => void;
 
-    constructor(text: string, list: StatusBarItem[], refresh: () => void, prefix: string = '', surfix: string = '') {
+    constructor(text: string, list: StatusBarItem[], prefix: string = '', surfix: string = '') {
         this.text = text;
         this.list = list;
-        this.refresh = refresh;
         this.prefix = prefix;
         this.surfix = surfix;
     }
@@ -101,7 +99,6 @@ export class StatusBarItem {
 
     public updateProgress(percent: number) {
         this.prefix = `${Math.round(percent * 100)}%`;
-        this.refresh();
     }
 }
 
@@ -116,7 +113,7 @@ export class StatusBar {
         this.tasks = [];
         this.devices = [];
         this.txts = [];
-        this.txts.push(new StatusBarItem('触动插件', this.txts, this.refresh, '📴'));
+        this.txts.push(new StatusBarItem('触动插件', this.txts, '📴'));
 
         this.statusBar = Vscode.window.createStatusBarItem(Vscode.StatusBarAlignment.Left);
         this.statusBar.tooltip = '触动插件: 命令菜单';
@@ -162,14 +159,14 @@ export class StatusBar {
     }
 
     public attach(ip: string) {
-        const device = new StatusBarItem(ip, this.devices, this.refresh, '📱');
+        const device = new StatusBarItem(ip, this.devices, '📱');
         this.devices.push(device);
         this.refresh();
         return device;
     }
 
     public doing(text: string) {
-        const task = new StatusBarItem(text, this.tasks, this.refresh, '$(loading~spin)', '...');
+        const task = new StatusBarItem(text, this.tasks, '$(loading~spin)', '...');
         this.tasks.push(task);
         this.refresh();
         return task;
