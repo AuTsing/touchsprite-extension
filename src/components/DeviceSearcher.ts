@@ -70,7 +70,7 @@ export default class DeviceSearcher {
                     searcher.close();
                     sender.close();
                     doing.dispose();
-                    this.output.info(`搜索完成: 共搜索到 ${devices.length} 台设备`);
+                    this.output.info(`搜索成功: 共搜索到 ${devices.length} 台设备`);
                 }, 3000);
             });
         });

@@ -1,4 +1,5 @@
 import * as Vscode from 'vscode';
+import Releaser from './components/Releaser';
 import Touchsprite from './components/Touchsprite';
 import { useOutput } from './components/Ui';
 import Zipper from './components/Zipper';
@@ -17,6 +18,9 @@ export function activate(context: Vscode.ExtensionContext) {
 
     const zipper = new Zipper();
     context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.zip-project', () => zipper.zipProject()));
+
+    const releaser = new Releaser();
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.release-project', () => releaser.release()));
 
     const output = useOutput();
     output.info('触动插件已启用', 1);

@@ -136,6 +136,10 @@
             {
                 "command": "touchsprite-extension.zip-project",
                 "title": "触动插件: 打包工程"
+            },
+            {
+                "command": "touchsprite-extension.release-project",
+                "title": "触动插件: 发布工程"
             }
         ]
     },
@@ -159,9 +163,12 @@
         "@typescript-eslint/parser": "^5.9.1",
         "@vscode/test-electron": "^2.0.3",
         "axios": "^0.25.0",
+        "changelog-parser": "^2.8.0",
         "eslint": "^8.6.0",
+        "form-data": "^4.0.0",
         "glob": "^7.2.0",
         "jszip": "^3.7.1",
+        "luaparse": "^0.3.1",
         "mocha": "^9.1.3",
         "ts-loader": "^9.2.6",
         "typescript": "^4.5.4",
