@@ -1,4 +1,4 @@
-# Change Log
+# Touchsprite Extension Change Log
 
 ## [2.0.0]
 
