@@ -14,6 +14,13 @@ export interface ILuaconfigTable {
     version?: string;
 }
 
+export interface ITsScriptInfo {
+    name: string;
+    version: string;
+    encrypt: string;
+    updatedAt: string;
+}
+
 export default class Releaser {
     private readonly output: Ui.Output;
     private readonly statusBar: Ui.StatusBar;
@@ -234,32 +241,49 @@ export default class Releaser {
         return changelog;
     }
 
-    private async getEncrypt(id: string): Promise<string> {
+    private async getProjectInfo(id: string): Promise<ITsScriptInfo> {
         const resp = await this.updater.get('https://dev.touchsprite.com/touch/script/view', { params: { id: id } });
         if (resp.data.code !== 200 || resp.data.msg !== '查询成功') {
-            throw new Error('查询脚本状态失败，' + resp.data.msg);
+            throw new Error(resp.data.msg ?? resp.data.code ?? '查询脚本状态失败');
         }
 
-        const encrypt = resp.data.data.version.encrypt_mode.substring(1);
+        const name = resp.data.data?.details?.name;
+        if (!name) {
+            throw new Error('获取脚本名失败');
+        }
+
+        const version = resp.data.data?.version?.version;
+        if (!version) {
+            throw new Error('获取脚本版本号失败');
+        }
+
+        const encrypt = resp.data.data?.version?.encrypt_mode?.substring(1);
         if (!encrypt) {
             throw new Error('获取脚本加密模式失败');
         }
 
-        return encrypt;
+        const updatedAt = resp.data.data?.version?.created_at;
+        if (!updatedAt) {
+            throw new Error('获取脚本更新日期失败');
+        }
+
+        return { name, version, encrypt, updatedAt };
     }
 
-    private async uploadZip(zip: string): Promise<string> {
+    private async uploadProject(zip: string): Promise<string> {
         const zipStream = Fs.createReadStream(zip);
         const formData = new FormData();
         formData.append('ScriptUpload[file]', zipStream);
         const formHeaders = formData.getHeaders();
 
-        const resp = await this.updater.post('https://dev.touchsprite.com/touch/script/upload', formData, { headers: formHeaders });
+        const resp = await this.updater.post('https://dev.touchsprite.com/touch/script/upload', formData, {
+            headers: formHeaders,
+        });
         if (resp.data.code !== 200 || resp.data.msg !== '上传成功') {
-            throw new Error('上传脚本失败');
+            throw new Error(resp.data.msg ?? resp.data.code ?? '上传失败');
         }
 
-        const uploadKey = resp.data;
+        const uploadKey = resp.data.data?.key;
         if (!uploadKey) {
             throw new Error('获取上传密钥失败');
         }
@@ -267,25 +291,51 @@ export default class Releaser {
         return uploadKey;
     }
 
+    private async updateProject(id: string, version: string, changelog: string, encrypt: string, uploadKey: string) {
+        const formData = new FormData();
+        formData.append('is_default', 'true');
+        formData.append('script_id', id);
+        formData.append('version', version);
+        formData.append('encrypt_mode', encrypt);
+        formData.append('updated_logs', changelog);
+        formData.append('key', uploadKey);
+        const formHeaders = formData.getHeaders();
+
+        const resp = await this.updater.post('https://dev.touchsprite.com/touch/script/version', formData, {
+            headers: formHeaders,
+        });
+        if (resp.data.code !== 200 || resp.data.msg !== '版本上传成功') {
+            throw new Error(resp.data.msg ?? resp.data.code ?? '更新版本失败');
+        }
+    }
+
     public async release(): Promise<void> {
+        const doing = this.statusBar.doing('发布工程中');
         try {
             const projector = new Projector(undefined, EProjectMode.zip);
             const root = projector.locateRoot();
 
             const zipper = new Zipper();
             const zip = await zipper.zipProject();
+            if (!zip) {
+                throw new Error('打包失败');
+            }
 
             this.loadLuaconfig(root);
             const id = await this.getId();
             const version = await this.getVersion();
             const changelog = await this.getChangelog(root, version);
             await this.login();
-            const encrypt = await this.getEncrypt(id);
-            const uploadKey = await this.uploadZip(zip);
+            const oldInfo = await this.getProjectInfo(id);
+            const uploadKey = await this.uploadProject(zip);
+            await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey);
+            const newInfo = await this.getProjectInfo(id);
 
-            console.log(encrypt);
+            this.output.info(`发布工程成功: ID >> ${id}; NAME >> ${newInfo.name}; VER >> ${oldInfo.version} >> ${newInfo.version};`);
         } catch (e) {
+            console.error(e);
             this.output.error('发布工程失败: ' + (e as Error).message);
         }
+        doing.dispose();
     }
 }
