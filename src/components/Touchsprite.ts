@@ -2,6 +2,7 @@ import * as Vscode from 'vscode';
 import * as Os from 'os';
 import * as Path from 'path';
 import * as Net from 'net';
+import * as Fs from 'fs';
 import Axios from 'axios';
 import * as Ui from './Ui';
 import Device, { ETsFileRoot, ITsFile, ETsApiStatusResponseData } from './Device';
@@ -331,7 +332,7 @@ export default class Touchsprite {
         }
     }
 
-    public async uploadFiles(): Promise<void> {
+    public async uploadFile(): Promise<void> {
         const doing = this.statusBar.doing('上传文件中');
         try {
             const device = this.usingDevice ?? (await this.attachDeviceByDefault());
@@ -419,6 +420,42 @@ export default class Touchsprite {
             this.output.info(`清空脚本成功: ${total} 个文件`);
         } catch (e) {
             this.output.error('清空脚本失败: ' + (e as Error).message);
+        }
+        doing.dispose();
+    }
+
+    public async snap(): Promise<ArrayBuffer | undefined> {
+        const doing = this.statusBar.doing('截图中');
+        try {
+            const device = this.usingDevice ?? (await this.attachDeviceByDefault());
+            const orient = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('snapOrient');
+            let numberOfOrient: number;
+            switch (orient) {
+                case 'home键在下':
+                    numberOfOrient = 0;
+                    break;
+                case 'home键在左':
+                    numberOfOrient = 2;
+                    break;
+                case 'home键在右':
+                default:
+                    numberOfOrient = 1;
+                    break;
+            }
+            const img = await device.snapshot(numberOfOrient);
+
+            const dir = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('snapDir');
+            if (dir) {
+                const url = Path.join(dir, `PIC_${Date.now()}.png`);
+                Fs.writeFile(url, Buffer.from(img), e => {
+                    Vscode.window.showWarningMessage((e as Error).message);
+                });
+            }
+
+            doing.dispose();
+            return img;
+        } catch (e) {
+            this.output.error('截图失败: ' + (e as Error).message);
         }
         doing.dispose();
     }

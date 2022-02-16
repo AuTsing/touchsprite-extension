@@ -331,7 +331,7 @@ export default class Releaser {
             await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey);
             const newInfo = await this.getProjectInfo(id);
 
-            this.output.info(`发布工程成功: ID >> ${id}; NAME >> ${newInfo.name}; VER >> ${oldInfo.version} >> ${newInfo.version};`);
+            this.output.info(`发布工程成功: ID >> ${id}; NAME >> ${newInfo.name}; VER >> ${oldInfo.version} >> ${newInfo.version};`, 1);
         } catch (e) {
             console.error(e);
             this.output.error('发布工程失败: ' + (e as Error).message);

@@ -117,7 +117,7 @@ export class StatusBar {
 
         this.statusBar = Vscode.window.createStatusBarItem(Vscode.StatusBarAlignment.Left);
         this.statusBar.tooltip = '触动插件: 命令菜单';
-        this.statusBar.command = 'touchsprite-extension.command-menu';
+        this.statusBar.command = 'touchsprite-extension.commandMenu';
         this.statusBar.text = this.txts[0].display();
         this.statusBar.show();
         setInterval(() => this.refresh(), 1000);
@@ -170,6 +170,45 @@ export class StatusBar {
         this.tasks.push(task);
         this.refresh();
         return task;
+    }
+
+    public async menu() {
+        const commandTitles = [
+            '触动插件: 连接设备(手动输入)',
+            '触动插件: 连接设备(搜索设备)',
+            '触动插件: 断开连接',
+            '触动插件: 运行工程',
+            '触动插件: 运行测试工程',
+            '触动插件: 运行当前脚本',
+            '触动插件: 停止运行',
+            '触动插件: 上传文件',
+            '触动插件: 清空脚本',
+            '触动插件: 打包工程',
+            '触动插件: 发布工程',
+        ];
+        const commands = [
+            'touchsprite-extension.attachDeviceByInput',
+            'touchsprite-extension.attachDeviceBySearch',
+            'touchsprite-extension.detachDevice',
+            'touchsprite-extension.runProject',
+            'touchsprite-extension.runTestProject',
+            'touchsprite-extension.runScript',
+            'touchsprite-extension.stopScript',
+            'touchsprite-extension.uploadFile',
+            'touchsprite-extension.clearScript',
+            'touchsprite-extension.zipProject',
+            'touchsprite-extension.releaseProject',
+        ];
+
+        const selectedTitle = await Vscode.window.showQuickPick(commandTitles);
+        if (!selectedTitle) {
+            return;
+        }
+
+        const selectedIndex = commandTitles.indexOf(selectedTitle);
+        const command = commands[selectedIndex];
+
+        Vscode.commands.executeCommand(command);
     }
 }
 

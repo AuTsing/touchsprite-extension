@@ -4,6 +4,7 @@
     "description": "用于触动精灵脚本开发的插件",
     "version": "0.0.1",
     "publisher": "autsing",
+    "repository": "https://github.com/AuTsing/touchsprite-extension",
     "keywords": [
         "touchsprite",
         "触动精灵",
@@ -16,9 +17,23 @@
         "Other"
     ],
     "activationEvents": [
-        "onLanguage:lua"
+        "onLanguage:lua",
+        "onCommand:touchsprite-extension.attachDeviceByInput",
+        "onCommand:touchsprite-extension.attachDeviceBySearch",
+        "onCommand:touchsprite-extension.detachDevice",
+        "onCommand:touchsprite-extension.runProject",
+        "onCommand:touchsprite-extension.runTestProject",
+        "onCommand:touchsprite-extension.runScript",
+        "onCommand:touchsprite-extension.stopScript",
+        "onCommand:touchsprite-extension.uploadFile",
+        "onCommand:touchsprite-extension.clearScript",
+        "onCommand:touchsprite-extension.zipProject",
+        "onCommand:touchsprite-extension.releaseProject",
+        "onCommand:touchsprite-extension.snapshopV1"
     ],
     "main": "./dist/extension.js",
+    "license": "GPL-3.0",
+    "icon": "assets/images/logo.png",
     "contributes": {
         "configuration": {
             "title": "触动精灵开发插件",
@@ -98,48 +113,74 @@
         },
         "commands": [
             {
-                "command": "touchsprite-extension.attach-device-by-input",
+                "command": "touchsprite-extension.attachDeviceByInput",
                 "title": "触动插件: 连接设备(手动输入)"
             },
             {
-                "command": "touchsprite-extension.attach-device-by-search",
+                "command": "touchsprite-extension.attachDeviceBySearch",
                 "title": "触动插件: 连接设备(搜索设备)"
             },
             {
-                "command": "touchsprite-extension.detach-device",
+                "command": "touchsprite-extension.detachDevice",
                 "title": "触动插件: 断开连接"
             },
             {
-                "command": "touchsprite-extension.run-project",
+                "command": "touchsprite-extension.runProject",
                 "title": "触动插件: 运行工程"
             },
             {
-                "command": "touchsprite-extension.run-test-project",
+                "command": "touchsprite-extension.runTestProject",
                 "title": "触动插件: 运行测试工程"
             },
             {
-                "command": "touchsprite-extension.run-script",
+                "command": "touchsprite-extension.runScript",
                 "title": "触动插件: 运行当前脚本"
             },
             {
-                "command": "touchsprite-extension.stop-script",
+                "command": "touchsprite-extension.stopScript",
                 "title": "触动插件: 停止运行"
             },
             {
-                "command": "touchsprite-extension.upload-files",
+                "command": "touchsprite-extension.uploadFile",
                 "title": "触动插件: 上传文件"
             },
             {
-                "command": "touchsprite-extension.clear-script",
+                "command": "touchsprite-extension.clearScript",
                 "title": "触动插件: 清空脚本"
             },
             {
-                "command": "touchsprite-extension.zip-project",
+                "command": "touchsprite-extension.zipProject",
                 "title": "触动插件: 打包工程"
             },
             {
-                "command": "touchsprite-extension.release-project",
+                "command": "touchsprite-extension.releaseProject",
                 "title": "触动插件: 发布工程"
+            },
+            {
+                "command": "touchsprite-extension.snapshopV1",
+                "title": "触动插件: 取色器(V1旧版)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "touchsprite-extension.runTestProject",
+                "key": "f5",
+                "when": "editorLangId == lua"
+            },
+            {
+                "command": "touchsprite-extension.runProject",
+                "key": "f6",
+                "when": "editorLangId == lua"
+            },
+            {
+                "command": "touchsprite-extension.stopScript",
+                "key": "f7",
+                "when": "editorLangId == lua"
+            },
+            {
+                "command": "touchsprite-extension.recommendSnapshopV2",
+                "key": "f8",
+                "when": "editorLangId == lua"
             }
         ]
     },
