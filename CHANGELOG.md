@@ -1,6 +1,6 @@
 # Touchsprite Extension Change Log
 
-## [2.0.0]
+## [2.0.0] - 2022-02-17
 
 ## 💥 重大更改
 
