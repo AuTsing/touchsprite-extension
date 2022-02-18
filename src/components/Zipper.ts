@@ -19,7 +19,7 @@ export default class Zipper extends Jszip {
         for (const file of files) {
             const data = Fs.readFileSync(file.url);
             const relativePath = file.path.substring(1);
-            const path = Path.join(relativePath, file.filename);
+            const path = Path.join(relativePath, file.filename).replace(/\\/g, '/');
             this.file(path, data);
         }
     }
