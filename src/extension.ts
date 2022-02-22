@@ -32,6 +32,8 @@ export function activate(context: Vscode.ExtensionContext) {
 
     const output = useOutput();
     output.info('触动插件已启用', 1);
+
+    return { touchsprite };
 }
 
 export function deactivate() {}
