@@ -333,7 +333,6 @@ export default class Releaser {
 
             this.output.info(`发布工程成功: ID >> ${id}; NAME >> ${newInfo.name}; VER >> ${oldInfo.version} >> ${newInfo.version};`, 1);
         } catch (e) {
-            console.error(e);
             this.output.error('发布工程失败: ' + (e as Error).message);
         }
         doing.dispose();

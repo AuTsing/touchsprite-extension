@@ -448,7 +448,9 @@ export default class Touchsprite {
             if (dir) {
                 const url = Path.join(dir, `PIC_${Date.now()}.png`);
                 Fs.writeFile(url, Buffer.from(img), e => {
-                    Vscode.window.showWarningMessage((e as Error).message);
+                    if (e) {
+                        Vscode.window.showWarningMessage((e as Error).message);
+                    }
                 });
             }
 
