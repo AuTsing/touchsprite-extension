@@ -42,8 +42,7 @@ TouchSprite Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 
 该插件仅针对触动方面进行扩展，由于市面上存在很多 Lua 相关插件，所以部分编写需求功能本插件不再提供，以下推荐比较常用的插件，配合本插件能获得更好的代码编写体验。
 
--   [Lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) : 该插件提供语法检测，代码高亮，悬停提示，代码补全等功能
--   [lua-format-extension](https://marketplace.visualstudio.com/items?itemName=autsing.lua-format-extension) : 由于 Lua 插件暂时没用完成代码格式化功能，所以暂时提供一款简单的代码格式化工具，支持 UTF-8 字符
+-   [Lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) : Lua 语言服务，该插件提供语法检测，代码高亮，悬停提示，代码补全，格式化等功能，推荐使用
 
 ## 初始化
 
@@ -95,14 +94,15 @@ TouchSprite Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 
     ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/main/assets/images/readme/20210129165429.png)
 
-8. (可选) 发布工程会自动检测工程目录下的 _luaconfig.lua_ 文件，该文件应返回一个表，`id` 字段和 `version` 字段会被读取使用，如果文件不存在或者无法读取，插件会提示输入
+8. (可选) 发布工程会自动检测工程目录下的 _luaconfig.lua_ 文件，该文件应返回一个表，`id` 字段 ( 普通工程 ) ， `idEnt` 字段 ( 企业版工程 ) ，`version` 字段会被读取使用，如果该文件不存在或者无法读取，会导致发布失败
 
     _e.g. luaconfig.lua_
 
     ```lua
     return {
-        id = '123456',
-        version = '1.0.0',
+        id = '123456', --普通工程
+        idEnt = '123456', --企业版工程
+        version = '1.0.0', --工程版本号
     }
     ```
 
