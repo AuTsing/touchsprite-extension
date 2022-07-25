@@ -11,6 +11,7 @@ import Zipper from './Zipper';
 
 export interface ILuaconfigTable {
     id?: string;
+    idEnt?: string;
     version?: string;
 }
 
@@ -19,6 +20,11 @@ export interface ITsScriptInfo {
     version: string;
     encrypt: string;
     updatedAt: string;
+}
+
+export enum EProductTarget {
+    Ts,
+    Ent,
 }
 
 export default class Releaser {
@@ -91,6 +97,7 @@ export default class Releaser {
 
     private loadLuaconfig(root: string) {
         this.table.id = undefined;
+        this.table.idEnt = undefined;
         this.table.version = undefined;
 
         const files = Fs.readdirSync(root);
@@ -169,20 +176,26 @@ export default class Releaser {
             if (key === 'id') {
                 this.table.id = value;
             }
+            if (key === 'idEnt') {
+                this.table.idEnt = value;
+            }
             if (key === 'version') {
                 this.table.version = value;
             }
         }
     }
 
-    private async getId(): Promise<string> {
+    private async getId(target: EProductTarget = EProductTarget.Ts): Promise<string> {
         let id: string | undefined;
-        if (!id) {
+        if (!id && target === EProductTarget.Ts) {
             id = this.table.id;
+        }
+        if (!id && target === EProductTarget.Ent) {
+            id = this.table.idEnt;
         }
 
         if (!id) {
-            this.output.warning('无法读取到配置文件字段 "id" ，请输入脚本ID');
+            this.output.warning('无法读取到配置文件字段 "id/idEnt" ，请输入脚本ID');
             id = await Vscode.window.showInputBox({ prompt: '请输入脚本ID', value: '' });
         }
 
@@ -241,13 +254,24 @@ export default class Releaser {
         return changelog;
     }
 
-    private async getProjectInfo(id: string): Promise<ITsScriptInfo> {
-        const resp = await this.updater.get('https://dev.touchsprite.com/touch/script/view', { params: { id: id } });
+    private async getProjectInfo(id: string, target: EProductTarget = EProductTarget.Ts): Promise<ITsScriptInfo> {
+        let url: string;
+        switch (target) {
+            case EProductTarget.Ts:
+            default:
+                url = 'https://dev.touchsprite.com/touch/script/view';
+                break;
+            case EProductTarget.Ent:
+                url = 'https://ent.touchsprite.com/touch/scripts/view';
+                break;
+        }
+
+        const resp = await this.updater.get(url, { params: { id: id } });
         if (resp.data.code !== 200 || resp.data.msg !== '查询成功') {
             throw new Error(resp.data.msg ?? resp.data.code ?? '查询脚本状态失败');
         }
 
-        const name = resp.data.data?.details?.name;
+        const name = resp.data.data?.details?.name ?? resp.data.data?.script?.introduction;
         if (!name) {
             throw new Error('获取脚本名失败');
         }
@@ -262,7 +286,7 @@ export default class Releaser {
             throw new Error('获取脚本加密模式失败');
         }
 
-        const updatedAt = resp.data.data?.version?.created_at;
+        const updatedAt = resp.data.data?.version?.created_at ?? resp.data.data?.version?.updated_at;
         if (!updatedAt) {
             throw new Error('获取脚本更新日期失败');
         }
@@ -270,13 +294,27 @@ export default class Releaser {
         return { name, version, encrypt, updatedAt };
     }
 
-    private async uploadProject(zip: string): Promise<string> {
+    private async uploadProject(zip: string, id?: string, target: EProductTarget = EProductTarget.Ts): Promise<string> {
         const zipStream = Fs.createReadStream(zip);
         const formData = new FormData();
-        formData.append('ScriptUpload[file]', zipStream);
+        let url: string;
+
+        switch (target) {
+            case EProductTarget.Ts:
+            default:
+                formData.append('ScriptUpload[file]', zipStream);
+                url = 'https://dev.touchsprite.com/touch/script/upload';
+                break;
+            case EProductTarget.Ent:
+                formData.append('file', zipStream);
+                formData.append('script_id', id);
+                url = 'https://ent.touchsprite.com/touch/scripts/upload';
+                break;
+        }
+
         const formHeaders = formData.getHeaders();
 
-        const resp = await this.updater.post('https://dev.touchsprite.com/touch/script/upload', formData, {
+        const resp = await this.updater.post(url, formData, {
             headers: formHeaders,
         });
         if (resp.data.code !== 200 || resp.data.msg !== '上传成功') {
@@ -291,9 +329,17 @@ export default class Releaser {
         return uploadKey;
     }
 
-    private async updateProject(id: string, version: string, changelog: string, encrypt: string, uploadKey: string) {
+    private async updateProject(
+        id: string,
+        version: string,
+        changelog: string,
+        encrypt: string,
+        uploadKey: string,
+        target: EProductTarget = EProductTarget.Ts
+    ) {
         const formData = new FormData();
         formData.append('is_default', 'true');
+        formData.append('default', '1');
         formData.append('script_id', id);
         formData.append('version', version);
         formData.append('encrypt_mode', encrypt);
@@ -301,10 +347,21 @@ export default class Releaser {
         formData.append('key', uploadKey);
         const formHeaders = formData.getHeaders();
 
-        const resp = await this.updater.post('https://dev.touchsprite.com/touch/script/version', formData, {
+        let url: string;
+        switch (target) {
+            case EProductTarget.Ts:
+            default:
+                url = 'https://dev.touchsprite.com/touch/script/version';
+                break;
+            case EProductTarget.Ent:
+                url = 'https://ent.touchsprite.com/touch/scripts/commit-version';
+                break;
+        }
+
+        const resp = await this.updater.post(url, formData, {
             headers: formHeaders,
         });
-        if (resp.data.code !== 200 || resp.data.msg !== '版本上传成功') {
+        if (resp.data.code !== 200 || (resp.data.msg !== '版本上传成功' && resp.data.msg !== '上传成功')) {
             throw new Error(resp.data.msg ?? resp.data.code ?? '更新版本失败');
         }
     }
@@ -322,17 +379,40 @@ export default class Releaser {
             }
 
             this.loadLuaconfig(root);
-            const id = await this.getId();
             const version = await this.getVersion();
             const changelog = await this.getChangelog(root, version);
             await this.login();
-            const oldInfo = await this.getProjectInfo(id);
-            const uploadKey = await this.uploadProject(zip);
-            await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey);
-            const newInfo = await this.getProjectInfo(id);
 
-            this.output.info(`发布工程成功: ID >> ${id}; NAME >> ${newInfo.name}; VER >> ${oldInfo.version} >> ${newInfo.version};`, 1);
+            if (this.table.id) {
+                const id = await this.getId(EProductTarget.Ts);
+
+                this.output.info(`准备发布普通工程: ${id}`, 1);
+                const oldInfo = await this.getProjectInfo(id, EProductTarget.Ts);
+                const uploadKey = await this.uploadProject(zip, id, EProductTarget.Ts);
+                await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey, EProductTarget.Ts);
+                const newInfo = await this.getProjectInfo(id, EProductTarget.Ts);
+
+                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER >  ${oldInfo.version} > ${newInfo.version};`, 1);
+            }
+
+            if (this.table.idEnt) {
+                const id = await this.getId(EProductTarget.Ent);
+
+                this.output.info(`准备发布企业版工程: ${id}`, 1);
+                const oldInfo = await this.getProjectInfo(id, EProductTarget.Ent);
+                const uploadKey = await this.uploadProject(zip, id, EProductTarget.Ent);
+                await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey, EProductTarget.Ent);
+                const newInfo = await this.getProjectInfo(id, EProductTarget.Ent);
+
+                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER >  ${oldInfo.version} > ${newInfo.version};`, 1);
+            }
+
+            if (!this.table.id && !this.table.idEnt) {
+                throw new Error('无法读取到配置文件字段 "id/idEnt"');
+            }
         } catch (e) {
+            console.log(e);
+
             this.output.error('发布工程失败: ' + (e as Error).message);
         }
         doing.dispose();
