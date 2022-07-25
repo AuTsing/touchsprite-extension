@@ -32,7 +32,7 @@ export default class Releaser {
     private readonly statusBar: Ui.StatusBar;
     private readonly loginer: AxiosInstance;
     private readonly updater: AxiosInstance;
-    private readonly table: ILuaconfigTable;
+    private readonly luaconfig: ILuaconfigTable;
 
     constructor() {
         this.output = Ui.useOutput();
@@ -54,7 +54,7 @@ export default class Releaser {
         this.updater = Axios.create({
             timeout: 30000,
         });
-        this.table = {};
+        this.luaconfig = {};
     }
 
     private async login(): Promise<void> {
@@ -96,9 +96,9 @@ export default class Releaser {
     }
 
     private loadLuaconfig(root: string) {
-        this.table.id = undefined;
-        this.table.idEnt = undefined;
-        this.table.version = undefined;
+        this.luaconfig.id = undefined;
+        this.luaconfig.idEnt = undefined;
+        this.luaconfig.version = undefined;
 
         const files = Fs.readdirSync(root);
         if (!files.includes('luaconfig.lua')) {
@@ -174,46 +174,21 @@ export default class Releaser {
             }
 
             if (key === 'id') {
-                this.table.id = value;
+                this.luaconfig.id = value;
             }
             if (key === 'idEnt') {
-                this.table.idEnt = value;
+                this.luaconfig.idEnt = value;
             }
             if (key === 'version') {
-                this.table.version = value;
+                this.luaconfig.version = value;
             }
         }
-    }
-
-    private async getId(target: EProductTarget = EProductTarget.Ts): Promise<string> {
-        let id: string | undefined;
-        if (!id && target === EProductTarget.Ts) {
-            id = this.table.id;
-        }
-        if (!id && target === EProductTarget.Ent) {
-            id = this.table.idEnt;
-        }
-
-        if (!id) {
-            this.output.warning('无法读取到配置文件字段 "id/idEnt" ，请输入脚本ID');
-            id = await Vscode.window.showInputBox({ prompt: '请输入脚本ID', value: '' });
-        }
-
-        if (!id) {
-            throw new Error('未填写脚本ID');
-        }
-
-        if (!/^\d*$/.test(id)) {
-            throw new Error('脚本ID不正确');
-        }
-
-        return id;
     }
 
     private async getVersion(): Promise<string> {
         let version: string | undefined;
         if (!version) {
-            version = this.table.version;
+            version = this.luaconfig.version;
         }
 
         if (!version) {
@@ -379,12 +354,17 @@ export default class Releaser {
             }
 
             this.loadLuaconfig(root);
+
+            if (!this.luaconfig.id && !this.luaconfig.idEnt) {
+                throw new Error('无法读取到配置文件字段 "id/idEnt"');
+            }
+
             const version = await this.getVersion();
             const changelog = await this.getChangelog(root, version);
             await this.login();
 
-            if (this.table.id) {
-                const id = await this.getId(EProductTarget.Ts);
+            if (this.luaconfig.id) {
+                const id = this.luaconfig.id;
 
                 this.output.info(`准备发布普通工程: ${id}`, 1);
                 const oldInfo = await this.getProjectInfo(id, EProductTarget.Ts);
@@ -392,11 +372,11 @@ export default class Releaser {
                 await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey, EProductTarget.Ts);
                 const newInfo = await this.getProjectInfo(id, EProductTarget.Ts);
 
-                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER >  ${oldInfo.version} > ${newInfo.version};`, 1);
+                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER > ${oldInfo.version} > ${newInfo.version};`, 1);
             }
 
-            if (this.table.idEnt) {
-                const id = await this.getId(EProductTarget.Ent);
+            if (this.luaconfig.idEnt) {
+                const id = this.luaconfig.idEnt;
 
                 this.output.info(`准备发布企业版工程: ${id}`, 1);
                 const oldInfo = await this.getProjectInfo(id, EProductTarget.Ent);
@@ -404,15 +384,9 @@ export default class Releaser {
                 await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey, EProductTarget.Ent);
                 const newInfo = await this.getProjectInfo(id, EProductTarget.Ent);
 
-                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER >  ${oldInfo.version} > ${newInfo.version};`, 1);
-            }
-
-            if (!this.table.id && !this.table.idEnt) {
-                throw new Error('无法读取到配置文件字段 "id/idEnt"');
+                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER > ${oldInfo.version} > ${newInfo.version};`, 1);
             }
         } catch (e) {
-            console.log(e);
-
             this.output.error('发布工程失败: ' + (e as Error).message);
         }
         doing.dispose();
