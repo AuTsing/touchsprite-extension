@@ -86,18 +86,29 @@ export default class Touchsprite {
     public getHostIp(): string {
         if (!this.hostIp) {
             const interfaces = Os.networkInterfaces();
-            for (const interfaceKey in interfaces) {
+            forInterfaces: for (const interfaceKey in interfaces) {
                 if (interfaceKey.toLocaleLowerCase().indexOf('vmware') >= 0) {
                     continue;
                 }
                 if (interfaceKey.toLocaleLowerCase().indexOf('virtualbox') >= 0) {
                     continue;
                 }
-                for (const alias of interfaces[interfaceKey]!) {
-                    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-                        this.hostIp = alias.address;
-                        break;
+                if (interfaceKey.toLocaleLowerCase().indexOf('vethernet') >= 0) {
+                    continue;
+                }
+                const infos = interfaces[interfaceKey]!;
+                for (const info of infos) {
+                    if (info.family !== 'IPv4') {
+                        continue;
                     }
+                    if (info.address === '127.0.0.1') {
+                        continue;
+                    }
+                    if (info.internal === true) {
+                        continue;
+                    }
+                    this.hostIp = info.address;
+                    break forInterfaces;
                 }
             }
         }
