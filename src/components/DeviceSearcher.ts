@@ -24,9 +24,13 @@ export default class DeviceSearcher {
         const sender = Dgram.createSocket('udp4');
 
         let selecting = false;
-        let searched = false;
+        let selected = false;
+        let lastQuickPick: Thenable<string | undefined> | null = null;
         return new Promise((resolve, reject) => {
             searcher.on('message', async msg => {
+                if (selected) {
+                    return;
+                }
                 selecting = true;
 
                 const newSearchDevice = JSON.parse(msg.toString()) as TsSearchDevice;
@@ -35,24 +39,27 @@ export default class DeviceSearcher {
                 }
 
                 const list = devices.map(device => `${device.devname}: ${device.ip}`);
-                const selection = await Vscode.window.showQuickPick(list);
-                if (selection === undefined && !searched) {
-                    selecting = false;
+                const quickPick = Vscode.window.showQuickPick(list);
+                lastQuickPick = quickPick;
+                const selection = await quickPick;
+                if (quickPick !== lastQuickPick) {
                     return;
                 }
-                if (selection === undefined && searched) {
-                    reject('未选择设备');
+                if (selection === undefined) {
                     selecting = false;
+                    selected = true;
+                    reject('未选择设备');
                     return;
                 }
 
+                selecting = false;
+                selected = true;
                 const device = devices[list.indexOf(selection!!)];
                 if (device) {
                     resolve(device);
                 } else {
                     reject('未选择设备');
                 }
-                selecting = false;
             });
             searcher.on('error', e => reject(e.message));
             searcher.bind(port, this.hostIp);
@@ -64,7 +71,6 @@ export default class DeviceSearcher {
                     sender.close();
                     doing?.dispose();
                     reject(e.message);
-                    searched = true;
                     return;
                 }
                 setTimeout(() => {
@@ -72,8 +78,7 @@ export default class DeviceSearcher {
                     sender.close();
                     Output.printlnAndShow('搜索成功:', `共搜索到 ${devices.length} 台设备`);
                     doing?.dispose();
-                    searched = true;
-                    if (!selecting) {
+                    if (!selecting && !selected) {
                         reject('未选择设备');
                     }
                 }, 3000);
