@@ -15,6 +15,9 @@ export function activate(context: Vscode.ExtensionContext) {
 
     StatusBar.instance = new StatusBar();
     context.subscriptions.push(StatusBar.instance);
+    context.subscriptions.push(
+        Vscode.commands.registerCommand('touchsprite-extension.clickStatusBarItem', () => StatusBar.instance?.handleClickStatusBarItem())
+    );
 
     const storage = new Storage(context);
     const asker = new Asker(storage);
