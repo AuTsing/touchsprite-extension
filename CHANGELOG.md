@@ -1,4 +1,25 @@
-# Touchsprite Extension Change Log
+# Touchsprite Extension Change Log 更新日志
+
+## [3.0.0] - 2023-05-05
+
+-   💥 (破坏性更新) 移除旧版取色器 `Snapshop v1`
+-   💥 (破坏性更新) 移除设置项 `测试工程引导文件名`
+-   💥 (破坏性更新) 移除插件 `Snapshop-触动插件` 的兼容性
+-   ✨ 新增手动连接设备支持查看并连接历史连接设备
+-   ✨ 新增触动截图服务器 For Sapshop，不再需要安装 `Snapshop-触动插件` 插件
+-   ✨ 新增全新的日志输出，支持颜色渲染
+-   ✨ 新增全新的状态栏，支持更友好的提示
+-   ❌ 移除快捷键绑定 **<kbd>F8</kbd>**
+-   🐞 修复搜索设备时可能导致内存泄露的问题
+-   🎈 优化界面反馈体验，更少的打扰
+-   🛠 依赖更新
+
+### 📌 2.x -> 3.x 迁移指南
+
+-   移除设置项 `touchsprite-extension.mainTestFilename`
+-   移除快捷键绑定 **<kbd>F8</kbd>**
+-   移除插件 `Snapshop-触动插件`
+-   如有图色处理需求，安装插件 `Snapshop 图色处理应用`
 
 ## [2.0.5] - 2022-09-14
 

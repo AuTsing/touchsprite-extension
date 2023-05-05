@@ -18,6 +18,7 @@
     ],
     "activationEvents": [
         "onLanguage:lua",
+        "onCommand:snapshop-extension.snapshop",
         "onCommand:touchsprite-extension.attachDeviceByInput",
         "onCommand:touchsprite-extension.attachDeviceBySearch",
         "onCommand:touchsprite-extension.detachDevice",
