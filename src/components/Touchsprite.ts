@@ -416,6 +416,7 @@ export default class Touchsprite {
             }
 
             Output.println('上传文件成功:', `${files.length} 个文件`);
+            StatusBar.result('上传文件成功');
         } catch (e) {
             Output.eprintln('上传文件失败:', (e as Error).message ?? e);
         } finally {
@@ -461,6 +462,7 @@ export default class Touchsprite {
             }
 
             Output.println('清空脚本成功:', `${total} 个文件`);
+            StatusBar.result('清空脚本成功');
         } catch (e) {
             Output.eprintln('清空脚本失败:', (e as Error).message ?? e);
         } finally {
