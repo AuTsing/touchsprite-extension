@@ -28,8 +28,7 @@
         "onCommand:touchsprite-extension.uploadFile",
         "onCommand:touchsprite-extension.clearScript",
         "onCommand:touchsprite-extension.zipProject",
-        "onCommand:touchsprite-extension.releaseProject",
-        "onCommand:touchsprite-extension.snapshopV1"
+        "onCommand:touchsprite-extension.releaseProject"
     ],
     "main": "./dist/extension.js",
     "license": "GPL-3.0",
@@ -103,11 +102,6 @@
                         "maintest.lua",
                         "CHANGELOG.md"
                     ]
-                },
-                "touchsprite-extension.mainTestFilename": {
-                    "description": "测试工程引导文件名",
-                    "type": "string",
-                    "default": "maintest.lua"
                 }
             }
         },
@@ -122,7 +116,7 @@
             },
             {
                 "command": "touchsprite-extension.detachDevice",
-                "title": "触动插件: 断开连接"
+                "title": "触动插件: 断开设备"
             },
             {
                 "command": "touchsprite-extension.runProject",
@@ -155,10 +149,6 @@
             {
                 "command": "touchsprite-extension.releaseProject",
                 "title": "触动插件: 发布工程"
-            },
-            {
-                "command": "touchsprite-extension.snapshopV1",
-                "title": "触动插件: 取色器(V1旧版)"
             }
         ],
         "keybindings": [
@@ -175,11 +165,6 @@
             {
                 "command": "touchsprite-extension.stopScript",
                 "key": "f7",
-                "when": "editorLangId == lua"
-            },
-            {
-                "command": "touchsprite-extension.recommendSnapshopV2",
-                "key": "f8",
                 "when": "editorLangId == lua"
             }
         ]

@@ -1,23 +1,24 @@
+import * as FsPromises from 'fs/promises';
 import * as Fs from 'fs';
 import * as Path from 'path';
 import * as Jszip from 'jszip';
-import { ITsFile } from './Device';
-import * as Ui from './Ui';
-import Projector, { EProjectMode } from './Projector';
+import { TsFile } from './Device';
+import Projector, { ProjectMode } from './Projector';
+import StatusBar from './StatusBar';
+import Output from './Output';
+import Storage from './Storage';
 
 export default class Zipper extends Jszip {
-    private readonly output: Ui.Output;
-    private readonly statusBar: Ui.StatusBar;
+    private readonly storage: Storage;
 
-    constructor() {
+    constructor(storage: Storage) {
         super();
-        this.output = Ui.useOutput();
-        this.statusBar = Ui.useStatusBar();
+        this.storage = storage;
     }
 
-    private addFiles(files: ITsFile[]) {
+    private async addFiles(files: TsFile[]): Promise<void> {
         for (const file of files) {
-            const data = Fs.readFileSync(file.url);
+            const data = await FsPromises.readFile(file.url);
             const relativePath = file.path.substring(1);
             const path = Path.join(relativePath, file.filename).replace(/\\/g, '/');
             this.file(path, data);
@@ -35,23 +36,25 @@ export default class Zipper extends Jszip {
         return url;
     }
 
-    public async zipProject(): Promise<string | undefined> {
-        const doing = this.statusBar.doing('打包工程中');
+    public async handleZipProject(): Promise<string> {
+        const doing = StatusBar.doing('打包工程中');
         try {
-            const projector = new Projector(undefined, EProjectMode.zip);
-            const tsFiles = projector.generate();
-            this.addFiles(tsFiles);
-            const root = projector.locateRoot();
+            const projector = new Projector(this.storage, undefined, ProjectMode.zip);
+            const tsFiles = await projector.generate();
+            await this.addFiles(tsFiles);
+            const root = await projector.locateRoot();
             const dir = Path.dirname(root);
             const filename = Path.basename(root) + '.zip';
             const url = await this.zip(dir, filename);
 
-            this.output.info('打包工程成功: ' + url);
-            doing.dispose();
+            Output.println('打包工程成功:', url);
+            StatusBar.result('打包工程成功');
             return url;
         } catch (e) {
-            this.output.error('打包工程失败: ' + (e as Error).message);
+            Output.eprintln('打包工程失败:', (e as Error).message ?? e);
+            return '';
+        } finally {
+            doing?.dispose();
         }
-        doing.dispose();
     }
 }

@@ -2,38 +2,39 @@ import * as Vscode from 'vscode';
 import Releaser from './components/Releaser';
 import Touchsprite from './components/Touchsprite';
 import Zipper from './components/Zipper';
-import SnapshopV1 from './components/SnapshopV1';
-import { useOutput, useStatusBar } from './components/Ui';
+import Output from './components/Output';
+import StatusBar from './components/StatusBar';
+import Storage from './components/Storage';
+import Asker from './components/Asker';
+import Workspace from './components/Workspace';
 
 export function activate(context: Vscode.ExtensionContext) {
-    const touchsprite = new Touchsprite(context);
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.attachDeviceByInput', () => touchsprite.attachDeviceByInput()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.attachDeviceBySearch', () => touchsprite.attachDeviceBySearch()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.detachDevice', () => touchsprite.detachDevice()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.runProject', () => touchsprite.runProject()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.runTestProject', () => touchsprite.runTestProject()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.runScript', () => touchsprite.runScript()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.stopScript', () => touchsprite.stopScript()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.uploadFile', () => touchsprite.uploadFile()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.clearScript', () => touchsprite.clearScript()));
+    Output.instance = new Output();
+    context.subscriptions.push(Output.instance);
 
-    const zipper = new Zipper();
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.zipProject', () => zipper.zipProject()));
+    StatusBar.instance = new StatusBar();
+    context.subscriptions.push(StatusBar.instance);
 
-    const releaser = new Releaser();
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.releaseProject', () => releaser.release()));
+    const storage = new Storage(context);
+    const asker = new Asker(storage);
+    const workspace = new Workspace();
 
-    const snapshop = new SnapshopV1(context, touchsprite);
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.snapshopV1', () => snapshop.open()));
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.recommendSnapshopV2', () => snapshop.recommendSnapshopV2()));
+    const touchsprite = new Touchsprite(storage, asker, workspace);
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.attachDeviceByInput', () => touchsprite.handleAttachDeviceByInput()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.attachDeviceBySearch', () => touchsprite.handleAttachDeviceBySearch()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.detachDevice', () => touchsprite.handleDetachDevice()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.runProject', () => touchsprite.handleRunProject()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.runTestProject', () => touchsprite.handleRunTestProject()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.runScript', () => touchsprite.handleRunScript()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.stopScript', () => touchsprite.handleStopScript()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.uploadFile', () => touchsprite.handleUploadFile()));
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.clearScript', () => touchsprite.handleClearScript()));
 
-    const statusBar = useStatusBar();
-    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.commandMenu', () => statusBar.menu()));
+    const zipper = new Zipper(storage);
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.zipProject', () => zipper.handleZipProject()));
 
-    const output = useOutput();
-    output.info('触动插件已启用', 1);
-
-    return { touchsprite };
+    const releaser = new Releaser(storage, asker);
+    context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.releaseProject', () => releaser.handleRelease()));
 }
 
 export function deactivate() {}

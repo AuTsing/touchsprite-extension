@@ -1,15 +1,19 @@
-import * as Vscode from 'vscode';
 import * as Os from 'os';
 import * as Path from 'path';
 import * as Net from 'net';
-import * as Fs from 'fs';
+import * as FsPromises from 'fs/promises';
 import Axios from 'axios';
-import * as Ui from './Ui';
-import Device, { ETsFileRoot, ITsFile, ETsApiStatusResponseData } from './Device';
+import Device, { TsFileRoot, TsFile, TsApiStatusResponseData } from './Device';
 import DeviceSearcher from './DeviceSearcher';
-import Projector, { EProjectMode } from './Projector';
+import Projector, { ProjectMode } from './Projector';
+import Output from './Output';
+import { TS_OPENAPI_URL } from '../values/Constants';
+import Storage, { Configurations } from './Storage';
+import Asker from './Asker';
+import StatusBar from './StatusBar';
+import Workspace from './Workspace';
 
-interface ITsOpenApiResponseData {
+interface TsOpenApiResponseData {
     status: number;
     message: string;
     time: number;
@@ -19,29 +23,30 @@ interface ITsOpenApiResponseData {
 }
 
 export default class Touchsprite {
-    private readonly context: Vscode.ExtensionContext;
-    private readonly output: Ui.Output;
-    private readonly statusBar: Ui.StatusBar;
-    private usingDevice?: Device;
-    private usingDeviceStatusBarItem?: Ui.StatusBarItem;
-    private hostIp?: string;
+    private readonly storage: Storage;
+    private readonly asker: Asker;
+    private readonly workspace: Workspace;
     private readonly loggerPort: number;
+    private attachedDevice: Device | null;
+    private hostIp: string | null;
 
-    constructor(context: Vscode.ExtensionContext) {
-        this.context = context;
-        this.output = Ui.useOutput();
-        this.statusBar = Ui.useStatusBar();
+    constructor(storage: Storage, asker: Asker, workspace: Workspace) {
+        this.storage = storage;
+        this.asker = asker;
+        this.workspace = workspace;
         this.loggerPort = Math.round(Math.random() * (20000 - 24999 + 1) + 24999);
+        this.attachedDevice = null;
+        this.hostIp = null;
         this.runLogger();
     }
 
     private async runLogger() {
         const logger = Net.createServer(socket => {
-            socket.on('data', data => this.output.info(data.toString('utf8', 4, data.length - 2)));
+            socket.on('data', data => Output.println(data.toString('utf8', 4, data.length - 2)));
         });
         logger.on('error', e => {
             logger.close();
-            this.output.error('日志服务器启用失败，这可能导致设备日志无法正常接收: ' + e.message);
+            Output.eprintln('日志服务器启用失败，这可能导致设备日志无法正常接收:', e.message);
         });
         logger.listen(this.loggerPort);
     }
@@ -55,8 +60,8 @@ export default class Touchsprite {
             time: Math.floor(Date.now() / 1000),
         });
         const postDataLength = Buffer.byteLength(postData);
-        const resp = await Axios.post<ITsOpenApiResponseData>(`/api/openapi`, postData, {
-            baseURL: 'http://openapi.touchsprite.com',
+
+        const resp = await Axios.post<TsOpenApiResponseData>(TS_OPENAPI_URL, postData, {
             headers: {
                 Connection: 'close',
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -71,19 +76,15 @@ export default class Touchsprite {
     }
 
     private async getAccessKey(): Promise<string> {
-        let accessKey = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('accessKey') ?? '';
-        if (accessKey === '') {
-            accessKey = (await Vscode.window.showInputBox({ prompt: '请输入开发者AccessKey', value: '' })) ?? '';
-            Vscode.workspace.getConfiguration('touchsprite-extension').update('accessKey', accessKey, true);
-        }
-        if (accessKey === '') {
-            throw new Error('开发者AccessKey不正确');
+        let accessKey = this.storage.getConfiguration(Configurations.AccessKey) as string;
+        if (!accessKey) {
+            accessKey = await this.asker.askForAccessKey();
         }
 
         return accessKey;
     }
 
-    public getHostIp(): string {
+    getHostIp(): string {
         if (!this.hostIp) {
             const interfaces = Os.networkInterfaces();
             forInterfaces: for (const interfaceKey in interfaces) {
@@ -114,13 +115,13 @@ export default class Touchsprite {
         }
 
         if (!this.hostIp) {
-            throw Error('无法获取本机IP');
+            throw Error('无法获取主机 IP');
         }
 
         return this.hostIp;
     }
 
-    private async attachDevice(ip: string): Promise<Device> {
+    private async attachDevice(ip: string): Promise<void> {
         const accessKey = await this.getAccessKey();
         const axios = Axios.create({ baseURL: `http://${ip}:50005`, timeout: 10000 });
         const id = (await axios.get<string>('/deviceid', { headers: { Connection: 'close', 'Content-Length': 0 } })).data;
@@ -143,305 +144,88 @@ export default class Touchsprite {
             userPath = '/sdcard/TouchSprite/';
         }
 
-        const device = new Device(ip, id, auth, name, platform, userPath, axios);
-        if (this.usingDevice) {
-            this.detachDevice();
+        if (this.attachedDevice) {
+            this.handleDetachDevice();
         }
-        this.usingDevice = device;
-        this.usingDeviceStatusBarItem = this.statusBar.attach(ip);
-        this.context.globalState.update('lastAttachedIp', ip);
 
-        return device;
+        this.attachedDevice = new Device(ip, id, auth, name, platform, userPath, axios);
+        this.storage.addDeviceIp(this.attachedDevice.ip);
+        StatusBar.connected(this.attachedDevice.ip);
     }
 
-    public async attachDeviceByInput(): Promise<void> {
-        const doing = this.statusBar.doing('连接中');
+    private async attachDeviceByDefault(): Promise<void> {
+        const doing = StatusBar.doing('连接中');
         try {
-            const ip = (await Vscode.window.showInputBox({ prompt: '请输入设备IP地址', value: '192.168.', placeHolder: 'x.x.x.x' })) ?? '';
-            if (!/^((2[0-4]\d|25[0-5]|[01]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[01]?\d\d?)$/.test(ip)) {
-                throw new Error('IP格式不正确');
+            const ips = this.storage.getDeviceIps();
+            if (ips.length === 0) {
+                throw new Error('未连接设备');
             }
-            await this.attachDevice(ip);
+            const lastIp = ips[ips.length - 1];
+            Output.println(`未连接设备，尝试连接最后使用设备: ${lastIp}`);
+            await this.attachDevice(lastIp);
         } catch (e) {
-            this.output.error('连接设备失败: ' + (e as Error).message);
+            throw e;
+        } finally {
+            doing?.dispose();
         }
-        doing.dispose();
     }
 
-    public async attachDeviceBySearch(): Promise<void> {
-        let doing: Ui.StatusBarItem | undefined;
-        const deviceSearcher = new DeviceSearcher(this);
-        try {
-            const device = await deviceSearcher.search();
-            doing = this.statusBar.doing('连接中');
-            await this.attachDevice(device.ip);
-        } catch (e) {
-            this.output.error('连接设备失败: ' + (e as Error).message);
-        }
-        doing?.dispose();
-    }
-
-    private async attachDeviceByDefault(): Promise<Device> {
-        const ip = this.context.globalState.get<string>('lastAttachedIp');
-        if (!ip) {
-            throw new Error('未连接设备');
-        }
-
-        const device = await this.attachDevice(ip);
-
-        return device;
-    }
-
-    public detachDevice() {
-        if (!this.usingDevice) {
+    private watchRunningStatus() {
+        if (!this.attachedDevice) {
             return;
         }
-
-        this.usingDevice = undefined;
-        this.usingDeviceStatusBarItem?.dispose();
-    }
-
-    private watchScriptStatus(device: Device) {
-        const doing = this.statusBar.doing('脚本运行中');
-        doing.prefix = '📲';
+        StatusBar.running(this.attachedDevice.ip);
         const stopWatching = setInterval(async () => {
             try {
-                const isRunning = await device.status();
-                if (isRunning !== ETsApiStatusResponseData.running) {
-                    doing.dispose();
-                    clearInterval(stopWatching);
+                if (!this.attachedDevice) {
+                    throw new Error('未连接设备');
+                }
+                const running = await this.attachedDevice.status();
+                if (running !== TsApiStatusResponseData.running) {
+                    throw new Error('运行结束');
                 }
             } catch (e) {
-                doing.dispose();
+                StatusBar.running();
                 clearInterval(stopWatching);
             }
         }, 1000);
     }
 
-    public async runProject(mainFilename: string = 'main.lua', boot?: string): Promise<void> {
-        const doing = this.statusBar.doing('发送工程中');
+    private async uploadProject(mainFilename: string): Promise<void> {
+        const doing = StatusBar.doing('上传工程中');
         try {
-            boot = boot ?? mainFilename;
-            const device = this.usingDevice ?? (await this.attachDeviceByDefault());
-            const hostIp = this.hostIp ?? this.getHostIp();
-
-            const isRunning = await device.status();
-            if (isRunning === ETsApiStatusResponseData.running) {
-                await this.stopScript();
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
             }
-
-            const isSuccessful1 = await device.logServer(hostIp, this.loggerPort);
-            if (!isSuccessful1) {
-                throw new Error('设置日志服务器失败');
-            }
-
-            const isSuccessful2 = await device.setLuaPath(boot);
-            if (!isSuccessful2) {
-                throw new Error('设置引导文件失败');
-            }
-
-            const projector = new Projector(mainFilename, EProjectMode.send);
-            const tsFiles = projector.generate();
+            const projector = new Projector(this.storage, mainFilename, ProjectMode.send);
+            const tsFiles = await projector.generate();
             const total = tsFiles.length;
             let progress = 0;
             for (const file of tsFiles) {
-                const isSuccessful3 = await device.upload(file);
-                if (!isSuccessful3) {
-                    throw new Error(`上传文件 ${file.url} 失败`);
-                }
-                doing.updateProgress(++progress / total);
-                this.statusBar.refresh();
+                await this.attachedDevice.upload(file);
+                doing?.updateProgress(++progress / total);
+                StatusBar.refresh();
             }
-
-            const isSuccessful4 = await device.runLua();
-            if (!isSuccessful4) {
-                throw new Error('运行引导文件失败');
-            }
-
-            this.watchScriptStatus(device);
-            this.output.info('运行工程成功');
         } catch (e) {
-            this.output.error('运行工程失败: ' + (e as Error).message);
-        }
-        doing.dispose();
-    }
-
-    public async runTestProject(): Promise<void> {
-        const mainFilename = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('mainTestFilename');
-        return this.runProject(mainFilename);
-    }
-
-    public async runScript(): Promise<void> {
-        const doing = this.statusBar.doing('发送脚本中');
-        try {
-            const device = this.usingDevice ?? (await this.attachDeviceByDefault());
-            const hostIp = this.hostIp ?? this.getHostIp();
-
-            const isRunning = await device.status();
-            if (isRunning === ETsApiStatusResponseData.running) {
-                await this.stopScript();
-            }
-
-            const isSuccessful1 = await device.logServer(hostIp, this.loggerPort);
-            if (!isSuccessful1) {
-                throw new Error('设置日志服务器失败');
-            }
-
-            const focusingFile = Vscode.window.activeTextEditor?.document;
-            if (!focusingFile) {
-                throw new Error('未指定脚本');
-            }
-
-            const url = focusingFile.fileName;
-            const filename = Path.basename(url);
-            const ext = Path.extname(filename);
-            if (ext !== '.lua') {
-                throw new Error('所指定文件非Lua脚本');
-            }
-
-            const isSuccessful2 = await device.setLuaPath(filename);
-            if (!isSuccessful2) {
-                throw new Error('设置引导文件失败');
-            }
-
-            const tsFile: ITsFile = {
-                url,
-                root: ETsFileRoot.lua,
-                path: '/',
-                filename,
-            };
-            const isSuccessful3 = await device.upload(tsFile);
-            if (!isSuccessful3) {
-                throw new Error('上传文件失败');
-            }
-
-            const isSuccessful4 = await device.runLua();
-            if (!isSuccessful4) {
-                throw new Error('运行引导文件失败');
-            }
-
-            this.watchScriptStatus(device);
-            this.output.info('运行脚本成功');
-        } catch (e) {
-            this.output.error('运行脚本失败: ' + (e as Error).message);
-        }
-        doing.dispose();
-    }
-
-    public async stopScript(): Promise<void> {
-        try {
-            const device = this.usingDevice ?? (await this.attachDeviceByDefault());
-
-            const isSuccessful = await device.stopLua();
-            if (!isSuccessful) {
-                throw new Error('停止脚本失败');
-            }
-
-            this.output.info('停止脚本成功');
-        } catch (e) {
-            this.output.error('停止脚本失败: ' + (e as Error).message);
+            throw e;
+        } finally {
+            doing?.dispose();
         }
     }
 
-    public async uploadFile(): Promise<void> {
-        const doing = this.statusBar.doing('上传文件中');
+    async getSnap(): Promise<ArrayBuffer> {
+        const doing = StatusBar.doing('截图中');
         try {
-            const device = this.usingDevice ?? (await this.attachDeviceByDefault());
-
-            const list = [ETsFileRoot.lua, ETsFileRoot.res];
-            const selectedRoot = await Vscode.window.showQuickPick(list, { placeHolder: '上传至...' });
-            const root = selectedRoot as ETsFileRoot;
-            if (!root) {
-                throw new Error('未选择目标目录');
+            if (!this.attachedDevice) {
+                await this.attachDeviceByDefault();
+            }
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
             }
 
-            const uris = await Vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: true,
-            });
-            if (!uris) {
-                throw new Error('未选择文件');
-            }
-
-            const files: ITsFile[] = uris.map(uri => {
-                const url = uri.path.substring(1);
-                const filename = Path.basename(url);
-                const file: ITsFile = {
-                    url,
-                    root,
-                    path: '/',
-                    filename,
-                };
-                return file;
-            });
-
-            for (const file of files) {
-                const isSuccessful = await device.upload(file);
-                if (!isSuccessful) {
-                    throw new Error(`上传文件 ${file.url} 失败`);
-                }
-            }
-
-            this.output.info(`上传文件成功: ${files.length} 个文件`);
-        } catch (e) {
-            this.output.error('上传文件失败: ' + (e as Error).message);
-        }
-        doing.dispose();
-    }
-
-    public async clearScript(): Promise<void> {
-        const doing = this.statusBar.doing('清空脚本中');
-        try {
-            const device = this.usingDevice ?? (await this.attachDeviceByDefault());
-
-            const dirs: string[] = ['/'];
-            const dirsToRm: string[] = [];
-            const filesToRm: string[] = [];
-
-            while (dirs.length > 0) {
-                const dir = dirs.shift()!;
-                const list = await device.getFileList(dir);
-                list.Dirs?.forEach(nextDir => dirs.push(dir + nextDir + '/'));
-                list.Files?.forEach(nextFile => filesToRm.push(dir + nextFile));
-                if (dir !== '/') {
-                    dirsToRm.push(dir);
-                }
-            }
-
-            const total = dirsToRm.length + filesToRm.length;
-            let progress = 0;
-            for (const file of filesToRm) {
-                const isSuccessful = await device.rmFile(file);
-                if (!isSuccessful) {
-                    throw new Error(`删除文件 ${file} 失败`);
-                }
-                doing.updateProgress(++progress / total);
-                this.statusBar.refresh();
-            }
-            for (const dir of dirsToRm.reverse()) {
-                const isSuccessful = await device.rmFile(dir);
-                if (!isSuccessful) {
-                    throw new Error(`删除文件夹 ${dir} 失败`);
-                }
-                doing.updateProgress(++progress / total);
-                this.statusBar.refresh();
-            }
-
-            this.output.info(`清空脚本成功: ${total} 个文件`);
-        } catch (e) {
-            this.output.error('清空脚本失败: ' + (e as Error).message);
-        }
-        doing.dispose();
-    }
-
-    public async snap(): Promise<ArrayBuffer | undefined> {
-        const doing = this.statusBar.doing('截图中');
-        try {
-            const device = this.usingDevice ?? (await this.attachDeviceByDefault());
-            const orient = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('snapOrient');
+            const snapOrient = this.storage.getConfiguration(Configurations.SnapOrient);
             let numberOfOrient: number;
-            switch (orient) {
+            switch (snapOrient) {
                 case 'home键在下':
                     numberOfOrient = 0;
                     break;
@@ -453,23 +237,234 @@ export default class Touchsprite {
                     numberOfOrient = 1;
                     break;
             }
-            const img = await device.snapshot(numberOfOrient);
+            const img = await this.attachedDevice.snapshot(numberOfOrient);
 
-            const dir = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('snapDir');
-            if (dir) {
-                const url = Path.join(dir, `PIC_${Date.now()}.png`);
-                Fs.writeFile(url, Buffer.from(img), e => {
-                    if (e) {
-                        Vscode.window.showWarningMessage((e as Error).message);
-                    }
-                });
+            const snapDir = this.storage.getConfiguration(Configurations.SnapDir) as string;
+            if (snapDir) {
+                const url = Path.join(snapDir, `PIC_${Date.now()}.png`);
+                await FsPromises.writeFile(url, Buffer.from(img));
             }
 
-            doing.dispose();
             return img;
         } catch (e) {
-            this.output.error('截图失败: ' + (e as Error).message);
+            throw e;
+        } finally {
+            doing?.dispose();
         }
-        doing.dispose();
+    }
+
+    handleDetachDevice() {
+        try {
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
+            }
+            this.attachedDevice = null;
+            StatusBar.disconnected();
+            Output.println('断开设备成功');
+        } catch (e) {
+            Output.eprintln('断开设备失败:', (e as Error).message ?? e);
+        }
+    }
+
+    async handleAttachDeviceByInput(): Promise<void> {
+        const doing = StatusBar.doing('连接中');
+        try {
+            const ip = await this.asker.askForDeviceIpWithHistory();
+            await this.attachDevice(ip);
+            Output.println('连接设备成功:', ip);
+        } catch (e) {
+            Output.eprintln('连接设备失败:', (e as Error).message ?? e);
+        } finally {
+            doing?.dispose();
+        }
+    }
+
+    async handleAttachDeviceBySearch(): Promise<void> {
+        const doing = StatusBar.doing('连接中');
+        try {
+            const deviceSearcher = new DeviceSearcher(this.getHostIp());
+            const device = await deviceSearcher.search();
+            await this.attachDevice(device.ip);
+            Output.println('连接设备成功:', device.ip);
+        } catch (e) {
+            Output.eprintln('连接设备失败:', (e as Error).message ?? e);
+        } finally {
+            doing?.dispose();
+        }
+    }
+
+    async handleRunProject(mainFilename: string = 'main.lua', boot?: string): Promise<void> {
+        const doing = StatusBar.doing('准备运行工程');
+        try {
+            boot = boot ?? mainFilename;
+
+            if (!this.attachedDevice) {
+                await this.attachDeviceByDefault();
+            }
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
+            }
+
+            const running = await this.attachedDevice.status();
+            if (running === TsApiStatusResponseData.running) {
+                await this.handleStopScript();
+            }
+
+            await this.uploadProject(mainFilename);
+            await this.attachedDevice.logServer(this.getHostIp(), this.loggerPort);
+            await this.attachedDevice.setLuaPath(boot);
+            await this.attachedDevice.runLua();
+            this.watchRunningStatus();
+
+            Output.println('运行工程成功');
+        } catch (e) {
+            Output.eprintln('运行工程失败:', (e as Error).message ?? e);
+        } finally {
+            doing?.dispose();
+        }
+    }
+
+    async handleRunTestProject(): Promise<void> {
+        return this.handleRunProject('maintest.lua');
+    }
+
+    async handleRunScript(): Promise<void> {
+        const doing = StatusBar.doing('准备运行脚本');
+        try {
+            if (!this.attachedDevice) {
+                await this.attachDeviceByDefault();
+            }
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
+            }
+
+            const running = await this.attachedDevice.status();
+            if (running === TsApiStatusResponseData.running) {
+                await this.handleStopScript();
+            }
+
+            await this.attachedDevice.logServer(this.getHostIp(), this.loggerPort);
+
+            const focusingFile = this.workspace.getFocusingFile();
+            const url = focusingFile.fileName;
+            const filename = Path.basename(url);
+            const ext = Path.extname(filename);
+            if (ext !== '.lua') {
+                throw new Error('文件非 Lua 脚本');
+            }
+
+            await this.attachedDevice.setLuaPath(filename);
+            await this.attachedDevice.upload({
+                url,
+                root: TsFileRoot.lua,
+                path: '/',
+                filename,
+            });
+            await this.attachedDevice.runLua();
+            this.watchRunningStatus();
+
+            Output.println('运行脚本成功');
+        } catch (e) {
+            Output.eprintln('运行脚本失败:', (e as Error).message ?? e);
+        } finally {
+            doing?.dispose();
+        }
+    }
+
+    async handleStopScript(): Promise<void> {
+        try {
+            if (!this.attachedDevice) {
+                await this.attachDeviceByDefault();
+            }
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
+            }
+
+            await this.attachedDevice.stopLua();
+
+            Output.println('停止脚本成功');
+        } catch (e) {
+            Output.eprintln('停止脚本失败:', (e as Error).message ?? e);
+        }
+    }
+
+    async handleUploadFile(): Promise<void> {
+        const doing = StatusBar.doing('上传文件中');
+        try {
+            if (!this.attachedDevice) {
+                await this.attachDeviceByDefault();
+            }
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
+            }
+
+            const dst = await this.asker.askForUploadDst();
+            const uris = await this.asker.askForUploadFiles();
+            const files: TsFile[] = uris.map(uri => {
+                const url = uri.path.substring(1);
+                const filename = Path.basename(url);
+                return {
+                    url,
+                    root: dst,
+                    path: '/',
+                    filename,
+                };
+            });
+
+            for (const file of files) {
+                await this.attachedDevice.upload(file);
+            }
+
+            Output.println('上传文件成功:', `${files.length} 个文件`);
+        } catch (e) {
+            Output.eprintln('上传文件失败:', (e as Error).message ?? e);
+        } finally {
+            doing?.dispose();
+        }
+    }
+
+    async handleClearScript(): Promise<void> {
+        const doing = StatusBar.doing('清空脚本中');
+        try {
+            if (!this.attachedDevice) {
+                await this.attachDeviceByDefault();
+            }
+            if (!this.attachedDevice) {
+                throw new Error('未连接设备');
+            }
+
+            const dirs: string[] = ['/'];
+            const dirsToRm: string[] = [];
+            const filesToRm: string[] = [];
+
+            while (dirs.length > 0) {
+                const dir = dirs.shift()!;
+                const list = await this.attachedDevice.getFileList(dir);
+                list.Dirs?.forEach(nextDir => dirs.push(dir + nextDir + '/'));
+                list.Files?.forEach(nextFile => filesToRm.push(dir + nextFile));
+                if (dir !== '/') {
+                    dirsToRm.push(dir);
+                }
+            }
+
+            const total = dirsToRm.length + filesToRm.length;
+            let progress = 0;
+            for (const file of filesToRm) {
+                await this.attachedDevice.rmFile(file);
+                doing?.updateProgress(++progress / total);
+                StatusBar.refresh();
+            }
+            for (const dir of dirsToRm.reverse()) {
+                await this.attachedDevice.rmFile(dir);
+                doing?.updateProgress(++progress / total);
+                StatusBar.refresh();
+            }
+
+            Output.println('清空脚本成功:', `${total} 个文件`);
+        } catch (e) {
+            Output.eprintln('清空脚本失败:', (e as Error).message ?? e);
+        } finally {
+            doing?.dispose();
+        }
     }
 }

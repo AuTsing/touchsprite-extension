@@ -1,0 +1,9 @@
+export const TS_NS = 'touchsprite-extension';
+export const TS_LOGIN_URL = 'https://account.touchsprite.com/';
+export const TS_INFO_URL = 'https://dev.touchsprite.com/touch/script/view';
+export const TS_ENT_INFO_URL = 'https://ent.touchsprite.com/touch/scripts/view';
+export const TS_UPLOAD_URL = 'https://dev.touchsprite.com/touch/script/upload';
+export const TS_ENT_UPLOAD_URL = 'https://ent.touchsprite.com/touch/scripts/upload';
+export const TS_UPDATE_URL = 'https://dev.touchsprite.com/touch/script/version';
+export const TS_ENT_UPDATE_URL = 'https://ent.touchsprite.com/touch/scripts/commit-version';
+export const TS_OPENAPI_URL = 'http://openapi.touchsprite.com/api/openapi';

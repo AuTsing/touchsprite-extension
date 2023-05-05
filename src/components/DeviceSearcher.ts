@@ -1,80 +1,83 @@
 import * as Vscode from 'vscode';
 import * as Dgram from 'dgram';
-import Touchsprite from './Touchsprite';
-import * as Ui from './Ui';
+import StatusBar from './StatusBar';
+import Output from './Output';
 
-export interface ITsSearchDevice {
+export interface TsSearchDevice {
     ip: string;
     devname: string;
     osType: 'iOS' | 'Android';
 }
 
 export default class DeviceSearcher {
-    private readonly touchsprite: Touchsprite;
-    private readonly output: Ui.Output;
-    private readonly statusBar: Ui.StatusBar;
-    private selected: boolean;
+    private readonly hostIp: string;
 
-    constructor(touchsprite: Touchsprite) {
-        this.touchsprite = touchsprite;
-        this.output = Ui.useOutput();
-        this.statusBar = Ui.useStatusBar();
-        this.selected = false;
+    constructor(hostIp: string) {
+        this.hostIp = hostIp;
     }
 
-    public async search(): Promise<ITsSearchDevice> {
-        const doing = this.statusBar.doing('搜索中');
+    public async search(): Promise<TsSearchDevice> {
+        const doing = StatusBar.doing('搜索中');
+        const port: number = Math.round(Math.random() * (19999 - 15000 + 1) + 15000);
+        const devices: TsSearchDevice[] = [];
+        const searcher = Dgram.createSocket('udp4');
+        const sender = Dgram.createSocket('udp4');
 
-        this.selected = false;
-        const device = await new Promise<ITsSearchDevice>((resolve, reject) => {
-            const port: number = Math.round(Math.random() * (19999 - 15000 + 1) + 15000);
-            const ip = this.touchsprite.getHostIp();
-            const devices: ITsSearchDevice[] = [];
-
-            const searcher = Dgram.createSocket('udp4');
-            const sender = Dgram.createSocket('udp4');
-
-            searcher.on('error', e => {
-                searcher.close();
-                sender.close();
-                doing.dispose();
-                reject(e);
-            });
+        let selecting = false;
+        let searched = false;
+        return new Promise((resolve, reject) => {
             searcher.on('message', async msg => {
-                const newSearchDevice: ITsSearchDevice = JSON.parse(msg.toString());
+                selecting = true;
+
+                const newSearchDevice = JSON.parse(msg.toString()) as TsSearchDevice;
                 if (devices.every(device => device.ip !== newSearchDevice.ip)) {
                     devices.push(newSearchDevice);
                 }
-                if (!this.selected) {
-                    const list = devices.map(device => `${device.devname}: ${device.ip}`);
-                    const selectedDevice = await Vscode.window.showQuickPick(list);
-                    if (selectedDevice) {
-                        const device = devices[list.indexOf(selectedDevice)];
-                        resolve(device);
-                    }
-                    this.selected = true;
-                }
-            });
-            searcher.bind(port, ip);
 
-            sender.bind(0, ip, () => sender.setBroadcast(true));
-            sender.send(`{ "ip": "${ip}", "port": ${port} }`, 14099, '255.255.255.255', e => {
+                const list = devices.map(device => `${device.devname}: ${device.ip}`);
+                const selection = await Vscode.window.showQuickPick(list);
+                if (selection === undefined && !searched) {
+                    selecting = false;
+                    return;
+                }
+                if (selection === undefined && searched) {
+                    reject('未选择设备');
+                    selecting = false;
+                    return;
+                }
+
+                const device = devices[list.indexOf(selection!!)];
+                if (device) {
+                    resolve(device);
+                } else {
+                    reject('未选择设备');
+                }
+                selecting = false;
+            });
+            searcher.on('error', e => reject(e.message));
+            searcher.bind(port, this.hostIp);
+
+            sender.bind(0, this.hostIp, () => sender.setBroadcast(true));
+            sender.send(`{ "ip": "${this.hostIp}", "port": ${port} }`, 14099, '255.255.255.255', e => {
                 if (e) {
                     searcher.close();
                     sender.close();
-                    doing.dispose();
-                    reject(e);
+                    doing?.dispose();
+                    reject(e.message);
+                    searched = true;
                     return;
                 }
                 setTimeout(() => {
                     searcher.close();
                     sender.close();
-                    doing.dispose();
-                    this.output.info(`搜索成功: 共搜索到 ${devices.length} 台设备`);
+                    Output.printlnAndShow('搜索成功:', `共搜索到 ${devices.length} 台设备`);
+                    doing?.dispose();
+                    searched = true;
+                    if (!selecting) {
+                        reject('未选择设备');
+                    }
                 }, 3000);
             });
         });
-
-        return device;
     }
 }

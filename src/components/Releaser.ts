@@ -1,18 +1,22 @@
-import * as Vscode from 'vscode';
 import * as Path from 'path';
+import * as FsPromises from 'fs/promises';
 import * as Fs from 'fs';
 import * as FormData from 'form-data';
 import Axios, { AxiosInstance } from 'axios';
 import * as Luaparse from 'luaparse';
 import * as ChanglogParser from 'changelog-parser';
-import * as Ui from './Ui';
-import Projector, { EProjectMode } from './Projector';
+import Projector, { ProjectMode } from './Projector';
 import Zipper from './Zipper';
+import Storage, { Configurations } from './Storage';
+import Asker from './Asker';
+import { TS_ENT_INFO_URL, TS_ENT_UPDATE_URL, TS_ENT_UPLOAD_URL, TS_INFO_URL, TS_LOGIN_URL, TS_UPDATE_URL, TS_UPLOAD_URL } from '../values/Constants';
+import StatusBar from './StatusBar';
+import Output from './Output';
 
-export interface ILuaconfigTable {
-    id?: string;
-    idEnt?: string;
-    version?: string;
+export interface LuaconfigTable {
+    id: string | null;
+    idEnt: string | null;
+    version: string | null;
 }
 
 export interface ITsScriptInfo {
@@ -22,21 +26,20 @@ export interface ITsScriptInfo {
     updatedAt: string;
 }
 
-export enum EProductTarget {
+export enum ProductTarget {
     Ts,
     Ent,
 }
 
 export default class Releaser {
-    private readonly output: Ui.Output;
-    private readonly statusBar: Ui.StatusBar;
+    private readonly storage: Storage;
+    private readonly asker: Asker;
     private readonly loginer: AxiosInstance;
     private readonly updater: AxiosInstance;
-    private readonly luaconfig: ILuaconfigTable;
 
-    constructor() {
-        this.output = Ui.useOutput();
-        this.statusBar = Ui.useStatusBar();
+    constructor(storage: Storage, asker: Asker) {
+        this.storage = storage;
+        this.asker = asker;
         this.loginer = Axios.create({
             timeout: 30000,
             maxRedirects: 0,
@@ -54,7 +57,6 @@ export default class Releaser {
         this.updater = Axios.create({
             timeout: 30000,
         });
-        this.luaconfig = {};
     }
 
     private async login(): Promise<void> {
@@ -62,22 +64,12 @@ export default class Releaser {
             return;
         }
 
-        let cookie = Vscode.workspace.getConfiguration('touchsprite-extension').get<string>('cookie') ?? '';
+        let cookie = this.storage.getConfiguration(Configurations.Cookie);
         if (cookie === '') {
-            cookie = (await Vscode.window.showInputBox({ prompt: '请输入登录Cookie', value: '' })) ?? '';
-            Vscode.workspace.getConfiguration('touchsprite-extension').update('cookie', cookie, true);
-        }
-        if (cookie === '') {
-            throw new Error('登录Cookie不正确');
+            cookie = await this.asker.askForCookie();
         }
 
-        const cookies = cookie.split(';').map(str => str.trim());
-        const loginCookie = cookies.find(cookie => cookie.slice(0, 9) === '_identity');
-        if (!loginCookie) {
-            throw new Error('登录Cookie不包含字段"identity"');
-        }
-
-        const resp = await this.loginer.get('https://account.touchsprite.com/', {
+        const resp = await this.loginer.get(TS_LOGIN_URL, {
             headers: { cookie: cookie },
         });
         if (resp.status !== 302) {
@@ -87,7 +79,7 @@ export default class Releaser {
         const releaseCookies = resp.headers['set-cookie'];
         const releaseCookie = releaseCookies?.find(ck => ck.slice(0, 9) === 'PHPSESSID');
         if (!releaseCookie) {
-            throw new Error('获取发布Cookie失败');
+            throw new Error('获取发布 Cookie 失败');
         }
 
         const usingReleaseCookie = releaseCookie.split(';')[0];
@@ -95,35 +87,37 @@ export default class Releaser {
         this.updater.defaults.headers.common['cookie'] = usingReleaseCookie;
     }
 
-    private loadLuaconfig(root: string) {
-        this.luaconfig.id = undefined;
-        this.luaconfig.idEnt = undefined;
-        this.luaconfig.version = undefined;
+    private async loadLuaconfig(root: string): Promise<LuaconfigTable> {
+        const luaconfig: LuaconfigTable = {
+            id: null,
+            idEnt: null,
+            version: null,
+        };
 
-        const files = Fs.readdirSync(root);
+        const files = await FsPromises.readdir(root);
         if (!files.includes('luaconfig.lua')) {
-            return;
+            return luaconfig;
         }
 
         const file = Path.join(root, 'luaconfig.lua');
-        const content = Fs.readFileSync(file, { encoding: 'utf8' });
+        const content = await FsPromises.readFile(file, { encoding: 'utf8' });
         const ast = Luaparse.parse(content);
         if (!ast) {
-            return;
+            return luaconfig;
         }
         if (ast.type !== 'Chunk') {
-            return;
+            return luaconfig;
         }
 
         const bodies = ast.body;
         const statement = bodies.find((body: any) => body.type === 'ReturnStatement');
         if (!statement) {
-            return;
+            return luaconfig;
         }
 
         const expression = statement.arguments?.[0];
         if (!expression) {
-            return;
+            return luaconfig;
         }
 
         let tableExpression: any | undefined;
@@ -132,22 +126,22 @@ export default class Releaser {
         }
         if (expression.type === 'IndexExpression') {
             if (expression.base?.type !== 'TableConstructorExpression') {
-                return;
+                return luaconfig;
             }
             if (expression.index?.type !== 'NumericLiteral') {
-                return;
+                return luaconfig;
             }
             const fields = expression.base.fields;
             const index = expression.index.value - 1;
             tableExpression = fields[index]?.value;
         }
         if (!tableExpression) {
-            return;
+            return luaconfig;
         }
 
         const fields = tableExpression?.fields;
         if (!fields) {
-            return;
+            return luaconfig;
         }
 
         for (const field of fields) {
@@ -174,47 +168,27 @@ export default class Releaser {
             }
 
             if (key === 'id') {
-                this.luaconfig.id = value;
+                luaconfig.id = value;
             }
             if (key === 'idEnt') {
-                this.luaconfig.idEnt = value;
+                luaconfig.idEnt = value;
             }
             if (key === 'version') {
-                this.luaconfig.version = value;
+                luaconfig.version = value;
             }
         }
-    }
 
-    private async getVersion(): Promise<string> {
-        let version: string | undefined;
-        if (!version) {
-            version = this.luaconfig.version;
-        }
-
-        if (!version) {
-            this.output.warning('无法读取到配置文件字段 "version" ，请输入脚本ID');
-            version = await Vscode.window.showInputBox({ prompt: '请输入脚本版本号', value: '' });
-        }
-
-        if (!version) {
-            throw new Error('未填写脚本版本号');
-        }
-
-        if (!/^\d+\.\d+\.\d+$/.test(version)) {
-            throw new Error('脚本版本号不正确');
-        }
-
-        return version;
+        return luaconfig;
     }
 
     private async getChangelog(root: string, ver: string): Promise<string> {
-        const files = Fs.readdirSync(root);
+        const files = await FsPromises.readdir(root);
         if (!files.includes('CHANGELOG.md')) {
             return ' ';
         }
 
         const file = Path.join(root, 'CHANGELOG.md');
-        const content = Fs.readFileSync(file, { encoding: 'utf8' });
+        const content = await FsPromises.readFile(file, { encoding: 'utf8' });
 
         const { versions } = await ChanglogParser({ text: content });
         if (!versions) {
@@ -225,19 +199,19 @@ export default class Releaser {
         const modifiedTitle = title.replace('latest', ver);
         const changelog = `${modifiedTitle}\n${body}`;
 
-        this.output.info('读取更新日志成功: ' + modifiedTitle);
+        Output.println('读取更新日志成功:', modifiedTitle);
         return changelog;
     }
 
-    private async getProjectInfo(id: string, target: EProductTarget = EProductTarget.Ts): Promise<ITsScriptInfo> {
+    private async getProjectInfo(id: string, target: ProductTarget = ProductTarget.Ts): Promise<ITsScriptInfo> {
         let url: string;
         switch (target) {
-            case EProductTarget.Ts:
+            case ProductTarget.Ts:
             default:
-                url = 'https://dev.touchsprite.com/touch/script/view';
+                url = TS_INFO_URL;
                 break;
-            case EProductTarget.Ent:
-                url = 'https://ent.touchsprite.com/touch/scripts/view';
+            case ProductTarget.Ent:
+                url = TS_ENT_INFO_URL;
                 break;
         }
 
@@ -269,21 +243,21 @@ export default class Releaser {
         return { name, version, encrypt, updatedAt };
     }
 
-    private async uploadProject(zip: string, id?: string, target: EProductTarget = EProductTarget.Ts): Promise<string> {
+    private async uploadProject(zip: string, id?: string, target: ProductTarget = ProductTarget.Ts): Promise<string> {
         const zipStream = Fs.createReadStream(zip);
         const formData = new FormData();
         let url: string;
 
         switch (target) {
-            case EProductTarget.Ts:
+            case ProductTarget.Ts:
             default:
                 formData.append('ScriptUpload[file]', zipStream);
-                url = 'https://dev.touchsprite.com/touch/script/upload';
+                url = TS_UPLOAD_URL;
                 break;
-            case EProductTarget.Ent:
+            case ProductTarget.Ent:
                 formData.append('file', zipStream);
                 formData.append('script_id', id);
-                url = 'https://ent.touchsprite.com/touch/scripts/upload';
+                url = TS_ENT_UPLOAD_URL;
                 break;
         }
 
@@ -304,14 +278,7 @@ export default class Releaser {
         return uploadKey;
     }
 
-    private async updateProject(
-        id: string,
-        version: string,
-        changelog: string,
-        encrypt: string,
-        uploadKey: string,
-        target: EProductTarget = EProductTarget.Ts
-    ) {
+    private async updateProject(id: string, version: string, changelog: string, encrypt: string, uploadKey: string, target: ProductTarget = ProductTarget.Ts) {
         const formData = new FormData();
         formData.append('is_default', 'true');
         formData.append('default', '1');
@@ -324,12 +291,12 @@ export default class Releaser {
 
         let url: string;
         switch (target) {
-            case EProductTarget.Ts:
+            case ProductTarget.Ts:
             default:
-                url = 'https://dev.touchsprite.com/touch/script/version';
+                url = TS_UPDATE_URL;
                 break;
-            case EProductTarget.Ent:
-                url = 'https://ent.touchsprite.com/touch/scripts/commit-version';
+            case ProductTarget.Ent:
+                url = TS_ENT_UPDATE_URL;
                 break;
         }
 
@@ -341,54 +308,55 @@ export default class Releaser {
         }
     }
 
-    public async release(): Promise<void> {
-        const doing = this.statusBar.doing('发布工程中');
+    public async handleRelease(): Promise<void> {
+        const doing = StatusBar.doing('发布工程中');
         try {
-            const projector = new Projector(undefined, EProjectMode.zip);
-            const root = projector.locateRoot();
+            const projector = new Projector(this.storage, undefined, ProjectMode.zip);
+            const root = await projector.locateRoot();
 
-            const zipper = new Zipper();
-            const zip = await zipper.zipProject();
+            const zipper = new Zipper(this.storage);
+            const zip = await zipper.handleZipProject();
             if (!zip) {
-                throw new Error('打包失败');
+                throw new Error('打包工程失败');
             }
 
-            this.loadLuaconfig(root);
-
-            if (!this.luaconfig.id && !this.luaconfig.idEnt) {
-                throw new Error('无法读取到配置文件字段 "id/idEnt"');
+            const luaconfig = await this.loadLuaconfig(root);
+            if (!luaconfig.id && !luaconfig.idEnt) {
+                throw new Error('请先设置配置文件字段 `id/idEnt`');
+            }
+            if (!luaconfig.version) {
+                throw new Error('请先设置配置文件字段 `version`');
             }
 
-            const version = await this.getVersion();
-            const changelog = await this.getChangelog(root, version);
+            const changelog = await this.getChangelog(root, luaconfig.version);
+
             await this.login();
 
-            if (this.luaconfig.id) {
-                const id = this.luaconfig.id;
+            if (luaconfig.id) {
+                Output.println('准备发布工程:', luaconfig.id);
 
-                this.output.info(`准备发布普通工程: ${id}`, 1);
-                const oldInfo = await this.getProjectInfo(id, EProductTarget.Ts);
-                const uploadKey = await this.uploadProject(zip, id, EProductTarget.Ts);
-                await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey, EProductTarget.Ts);
-                const newInfo = await this.getProjectInfo(id, EProductTarget.Ts);
+                const oldInfo = await this.getProjectInfo(luaconfig.id, ProductTarget.Ts);
+                const uploadKey = await this.uploadProject(zip, luaconfig.id, ProductTarget.Ts);
+                await this.updateProject(luaconfig.id, luaconfig.version, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ts);
+                const newInfo = await this.getProjectInfo(luaconfig.id, ProductTarget.Ts);
 
-                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER > ${oldInfo.version} > ${newInfo.version};`, 1);
+                Output.printlnAndShow('发布工程成功:', `${newInfo.name}(${luaconfig.id})`, `${oldInfo.version} -> ${newInfo.version}`);
             }
 
-            if (this.luaconfig.idEnt) {
-                const id = this.luaconfig.idEnt;
+            if (luaconfig.idEnt) {
+                Output.println('准备发布企业版工程:', luaconfig.idEnt);
 
-                this.output.info(`准备发布企业版工程: ${id}`, 1);
-                const oldInfo = await this.getProjectInfo(id, EProductTarget.Ent);
-                const uploadKey = await this.uploadProject(zip, id, EProductTarget.Ent);
-                await this.updateProject(id, version, changelog, oldInfo.encrypt, uploadKey, EProductTarget.Ent);
-                const newInfo = await this.getProjectInfo(id, EProductTarget.Ent);
+                const oldInfo = await this.getProjectInfo(luaconfig.idEnt, ProductTarget.Ent);
+                const uploadKey = await this.uploadProject(zip, luaconfig.idEnt, ProductTarget.Ent);
+                await this.updateProject(luaconfig.idEnt, luaconfig.version, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ent);
+                const newInfo = await this.getProjectInfo(luaconfig.idEnt, ProductTarget.Ent);
 
-                this.output.info(`发布工程成功: ID > ${id}; NAME > ${newInfo.name}; VER > ${oldInfo.version} > ${newInfo.version};`, 1);
+                Output.printlnAndShow('发布企业版工程成功:', `${newInfo.name}(${luaconfig.idEnt})`, `${oldInfo.version} -> ${newInfo.version}`);
             }
         } catch (e) {
-            this.output.error('发布工程失败: ' + (e as Error).message);
+            Output.eprintln('发布工程失败:', (e as Error).message ?? e);
+        } finally {
+            doing?.dispose();
         }
-        doing.dispose();
     }
 }

@@ -1,14 +1,15 @@
 import * as Vscode from 'vscode';
-import * as Fs from 'fs';
+import * as FsPromises from 'fs/promises';
 import * as Path from 'path';
-import { ITsFile, ETsFileRoot } from './Device';
+import { TsFile, TsFileRoot } from './Device';
+import Storage, { Configurations } from './Storage';
 
-export enum EProjectMode {
+export enum ProjectMode {
     send = 'send',
     zip = 'zip',
 }
 
-export interface ICollectedFile {
+export interface CollectedFile {
     root: string;
     url: string;
     dir: string;
@@ -16,30 +17,30 @@ export interface ICollectedFile {
 }
 
 export default class Projector {
+    private readonly storage: Storage;
     private readonly mainFilename: string;
-    private readonly projectMode: EProjectMode;
+    private readonly projectMode: ProjectMode;
     private readonly includes: string[];
     private readonly excludes: string[];
 
-    constructor(mainFilename: string = 'main.lua', projectMode: EProjectMode = EProjectMode.send) {
+    constructor(storage: Storage, mainFilename: string = 'main.lua', projectMode: ProjectMode = ProjectMode.send) {
+        this.storage = storage;
         this.mainFilename = mainFilename;
         this.projectMode = projectMode;
 
-        let includes!: string[];
-        let excludes!: string[];
-        if (this.projectMode === EProjectMode.send) {
-            includes = Vscode.workspace.getConfiguration('touchsprite-extension').get<string[]>('includeWhenSend') ?? [];
-            excludes = Vscode.workspace.getConfiguration('touchsprite-extension').get<string[]>('excludeWhenSend') ?? [];
+        switch (this.projectMode) {
+            case ProjectMode.send:
+                this.includes = this.storage.getConfiguration(Configurations.IncludeWhenSend) as string[];
+                this.excludes = this.storage.getConfiguration(Configurations.ExcludeWhenSend) as string[];
+                break;
+            case ProjectMode.zip:
+                this.includes = this.storage.getConfiguration(Configurations.IncludeWhenZip) as string[];
+                this.excludes = this.storage.getConfiguration(Configurations.ExcludeWhenZip) as string[];
+                break;
         }
-        if (this.projectMode === EProjectMode.zip) {
-            includes = Vscode.workspace.getConfiguration('touchsprite-extension').get<string[]>('includeWhenZip') ?? [];
-            excludes = Vscode.workspace.getConfiguration('touchsprite-extension').get<string[]>('excludeWhenZip') ?? [];
-        }
-        this.includes = includes;
-        this.excludes = excludes;
     }
 
-    public locateRoot(): string {
+    async locateRoot(): Promise<string> {
         const workspaceFolders = Vscode.workspace.workspaceFolders;
         if (!workspaceFolders) {
             throw new Error('未打开工程');
@@ -48,7 +49,7 @@ export default class Projector {
         if (workspaceFolders.length === 1) {
             const usingFolder = workspaceFolders[0];
             const dir = usingFolder.uri.fsPath;
-            const files = Fs.readdirSync(dir);
+            const files = await FsPromises.readdir(dir);
             if (files.includes(this.mainFilename)) {
                 return dir;
             }
@@ -65,7 +66,7 @@ export default class Projector {
         }
 
         const dir = usingFolder.uri.fsPath;
-        const files = Fs.readdirSync(dir);
+        const files = await FsPromises.readdir(dir);
         if (files.includes(this.mainFilename)) {
             return dir;
         }
@@ -73,18 +74,18 @@ export default class Projector {
         throw new Error('所指定工程不包含引导文件 ' + this.mainFilename);
     }
 
-    private collectFiles(root: string, dir: string, container: ICollectedFile[]) {
-        const files = Fs.readdirSync(dir);
+    private async collectFiles(root: string, dir: string, container: CollectedFile[]) {
+        const files = await FsPromises.readdir(dir);
         for (const file of files) {
             if (this.excludes.includes(file)) {
                 continue;
             }
 
             const url = Path.join(dir, file);
-            const stat = Fs.statSync(url);
+            const stat = await FsPromises.stat(url);
 
             if (stat.isDirectory()) {
-                this.collectFiles(root, url, container);
+                await this.collectFiles(root, url, container);
             }
 
             if (stat.isFile()) {
@@ -93,20 +94,20 @@ export default class Projector {
         }
     }
 
-    public generate(): ITsFile[] {
-        const root = this.locateRoot();
+    async generate(): Promise<TsFile[]> {
+        const root = await this.locateRoot();
         const paths = [...this.includes, root];
-        const files: ICollectedFile[] = [];
+        const files: CollectedFile[] = [];
         for (const path of paths) {
-            this.collectFiles(path, path, files);
+            await this.collectFiles(path, path, files);
         }
-        const tsFiles: ITsFile[] = files.map(file => {
+        const tsFiles: TsFile[] = files.map(file => {
             const url = file.url;
             const isLua = Path.extname(file.filename) === '.lua' || Path.extname(file.filename) === '.so';
-            const root = isLua ? ETsFileRoot.lua : ETsFileRoot.res;
+            const root = isLua ? TsFileRoot.lua : TsFileRoot.res;
             const path = Path.join('/', Path.relative(file.root, file.dir)).replace(/\\/g, '/');
             const filename = file.filename;
-            const tsFile: ITsFile = { url, root, path, filename };
+            const tsFile: TsFile = { url, root, path, filename };
             return tsFile;
         });
         return tsFiles;
