@@ -7,6 +7,7 @@ import StatusBar from './components/StatusBar';
 import Storage from './components/Storage';
 import Asker from './components/Asker';
 import Workspace from './components/Workspace';
+import Server from './components/Server';
 
 export function activate(context: Vscode.ExtensionContext) {
     Output.instance = new Output();
@@ -35,6 +36,9 @@ export function activate(context: Vscode.ExtensionContext) {
 
     const releaser = new Releaser(storage, asker);
     context.subscriptions.push(Vscode.commands.registerCommand('touchsprite-extension.releaseProject', () => releaser.handleRelease()));
+
+    const server = new Server(touchsprite);
+    context.subscriptions.push(server);
 }
 
 export function deactivate() {}

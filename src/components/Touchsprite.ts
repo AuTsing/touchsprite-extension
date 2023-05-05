@@ -245,6 +245,7 @@ export default class Touchsprite {
                 await FsPromises.writeFile(url, Buffer.from(img));
             }
 
+            StatusBar.result('截图成功');
             return img;
         } catch (e) {
             throw e;
