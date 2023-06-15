@@ -11,25 +11,13 @@
         "触动"
     ],
     "engines": {
-        "vscode": "^1.73.0"
+        "vscode": "^1.75.0"
     },
     "categories": [
         "Other"
     ],
     "activationEvents": [
-        "onLanguage:lua",
-        "onCommand:snapshop-extension.snapshop",
-        "onCommand:touchsprite-extension.attachDeviceByInput",
-        "onCommand:touchsprite-extension.attachDeviceBySearch",
-        "onCommand:touchsprite-extension.detachDevice",
-        "onCommand:touchsprite-extension.runProject",
-        "onCommand:touchsprite-extension.runTestProject",
-        "onCommand:touchsprite-extension.runScript",
-        "onCommand:touchsprite-extension.stopScript",
-        "onCommand:touchsprite-extension.uploadFile",
-        "onCommand:touchsprite-extension.clearScript",
-        "onCommand:touchsprite-extension.zipProject",
-        "onCommand:touchsprite-extension.releaseProject"
+        "onLanguage:lua"
     ],
     "main": "./dist/extension.js",
     "license": "GPL-3.0",

@@ -14,11 +14,9 @@ export enum Configurations {
 
 export default class Storage {
     private readonly state: Vscode.Memento;
-    private readonly configuration: Vscode.WorkspaceConfiguration;
 
     constructor(context: Vscode.ExtensionContext) {
         this.state = context.globalState;
-        this.configuration = Vscode.workspace.getConfiguration(TS_NS);
     }
 
     getDeviceIps(): string[] {
@@ -40,23 +38,24 @@ export default class Storage {
     }
 
     getConfiguration(key: Configurations): string | string[] {
+        const configuration = Vscode.workspace.getConfiguration(TS_NS);
         switch (key) {
             case Configurations.Cookie:
-                return this.configuration.get<string>(Configurations.Cookie) ?? '';
+                return configuration.get<string>(Configurations.Cookie) ?? '';
             case Configurations.AccessKey:
-                return this.configuration.get<string>(Configurations.AccessKey) ?? '';
+                return configuration.get<string>(Configurations.AccessKey) ?? '';
             case Configurations.SnapOrient:
-                return this.configuration.get<string>(Configurations.SnapOrient) ?? '';
+                return configuration.get<string>(Configurations.SnapOrient) ?? '';
             case Configurations.SnapDir:
-                return this.configuration.get<string>(Configurations.SnapDir) ?? '';
+                return configuration.get<string>(Configurations.SnapDir) ?? '';
             case Configurations.IncludeWhenSend:
-                return this.configuration.get<string[]>(Configurations.IncludeWhenSend) ?? [];
+                return configuration.get<string[]>(Configurations.IncludeWhenSend) ?? [];
             case Configurations.ExcludeWhenSend:
-                return this.configuration.get<string[]>(Configurations.ExcludeWhenSend) ?? [];
+                return configuration.get<string[]>(Configurations.ExcludeWhenSend) ?? [];
             case Configurations.IncludeWhenZip:
-                return this.configuration.get<string[]>(Configurations.IncludeWhenZip) ?? [];
+                return configuration.get<string[]>(Configurations.IncludeWhenZip) ?? [];
             case Configurations.ExcludeWhenZip:
-                return this.configuration.get<string[]>(Configurations.ExcludeWhenZip) ?? [];
+                return configuration.get<string[]>(Configurations.ExcludeWhenZip) ?? [];
         }
     }
 }
