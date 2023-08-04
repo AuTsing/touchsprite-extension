@@ -10,7 +10,7 @@ import Workspace from './components/Workspace';
 import Server from './components/Server';
 
 export function activate(context: Vscode.ExtensionContext) {
-    Output.instance = new Output();
+    Output.instance = new Output(context);
     context.subscriptions.push(Output.instance);
 
     StatusBar.instance = new StatusBar();

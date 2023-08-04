@@ -220,7 +220,7 @@ export default class Releaser {
             throw new Error(resp.data.msg ?? resp.data.code ?? '查询脚本状态失败');
         }
 
-        const name = resp.data.data?.details?.name ?? resp.data.data?.script?.introduction;
+        const name = resp.data.data?.details?.name ?? resp.data.data?.script?.name;
         if (!name) {
             throw new Error('获取脚本名失败');
         }
@@ -340,7 +340,8 @@ export default class Releaser {
                 await this.updateProject(luaconfig.id, luaconfig.version, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ts);
                 const newInfo = await this.getProjectInfo(luaconfig.id, ProductTarget.Ts);
 
-                Output.printlnAndShow('发布工程成功:', `${newInfo.name}(${luaconfig.id})`, `${oldInfo.version} -> ${newInfo.version}`);
+                Output.println('发布工程成功:', `${newInfo.name}(${luaconfig.id})`, `${oldInfo.version} -> ${newInfo.version}`);
+                StatusBar.result('发布工程成功');
             }
 
             if (luaconfig.idEnt) {
@@ -351,10 +352,12 @@ export default class Releaser {
                 await this.updateProject(luaconfig.idEnt, luaconfig.version, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ent);
                 const newInfo = await this.getProjectInfo(luaconfig.idEnt, ProductTarget.Ent);
 
-                Output.printlnAndShow('发布企业版工程成功:', `${newInfo.name}(${luaconfig.idEnt})`, `${oldInfo.version} -> ${newInfo.version}`);
+                Output.println('发布企业版工程成功:', `${newInfo.name}(${luaconfig.idEnt})`, `${oldInfo.version} -> ${newInfo.version}`);
+                StatusBar.result('发布企业版工程成功');
             }
         } catch (e) {
             Output.eprintln('发布工程失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         } finally {
             doing?.dispose();
         }

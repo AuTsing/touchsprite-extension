@@ -47,6 +47,7 @@ export default class Touchsprite {
         logger.on('error', e => {
             logger.close();
             Output.eprintln('日志服务器启用失败，这可能导致设备日志无法正常接收:', e.message);
+            Output.elogln((e as Error).stack ?? e);
         });
         logger.listen(this.loggerPort);
     }
@@ -264,6 +265,7 @@ export default class Touchsprite {
             Output.println('断开设备成功');
         } catch (e) {
             Output.eprintln('断开设备失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         }
     }
 
@@ -275,6 +277,7 @@ export default class Touchsprite {
             Output.println('连接设备成功:', ip);
         } catch (e) {
             Output.eprintln('连接设备失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         } finally {
             doing?.dispose();
         }
@@ -289,6 +292,7 @@ export default class Touchsprite {
             Output.println('连接设备成功:', device.ip);
         } catch (e) {
             Output.eprintln('连接设备失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         } finally {
             doing?.dispose();
         }
@@ -320,6 +324,7 @@ export default class Touchsprite {
             Output.println('运行工程成功');
         } catch (e) {
             Output.eprintln('运行工程失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         } finally {
             doing?.dispose();
         }
@@ -367,6 +372,7 @@ export default class Touchsprite {
             Output.println('运行脚本成功');
         } catch (e) {
             Output.eprintln('运行脚本失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         } finally {
             doing?.dispose();
         }
@@ -386,6 +392,7 @@ export default class Touchsprite {
             Output.println('停止脚本成功');
         } catch (e) {
             Output.eprintln('停止脚本失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         }
     }
 
@@ -420,6 +427,7 @@ export default class Touchsprite {
             StatusBar.result('上传文件成功');
         } catch (e) {
             Output.eprintln('上传文件失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         } finally {
             doing?.dispose();
         }
@@ -466,6 +474,7 @@ export default class Touchsprite {
             StatusBar.result('清空脚本成功');
         } catch (e) {
             Output.eprintln('清空脚本失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
         } finally {
             doing?.dispose();
         }

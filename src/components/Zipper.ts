@@ -52,6 +52,7 @@ export default class Zipper extends Jszip {
             return url;
         } catch (e) {
             Output.eprintln('打包工程失败:', (e as Error).message ?? e);
+            Output.elogln((e as Error).stack ?? e);
             return '';
         } finally {
             doing?.dispose();
