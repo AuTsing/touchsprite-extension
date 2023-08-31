@@ -109,6 +109,9 @@ export default class Touchsprite {
                     if (info.internal === true) {
                         continue;
                     }
+                    if (info.mac === '00:00:00:00:00:00') {
+                        continue;
+                    }
                     this.hostIp = info.address;
                     break forInterfaces;
                 }
