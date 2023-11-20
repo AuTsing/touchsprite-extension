@@ -1,8 +1,10 @@
 import * as Vscode from 'vscode';
 import * as FsPromises from 'fs/promises';
+import * as Fs from 'fs';
 import * as Path from 'path';
 import { TsFile, TsFileRoot } from './Device';
 import Storage, { Configurations } from './Storage';
+import Output from './Output';
 
 export enum ProjectMode {
     send = 'send',
@@ -96,7 +98,14 @@ export default class Projector {
 
     async generate(): Promise<TsFile[]> {
         const root = await this.locateRoot();
-        const paths = [...this.includes, root];
+        const paths = [...this.includes, root].filter(it => {
+            if (Fs.existsSync(it)) {
+                return true;
+            } else {
+                Output.wprintln('忽略不可用路径:', it);
+                return false;
+            }
+        });
         const files: CollectedFile[] = [];
         for (const path of paths) {
             await this.collectFiles(path, path, files);
