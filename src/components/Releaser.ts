@@ -14,9 +14,9 @@ import StatusBar from './StatusBar';
 import Output from './Output';
 
 export interface LuaconfigTable {
-    id: string | null;
-    idEnt: string | null;
-    version: string | null;
+    ID: string | null;
+    ID_ENT: string | null;
+    VERSION: string | null;
 }
 
 export interface ITsScriptInfo {
@@ -89,9 +89,9 @@ export default class Releaser {
 
     private async loadLuaconfig(root: string): Promise<LuaconfigTable> {
         const luaconfig: LuaconfigTable = {
-            id: null,
-            idEnt: null,
-            version: null,
+            ID: null,
+            ID_ENT: null,
+            VERSION: null,
         };
 
         const files = await FsPromises.readdir(root);
@@ -152,6 +152,7 @@ export default class Releaser {
             if (field.type === 'TableKeyString') {
                 key = field.key.name;
             }
+            key = key?.toUpperCase();
             if (!key) {
                 continue;
             }
@@ -167,14 +168,18 @@ export default class Releaser {
                 continue;
             }
 
-            if (key === 'id') {
-                luaconfig.id = value;
-            }
-            if (key === 'idEnt') {
-                luaconfig.idEnt = value;
-            }
-            if (key === 'version') {
-                luaconfig.version = value;
+            switch (key) {
+                case 'ID':
+                    luaconfig.ID = value;
+                    break;
+                case 'ID_ENT':
+                    luaconfig.ID_ENT = value;
+                    break;
+                case 'VERSION':
+                    luaconfig.VERSION = value;
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -321,38 +326,38 @@ export default class Releaser {
             }
 
             const luaconfig = await this.loadLuaconfig(root);
-            if (!luaconfig.id && !luaconfig.idEnt) {
-                throw new Error('请先设置配置文件字段 `id/idEnt`');
+            if (!luaconfig.ID && !luaconfig.ID_ENT) {
+                throw new Error('请先设置配置文件字段 `ID/ID_ENT`');
             }
-            if (!luaconfig.version) {
-                throw new Error('请先设置配置文件字段 `version`');
+            if (!luaconfig.VERSION) {
+                throw new Error('请先设置配置文件字段 `VERSION`');
             }
 
-            const changelog = await this.getChangelog(root, luaconfig.version);
+            const changelog = await this.getChangelog(root, luaconfig.VERSION);
 
             await this.login();
 
-            if (luaconfig.id) {
-                Output.println('准备发布工程:', luaconfig.id);
+            if (luaconfig.ID) {
+                Output.println('准备发布工程:', luaconfig.ID);
 
-                const oldInfo = await this.getProjectInfo(luaconfig.id, ProductTarget.Ts);
-                const uploadKey = await this.uploadProject(zip, luaconfig.id, ProductTarget.Ts);
-                await this.updateProject(luaconfig.id, luaconfig.version, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ts);
-                const newInfo = await this.getProjectInfo(luaconfig.id, ProductTarget.Ts);
+                const oldInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
+                const uploadKey = await this.uploadProject(zip, luaconfig.ID, ProductTarget.Ts);
+                await this.updateProject(luaconfig.ID, luaconfig.VERSION, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ts);
+                const newInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
 
-                Output.println('发布工程成功:', `${newInfo.name}(${luaconfig.id})`, `${oldInfo.version} -> ${newInfo.version}`);
+                Output.println('发布工程成功:', `${newInfo.name}(${luaconfig.ID})`, `${oldInfo.version} -> ${newInfo.version}`);
                 StatusBar.result('发布工程成功');
             }
 
-            if (luaconfig.idEnt) {
-                Output.println('准备发布企业版工程:', luaconfig.idEnt);
+            if (luaconfig.ID_ENT) {
+                Output.println('准备发布企业版工程:', luaconfig.ID_ENT);
 
-                const oldInfo = await this.getProjectInfo(luaconfig.idEnt, ProductTarget.Ent);
-                const uploadKey = await this.uploadProject(zip, luaconfig.idEnt, ProductTarget.Ent);
-                await this.updateProject(luaconfig.idEnt, luaconfig.version, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ent);
-                const newInfo = await this.getProjectInfo(luaconfig.idEnt, ProductTarget.Ent);
+                const oldInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
+                const uploadKey = await this.uploadProject(zip, luaconfig.ID_ENT, ProductTarget.Ent);
+                await this.updateProject(luaconfig.ID_ENT, luaconfig.VERSION, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ent);
+                const newInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
 
-                Output.println('发布企业版工程成功:', `${newInfo.name}(${luaconfig.idEnt})`, `${oldInfo.version} -> ${newInfo.version}`);
+                Output.println('发布企业版工程成功:', `${newInfo.name}(${luaconfig.ID_ENT})`, `${oldInfo.version} -> ${newInfo.version}`);
                 StatusBar.result('发布企业版工程成功');
             }
         } catch (e) {
