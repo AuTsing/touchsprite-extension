@@ -377,8 +377,8 @@ export default class Releaser {
             }
 
             const luaconfig = await this.loadLuaconfig(root);
-            if (!luaconfig.ID && !luaconfig.ID_ENT) {
-                throw new Error('请先设置配置文件字段 `ID/ID_ENT`');
+            if (!luaconfig.ID && !luaconfig.ID_ENT && !luaconfig.ID_APP) {
+                throw new Error('请先设置配置文件字段 `ID/ID_ENT/ID_APP`');
             }
             if (!luaconfig.VERSION) {
                 throw new Error('请先设置配置文件字段 `VERSION`');

@@ -93,7 +93,7 @@ TouchSprite Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 
     ![avatar](https://raw.githubusercontent.com/AuTsing/touchsprite-extension/main/assets/images/readme/20210129165429.png)
 
-8. (可选) 发布工程会自动检测工程目录下的 _luaconfig.lua_ 文件，该文件应返回一个表，`ID` 字段 ( 普通工程 ) ， `ID_ENT` 字段 ( 企业版工程 ) ，`VERSION` 字段会被读取使用，如果该文件不存在或者无法读取，会导致发布失败
+8. (可选) 发布工程会自动检测工程目录下的 _luaconfig.lua_ 文件，该文件应返回一个表，`ID` 字段 ( 普通工程 ) ， `ID_ENT` 字段 ( 企业版工程 ) ，`ID_APP` 字段 ( 小精灵工程 ) ，`VERSION` 字段会被读取使用，如果该文件不存在或者无法读取，会导致发布失败
 
     _e.g. luaconfig.lua_
 
@@ -101,6 +101,7 @@ TouchSprite Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
     return {
         ID = '123456', --普通工程
         ID_ENT = '123456', --企业版工程
+        ID_APP = "12345", --小精灵工程
         VERSION = '1.0.0', --工程版本号
     }
     ```
@@ -112,12 +113,12 @@ TouchSprite Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
     ```lua
     return ({
         {
-            id = '123456',
-            version = '1.0.0',
+            ID = '123456',
+            VERSION = '1.0.0',
         },
         {
-            id = '223456',
-            version = '2.0.0',
+            ID = '223456',
+            VERSION = '2.0.0',
         },
     })[1]
     ```
