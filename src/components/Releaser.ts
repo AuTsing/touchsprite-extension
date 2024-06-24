@@ -9,26 +9,41 @@ import Projector, { ProjectMode } from './Projector';
 import Zipper from './Zipper';
 import Storage, { Configurations } from './Storage';
 import Asker from './Asker';
-import { TS_ENT_INFO_URL, TS_ENT_UPDATE_URL, TS_ENT_UPLOAD_URL, TS_INFO_URL, TS_LOGIN_URL, TS_UPDATE_URL, TS_UPLOAD_URL } from '../values/Constants';
+import {
+    TS_APP_INFO_URL,
+    TS_APP_UPDATE_URL,
+    TS_APP_UPLOAD_URL,
+    TS_ENT_INFO_URL,
+    TS_ENT_UPDATE_URL,
+    TS_ENT_UPLOAD_URL,
+    TS_INFO_URL,
+    TS_LOGIN_URL,
+    TS_UPDATE_URL,
+    TS_UPLOAD_URL,
+} from '../values/Constants';
 import StatusBar from './StatusBar';
 import Output from './Output';
 
 export interface LuaconfigTable {
     ID: string | null;
     ID_ENT: string | null;
+    ID_APP: string | null;
     VERSION: string | null;
 }
 
 export interface ITsScriptInfo {
+    id: string;
     name: string;
     version: string;
     encrypt: string;
     updatedAt: string;
+    uuid: string;
 }
 
 export enum ProductTarget {
     Ts,
     Ent,
+    App,
 }
 
 export default class Releaser {
@@ -52,7 +67,7 @@ export default class Releaser {
                 } else {
                     return Promise.reject(err);
                 }
-            }
+            },
         );
         this.updater = Axios.create({
             timeout: 30000,
@@ -91,6 +106,7 @@ export default class Releaser {
         const luaconfig: LuaconfigTable = {
             ID: null,
             ID_ENT: null,
+            ID_APP: null,
             VERSION: null,
         };
 
@@ -175,6 +191,9 @@ export default class Releaser {
                 case 'ID_ENT':
                     luaconfig.ID_ENT = value;
                     break;
+                case 'ID_APP':
+                    luaconfig.ID_APP = value;
+                    break;
                 case 'VERSION':
                     luaconfig.VERSION = value;
                     break;
@@ -218,6 +237,8 @@ export default class Releaser {
             case ProductTarget.Ent:
                 url = TS_ENT_INFO_URL;
                 break;
+            case ProductTarget.App:
+                url = TS_APP_INFO_URL;
         }
 
         const resp = await this.updater.get(url, { params: { id: id } });
@@ -235,20 +256,29 @@ export default class Releaser {
             throw new Error('获取脚本版本号失败');
         }
 
-        const encrypt = resp.data.data?.version?.encrypt_mode?.substring(1);
+        const encrypt = resp.data.data?.version?.encrypt_mode?.replace('V', '');
         if (!encrypt) {
             throw new Error('获取脚本加密模式失败');
         }
 
-        const updatedAt = resp.data.data?.version?.created_at ?? resp.data.data?.version?.updated_at;
+        const updatedAt =
+            resp.data.data?.version?.created_at ??
+            resp.data.data?.version?.updated_at ??
+            resp.data.data?.version?.update_at;
         if (!updatedAt) {
             throw new Error('获取脚本更新日期失败');
         }
 
-        return { name, version, encrypt, updatedAt };
+        const uuid = resp.data.data?.details?.uuid ?? '';
+
+        return { id, name, version, encrypt, updatedAt, uuid };
     }
 
-    private async uploadProject(zip: string, id?: string, target: ProductTarget = ProductTarget.Ts): Promise<string> {
+    private async uploadProject(
+        zip: string,
+        info: ITsScriptInfo,
+        target: ProductTarget = ProductTarget.Ts,
+    ): Promise<string> {
         const zipStream = Fs.createReadStream(zip);
         const formData = new FormData();
         let url: string;
@@ -261,8 +291,17 @@ export default class Releaser {
                 break;
             case ProductTarget.Ent:
                 formData.append('file', zipStream);
-                formData.append('script_id', id);
+                formData.append('script_id', info.id);
                 url = TS_ENT_UPLOAD_URL;
+                break;
+            case ProductTarget.App:
+                const filename = Path.basename(zip);
+                const stats = await FsPromises.stat(zip);
+                formData.append('qqfile', zipStream);
+                formData.append('qquuid', info.uuid);
+                formData.append('qqfilename', filename);
+                formData.append('qqtotalfilesize', stats.size);
+                url = TS_APP_UPLOAD_URL;
                 break;
         }
 
@@ -271,7 +310,7 @@ export default class Releaser {
         const resp = await this.updater.post(url, formData, {
             headers: formHeaders,
         });
-        if (resp.data.code !== 200 || resp.data.msg !== '上传成功') {
+        if (resp.data.code !== 200 || (resp.data.msg !== '上传成功' && resp.data.msg !== '查询成功')) {
             throw new Error(resp.data.msg ?? resp.data.code ?? '上传失败');
         }
 
@@ -283,7 +322,14 @@ export default class Releaser {
         return uploadKey;
     }
 
-    private async updateProject(id: string, version: string, changelog: string, encrypt: string, uploadKey: string, target: ProductTarget = ProductTarget.Ts) {
+    private async updateProject(
+        id: string,
+        version: string,
+        changelog: string,
+        encrypt: string,
+        uploadKey: string,
+        target: ProductTarget = ProductTarget.Ts,
+    ) {
         const formData = new FormData();
         formData.append('is_default', 'true');
         formData.append('default', '1');
@@ -291,7 +337,9 @@ export default class Releaser {
         formData.append('version', version);
         formData.append('encrypt_mode', encrypt);
         formData.append('updated_logs', changelog);
+        formData.append('upload_log', changelog);
         formData.append('key', uploadKey);
+        formData.append('md5', '291f71159b253352127995e8f2690781');
         const formHeaders = formData.getHeaders();
 
         let url: string;
@@ -302,6 +350,9 @@ export default class Releaser {
                 break;
             case ProductTarget.Ent:
                 url = TS_ENT_UPDATE_URL;
+                break;
+            case ProductTarget.App:
+                url = TS_APP_UPDATE_URL;
                 break;
         }
 
@@ -341,11 +392,22 @@ export default class Releaser {
                 Output.println('准备发布工程:', luaconfig.ID);
 
                 const oldInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
-                const uploadKey = await this.uploadProject(zip, luaconfig.ID, ProductTarget.Ts);
-                await this.updateProject(luaconfig.ID, luaconfig.VERSION, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ts);
+                const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.Ts);
+                await this.updateProject(
+                    luaconfig.ID,
+                    luaconfig.VERSION,
+                    changelog,
+                    oldInfo.encrypt,
+                    uploadKey,
+                    ProductTarget.Ts,
+                );
                 const newInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
 
-                Output.println('发布工程成功:', `${newInfo.name}(${luaconfig.ID})`, `${oldInfo.version} -> ${newInfo.version}`);
+                Output.println(
+                    '发布工程成功:',
+                    `${newInfo.name}(${luaconfig.ID})`,
+                    `${oldInfo.version} -> ${newInfo.version}`,
+                );
                 StatusBar.result('发布工程成功');
             }
 
@@ -353,12 +415,46 @@ export default class Releaser {
                 Output.println('准备发布企业版工程:', luaconfig.ID_ENT);
 
                 const oldInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
-                const uploadKey = await this.uploadProject(zip, luaconfig.ID_ENT, ProductTarget.Ent);
-                await this.updateProject(luaconfig.ID_ENT, luaconfig.VERSION, changelog, oldInfo.encrypt, uploadKey, ProductTarget.Ent);
+                const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.Ent);
+                await this.updateProject(
+                    luaconfig.ID_ENT,
+                    luaconfig.VERSION,
+                    changelog,
+                    oldInfo.encrypt,
+                    uploadKey,
+                    ProductTarget.Ent,
+                );
                 const newInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
 
-                Output.println('发布企业版工程成功:', `${newInfo.name}(${luaconfig.ID_ENT})`, `${oldInfo.version} -> ${newInfo.version}`);
+                Output.println(
+                    '发布企业版工程成功:',
+                    `${newInfo.name}(${luaconfig.ID_ENT})`,
+                    `${oldInfo.version} -> ${newInfo.version}`,
+                );
                 StatusBar.result('发布企业版工程成功');
+            }
+
+            if (luaconfig.ID_APP) {
+                Output.println('准备发布小精灵工程:', luaconfig.ID_APP);
+
+                const oldInfo = await this.getProjectInfo(luaconfig.ID_APP, ProductTarget.App);
+                const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.App);
+                await this.updateProject(
+                    luaconfig.ID_APP,
+                    luaconfig.VERSION,
+                    changelog,
+                    oldInfo.encrypt,
+                    uploadKey,
+                    ProductTarget.App,
+                );
+                const newInfo = await this.getProjectInfo(luaconfig.ID_APP, ProductTarget.App);
+
+                Output.println(
+                    '发布小精灵工程成功:',
+                    `${newInfo.name}(${luaconfig.ID_APP})`,
+                    `${oldInfo.version} -> ${newInfo.version}`,
+                );
+                StatusBar.result('发布小精灵工程成功');
             }
         } catch (e) {
             Output.eprintln('发布工程失败:', (e as Error).message ?? e);
