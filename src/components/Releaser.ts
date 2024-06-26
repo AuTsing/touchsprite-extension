@@ -256,7 +256,7 @@ export default class Releaser {
             throw new Error('获取脚本版本号失败');
         }
 
-        const encrypt = resp.data.data?.version?.encrypt_mode?.replace('V', '');
+        const encrypt = resp.data.data?.version?.encrypt_mode?.replace('V', '').replace('v', '');
         if (!encrypt) {
             throw new Error('获取脚本加密模式失败');
         }
