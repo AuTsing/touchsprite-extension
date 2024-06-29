@@ -323,23 +323,22 @@ export default class Releaser {
     }
 
     private async updateProject(
-        id: string,
+        info: ITsScriptInfo,
         version: string,
         changelog: string,
-        encrypt: string,
         uploadKey: string,
         target: ProductTarget = ProductTarget.Ts,
     ) {
         const formData = new FormData();
         formData.append('is_default', 'true');
         formData.append('default', '1');
-        formData.append('script_id', id);
+        formData.append('script_id', info.id);
         formData.append('version', version);
-        formData.append('encrypt_mode', encrypt);
+        formData.append('encrypt_mode', info.encrypt);
         formData.append('updated_logs', changelog);
         formData.append('upload_log', changelog);
         formData.append('key', uploadKey);
-        formData.append('md5', '291f71159b253352127995e8f2690781');
+        formData.append('md5', uploadKey);
         const formHeaders = formData.getHeaders();
 
         let url: string;
@@ -393,14 +392,7 @@ export default class Releaser {
 
                 const oldInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
                 const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.Ts);
-                await this.updateProject(
-                    luaconfig.ID,
-                    luaconfig.VERSION,
-                    changelog,
-                    oldInfo.encrypt,
-                    uploadKey,
-                    ProductTarget.Ts,
-                );
+                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, ProductTarget.Ts);
                 const newInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
 
                 Output.println(
@@ -416,14 +408,7 @@ export default class Releaser {
 
                 const oldInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
                 const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.Ent);
-                await this.updateProject(
-                    luaconfig.ID_ENT,
-                    luaconfig.VERSION,
-                    changelog,
-                    oldInfo.encrypt,
-                    uploadKey,
-                    ProductTarget.Ent,
-                );
+                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, ProductTarget.Ent);
                 const newInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
 
                 Output.println(
@@ -439,14 +424,7 @@ export default class Releaser {
 
                 const oldInfo = await this.getProjectInfo(luaconfig.ID_APP, ProductTarget.App);
                 const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.App);
-                await this.updateProject(
-                    luaconfig.ID_APP,
-                    luaconfig.VERSION,
-                    changelog,
-                    oldInfo.encrypt,
-                    uploadKey,
-                    ProductTarget.App,
-                );
+                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, ProductTarget.App);
                 const newInfo = await this.getProjectInfo(luaconfig.ID_APP, ProductTarget.App);
 
                 Output.println(
