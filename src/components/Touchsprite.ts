@@ -77,7 +77,7 @@ export default class Touchsprite {
     }
 
     private async getAccessKey(): Promise<string> {
-        let accessKey = this.storage.getConfiguration(Configurations.AccessKey) as string;
+        let accessKey = this.storage.getStringConfiguration(Configurations.AccessKey);
         if (!accessKey) {
             accessKey = await this.asker.askForAccessKey();
         }
@@ -128,9 +128,13 @@ export default class Touchsprite {
     private async attachDevice(ip: string): Promise<void> {
         const accessKey = await this.getAccessKey();
         const axios = Axios.create({ baseURL: `http://${ip}:50005`, timeout: 10000 });
-        const id = (await axios.get<string>('/deviceid', { headers: { Connection: 'close', 'Content-Length': 0 } })).data;
+        const id = (await axios.get<string>('/deviceid', { headers: { Connection: 'close', 'Content-Length': 0 } }))
+            .data;
         const auth = await this.getAuth(accessKey, id);
-        const name = (await axios.get<string>('/devicename', { headers: { Connection: 'close', 'Content-Length': 0, auth } })).data;
+        const name = (
+            await axios.get<string>('/devicename', { headers: { Connection: 'close', 'Content-Length': 0, auth } })
+        ).data;
+        const isIosPersonal = this.storage.getBooleanConfiguration(Configurations.IsIosPersonal);
 
         let platform!: 'ios' | 'android';
         if (id.length === 32) {
@@ -142,10 +146,15 @@ export default class Touchsprite {
 
         let userPath!: string;
         if (platform === 'ios') {
-            userPath = '/var/mobile/Media/TouchSprite/';
+            userPath = '/var/mobile/Media/TouchSprite';
         }
         if (platform === 'android') {
-            userPath = '/sdcard/TouchSprite/';
+            userPath = '/sdcard/TouchSprite';
+        }
+
+        if (isIosPersonal === true) {
+            platform = 'ios';
+            userPath = '/var/mobile/Media/TouchSpritePe';
         }
 
         if (this.attachedDevice) {
@@ -227,7 +236,7 @@ export default class Touchsprite {
                 throw new Error('未连接设备');
             }
 
-            const snapOrient = this.storage.getConfiguration(Configurations.SnapOrient);
+            const snapOrient = this.storage.getStringConfiguration(Configurations.SnapOrient);
             let numberOfOrient: number;
             switch (snapOrient) {
                 case 'home键在下':
@@ -243,7 +252,7 @@ export default class Touchsprite {
             }
             const img = await this.attachedDevice.snapshot(numberOfOrient);
 
-            const snapDir = this.storage.getConfiguration(Configurations.SnapDir) as string;
+            const snapDir = this.storage.getStringConfiguration(Configurations.SnapDir);
             if (snapDir) {
                 const url = Path.join(snapDir, `PIC_${Date.now()}.png`);
                 await FsPromises.writeFile(url, Buffer.from(img));

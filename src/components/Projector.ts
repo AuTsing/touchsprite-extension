@@ -32,12 +32,12 @@ export default class Projector {
 
         switch (this.projectMode) {
             case ProjectMode.send:
-                this.includes = this.storage.getConfiguration(Configurations.IncludeWhenSend) as string[];
-                this.excludes = this.storage.getConfiguration(Configurations.ExcludeWhenSend) as string[];
+                this.includes = this.storage.getStringArrayConfiguration(Configurations.IncludeWhenSend);
+                this.excludes = this.storage.getStringArrayConfiguration(Configurations.ExcludeWhenSend);
                 break;
             case ProjectMode.zip:
-                this.includes = this.storage.getConfiguration(Configurations.IncludeWhenZip) as string[];
-                this.excludes = this.storage.getConfiguration(Configurations.ExcludeWhenZip) as string[];
+                this.includes = this.storage.getStringArrayConfiguration(Configurations.IncludeWhenZip);
+                this.excludes = this.storage.getStringArrayConfiguration(Configurations.ExcludeWhenZip);
                 break;
         }
     }

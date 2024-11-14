@@ -79,7 +79,7 @@ export default class Releaser {
             return;
         }
 
-        let cookie = this.storage.getConfiguration(Configurations.Cookie);
+        let cookie = this.storage.getStringConfiguration(Configurations.Cookie);
         if (cookie === '') {
             cookie = await this.asker.askForCookie();
         }

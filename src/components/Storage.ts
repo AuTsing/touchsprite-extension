@@ -10,6 +10,7 @@ export enum Configurations {
     ExcludeWhenSend = 'excludeWhenSend',
     IncludeWhenZip = 'includeWhenZip',
     ExcludeWhenZip = 'excludeWhenZip',
+    IsIosPersonal = 'isIosPersonal',
 }
 
 export default class Storage {
@@ -37,7 +38,7 @@ export default class Storage {
         this.setDeviceIps(deviceIps);
     }
 
-    getConfiguration(key: Configurations): string | string[] {
+    getStringConfiguration(key: Configurations): string {
         const configuration = Vscode.workspace.getConfiguration(TS_NS);
         switch (key) {
             case Configurations.Cookie:
@@ -48,6 +49,13 @@ export default class Storage {
                 return configuration.get<string>(Configurations.SnapOrient) ?? '';
             case Configurations.SnapDir:
                 return configuration.get<string>(Configurations.SnapDir) ?? '';
+        }
+        throw Error('未定义的设置项');
+    }
+
+    getStringArrayConfiguration(key: Configurations): string[] {
+        const configuration = Vscode.workspace.getConfiguration(TS_NS);
+        switch (key) {
             case Configurations.IncludeWhenSend:
                 return configuration.get<string[]>(Configurations.IncludeWhenSend) ?? [];
             case Configurations.ExcludeWhenSend:
@@ -57,5 +65,15 @@ export default class Storage {
             case Configurations.ExcludeWhenZip:
                 return configuration.get<string[]>(Configurations.ExcludeWhenZip) ?? [];
         }
+        throw Error('未定义的设置项');
+    }
+
+    getBooleanConfiguration(key: Configurations): boolean {
+        const configuration = Vscode.workspace.getConfiguration(TS_NS);
+        switch (key) {
+            case Configurations.IsIosPersonal:
+                return configuration.get<boolean>(Configurations.IsIosPersonal) ?? false;
+        }
+        throw Error('未定义的设置项');
     }
 }

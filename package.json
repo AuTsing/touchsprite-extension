@@ -91,6 +91,11 @@
                         "maintest.lua",
                         "CHANGELOG.md"
                     ]
+                },
+                "touchsprite-extension.isIosPersonal": {
+                    "description": "是否iOS个人版",
+                    "type": "boolean",
+                    "default": false
                 }
             }
         },
