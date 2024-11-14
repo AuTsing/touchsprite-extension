@@ -2,7 +2,7 @@
     "name": "touchsprite-extension",
     "displayName": "TouchSprite Extension",
     "description": "用于触动精灵脚本开发的插件",
-    "version": "3.0.9",
+    "version": "3.0.10",
     "publisher": "autsing",
     "repository": "https://github.com/AuTsing/touchsprite-extension",
     "keywords": [
