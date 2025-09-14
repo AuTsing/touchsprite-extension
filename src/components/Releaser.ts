@@ -40,6 +40,12 @@ export interface ITsScriptInfo {
     uuid: string;
 }
 
+export interface ReleaseInfo {
+    readonly id: string;
+    readonly name: string;
+    readonly productTarget: ProductTarget;
+}
+
 export enum ProductTarget {
     Ts,
     Ent,
@@ -387,52 +393,37 @@ export default class Releaser {
 
             await this.login();
 
+            const releaseInfos: ReleaseInfo[] = [];
             if (luaconfig.ID) {
-                Output.println('准备发布工程:', luaconfig.ID);
-
-                const oldInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
-                const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.Ts);
-                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, ProductTarget.Ts);
-                const newInfo = await this.getProjectInfo(luaconfig.ID, ProductTarget.Ts);
-
-                Output.println(
-                    '发布工程成功:',
-                    `${newInfo.name}(${luaconfig.ID})`,
-                    `${oldInfo.version} -> ${newInfo.version}`,
-                );
-                StatusBar.result('发布工程成功');
+                const ids = luaconfig.ID.split(',');
+                const infos = ids.map(it => ({ id: it, name: '', productTarget: ProductTarget.Ts }));
+                releaseInfos.push(...infos);
             }
-
             if (luaconfig.ID_ENT) {
-                Output.println('准备发布企业版工程:', luaconfig.ID_ENT);
-
-                const oldInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
-                const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.Ent);
-                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, ProductTarget.Ent);
-                const newInfo = await this.getProjectInfo(luaconfig.ID_ENT, ProductTarget.Ent);
-
-                Output.println(
-                    '发布企业版工程成功:',
-                    `${newInfo.name}(${luaconfig.ID_ENT})`,
-                    `${oldInfo.version} -> ${newInfo.version}`,
-                );
-                StatusBar.result('发布企业版工程成功');
+                const ids = luaconfig.ID_ENT.split(',');
+                const infos = ids.map(it => ({ id: it, name: '企业版', productTarget: ProductTarget.Ent }));
+                releaseInfos.push(...infos);
+            }
+            if (luaconfig.ID_APP) {
+                const ids = luaconfig.ID_APP.split(',');
+                const infos = ids.map(it => ({ id: it, name: '小精灵', productTarget: ProductTarget.App }));
+                releaseInfos.push(...infos);
             }
 
-            if (luaconfig.ID_APP) {
-                Output.println('准备发布小精灵工程:', luaconfig.ID_APP);
+            for (const info of releaseInfos) {
+                Output.println(`准备发布${info.name}工程:`, info.id);
 
-                const oldInfo = await this.getProjectInfo(luaconfig.ID_APP, ProductTarget.App);
-                const uploadKey = await this.uploadProject(zip, oldInfo, ProductTarget.App);
-                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, ProductTarget.App);
-                const newInfo = await this.getProjectInfo(luaconfig.ID_APP, ProductTarget.App);
+                const oldInfo = await this.getProjectInfo(info.id, info.productTarget);
+                const uploadKey = await this.uploadProject(zip, oldInfo, info.productTarget);
+                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, info.productTarget);
+                const newInfo = await this.getProjectInfo(info.id, info.productTarget);
 
                 Output.println(
-                    '发布小精灵工程成功:',
-                    `${newInfo.name}(${luaconfig.ID_APP})`,
+                    `发布工程${info.name}成功:`,
+                    `${newInfo.name}(${info.id})`,
                     `${oldInfo.version} -> ${newInfo.version}`,
                 );
-                StatusBar.result('发布小精灵工程成功');
+                StatusBar.result(`发布工程${info.name}成功`);
             }
         } catch (e) {
             Output.eprintln('发布工程失败:', (e as Error).message ?? e);
