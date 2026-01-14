@@ -1,7 +1,7 @@
-import * as Os from 'os';
-import * as Path from 'path';
-import * as Net from 'net';
-import * as FsPromises from 'fs/promises';
+import * as Os from 'node:os';
+import * as Path from 'node:path';
+import * as Net from 'node:net';
+import * as FsPromises from 'node:fs/promises';
 import Axios from 'axios';
 import Device, { TsFileRoot, TsFile, TsApiStatusResponseData } from './Device';
 import DeviceSearcher from './DeviceSearcher';
