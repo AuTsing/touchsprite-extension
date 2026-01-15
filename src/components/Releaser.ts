@@ -467,6 +467,26 @@ export default class Releaser {
         }
     }
 
+    private async releaseProject(zip: string, version: string, changelog: string, info: ReleaseInfo) {
+        try {
+            Output.println(`准备发布${info.name}工程:`, info.id);
+
+            const oldInfo = await this.getProjectInfo(info.id, info.target);
+            const uploadKey = await this.uploadProject(zip, oldInfo, info.target);
+            await this.updateProject(oldInfo, version, changelog, uploadKey, info.target);
+            const newInfo = await this.getProjectInfo(info.id, info.target);
+
+            Output.println(
+                `发布工程${info.name}(${info.id})成功:`,
+                `${newInfo.name}(${info.id})`,
+                `${oldInfo.version} -> ${newInfo.version}`,
+            );
+            StatusBar.result(`发布工程${info.name}成功`);
+        } catch (e) {
+            Output.eprintln(`发布工程${info.name}(${info.id})失败:`, (e as Error).message ?? e);
+        }
+    }
+
     async handleRelease() {
         const doing = StatusBar.doing('发布工程中');
         try {
@@ -498,21 +518,7 @@ export default class Releaser {
 
             const releaseInfos = toReleaseInfos.call(luaconfig);
 
-            for (const info of releaseInfos) {
-                Output.println(`准备发布${info.name}工程:`, info.id);
-
-                const oldInfo = await this.getProjectInfo(info.id, info.target);
-                const uploadKey = await this.uploadProject(zip, oldInfo, info.target);
-                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, info.target);
-                const newInfo = await this.getProjectInfo(info.id, info.target);
-
-                Output.println(
-                    `发布工程${info.name}成功:`,
-                    `${newInfo.name}(${info.id})`,
-                    `${oldInfo.version} -> ${newInfo.version}`,
-                );
-                StatusBar.result(`发布工程${info.name}成功`);
-            }
+            await Promise.all(releaseInfos.map(it => this.releaseProject(zip, luaconfig.VERSION!!, changelog, it)));
         } catch (e) {
             Output.eprintln('发布工程失败:', (e as Error).message ?? e);
             Output.elogln((e as Error).stack ?? e);
