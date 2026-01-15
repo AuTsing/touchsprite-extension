@@ -24,32 +24,183 @@ import {
 import StatusBar from './StatusBar';
 import Output from './Output';
 
-export interface LuaconfigTable {
+interface LuaconfigInfo {
     ID: string | null;
     ID_ENT: string | null;
     ID_APP: string | null;
+    ID_APP_TS: string | null;
     VERSION: string | null;
 }
 
-export interface ITsScriptInfo {
-    id: string;
-    name: string;
-    version: string;
-    encrypt: string;
-    updatedAt: string;
-    uuid: string;
+function toReleaseInfos(this: LuaconfigInfo): ReleaseInfo[] {
+    const releaseInfos: ReleaseInfo[] = [];
+
+    if (this.ID !== null) {
+        const ids = this.ID.split(',');
+        const infos = ids.map(it => ({ id: it, name: '', target: ProductTarget.Ts }));
+        releaseInfos.push(...infos);
+    }
+    if (this.ID_ENT !== null) {
+        const ids = this.ID_ENT.split(',');
+        const infos = ids.map(it => ({ id: it, name: '企业版', target: ProductTarget.Ent }));
+        releaseInfos.push(...infos);
+    }
+    if (this.ID_APP !== null) {
+        const ids = this.ID_APP.split(',');
+        const infos = ids.map(it => ({ id: it, name: '小精灵', target: ProductTarget.App }));
+        releaseInfos.push(...infos);
+    }
+    if (this.ID_APP_TS !== null) {
+        const ids = this.ID_APP_TS.split(',');
+        const infos = ids.map(it => ({ id: it, name: '小精灵脚本', target: ProductTarget.AppTs }));
+        releaseInfos.push(...infos);
+    }
+
+    return releaseInfos;
 }
 
-export interface ReleaseInfo {
+interface ScriptInfo {
     readonly id: string;
     readonly name: string;
-    readonly productTarget: ProductTarget;
+    readonly version: string;
+    readonly encrypt: string;
+    readonly updatedAt: string;
+    readonly uuid: string;
 }
 
-export enum ProductTarget {
+interface ReleaseInfo {
+    readonly id: string;
+    readonly name: string;
+    readonly target: ProductTarget;
+}
+
+enum ProductTarget {
     Ts,
     Ent,
     App,
+    AppTs,
+}
+
+function getProjectInfoUrl(target: ProductTarget): string {
+    switch (target) {
+        case ProductTarget.Ts:
+            return TS_INFO_URL;
+        case ProductTarget.Ent:
+            return TS_ENT_INFO_URL;
+        case ProductTarget.App:
+            return TS_APP_INFO_URL;
+        case ProductTarget.AppTs:
+            return TS_APP_INFO_URL;
+    }
+}
+
+function getUploadProjectUrl(target: ProductTarget): string {
+    switch (target) {
+        case ProductTarget.Ts:
+            return TS_UPLOAD_URL;
+        case ProductTarget.Ent:
+            return TS_ENT_UPLOAD_URL;
+        case ProductTarget.App:
+            return TS_APP_UPLOAD_URL;
+        case ProductTarget.AppTs:
+            return TS_APP_UPLOAD_URL;
+    }
+}
+
+function getUpdateProjectUrl(target: ProductTarget): string {
+    switch (target) {
+        case ProductTarget.Ts:
+            return TS_UPDATE_URL;
+        case ProductTarget.Ent:
+            return TS_ENT_UPDATE_URL;
+        case ProductTarget.App:
+            return TS_APP_UPDATE_URL;
+        case ProductTarget.AppTs:
+            return TS_APP_UPDATE_URL;
+    }
+}
+
+function genUploadProjectPayload(
+    target: ProductTarget,
+    info: ScriptInfo,
+    zipStream: Fs.ReadStream,
+    filename: string,
+    size: number,
+): FormData {
+    const formData = new FormData();
+
+    switch (target) {
+        case ProductTarget.Ts:
+            formData.append('ScriptUpload[file]', zipStream);
+            break;
+        case ProductTarget.Ent:
+            formData.append('file', zipStream);
+            formData.append('script_id', info.id);
+            break;
+        case ProductTarget.App:
+            formData.append('qqfile', zipStream);
+            formData.append('qquuid', info.uuid);
+            formData.append('qqfilename', filename);
+            formData.append('qqtotalfilesize', size);
+            break;
+        case ProductTarget.AppTs:
+            formData.append('qqfile', zipStream);
+            formData.append('qquuid', info.uuid);
+            formData.append('qqfilename', filename);
+            formData.append('qqtotalfilesize', size);
+            break;
+    }
+
+    return formData;
+}
+
+function genUpdateProjectPayload(
+    target: ProductTarget,
+    info: ScriptInfo,
+    version: string,
+    changelog: string,
+    uploadKey: string,
+): FormData {
+    const formData = new FormData();
+
+    switch (target) {
+        case ProductTarget.Ts:
+            formData.append('key', uploadKey);
+            formData.append('script_id', info.id);
+            formData.append('version', version);
+            formData.append('is_default', 'true');
+            formData.append('encrypt_mode', info.encrypt);
+            formData.append('updated_logs', changelog);
+            break;
+        case ProductTarget.Ent:
+            formData.append('key', uploadKey);
+            formData.append('script_id', info.id);
+            formData.append('version', version);
+            formData.append('default', '1');
+            formData.append('encrypt_mode', info.encrypt);
+            formData.append('updated_logs', changelog);
+            break;
+        case ProductTarget.App:
+            formData.append('md5', uploadKey);
+            formData.append('script_id', info.id);
+            formData.append('version', version);
+            formData.append('encrypt_mode', info.encrypt);
+            formData.append('upload_log', changelog);
+            formData.append('package_name', '0');
+            formData.append('type', '2');
+            break;
+        case ProductTarget.AppTs:
+            formData.append('md5', uploadKey);
+            formData.append('script_id', info.id);
+            formData.append('version', version);
+            formData.append('encrypt_mode', info.encrypt);
+            formData.append('upload_log', changelog);
+            formData.append('package_name', '0');
+            formData.append('type', '1');
+            break;
+    }
+
+    return formData;
 }
 
 export default class Releaser {
@@ -80,7 +231,7 @@ export default class Releaser {
         });
     }
 
-    private async login(): Promise<void> {
+    private async login() {
         if (this.updater.defaults.headers.common['cookie']) {
             return;
         }
@@ -108,11 +259,12 @@ export default class Releaser {
         this.updater.defaults.headers.common['cookie'] = usingReleaseCookie;
     }
 
-    private async loadLuaconfig(root: string): Promise<LuaconfigTable> {
-        const luaconfig: LuaconfigTable = {
+    private async loadLuaconfig(root: string): Promise<LuaconfigInfo> {
+        const luaconfig: LuaconfigInfo = {
             ID: null,
             ID_ENT: null,
             ID_APP: null,
+            ID_APP_TS: null,
             VERSION: null,
         };
 
@@ -200,10 +352,11 @@ export default class Releaser {
                 case 'ID_APP':
                     luaconfig.ID_APP = value;
                     break;
+                case 'ID_APP_TS':
+                    luaconfig.ID_APP_TS = value;
+                    break;
                 case 'VERSION':
                     luaconfig.VERSION = value;
-                    break;
-                default:
                     break;
             }
         }
@@ -211,7 +364,7 @@ export default class Releaser {
         return luaconfig;
     }
 
-    private async getChangelog(root: string, ver: string): Promise<string> {
+    private async loadChangelog(root: string, ver: string): Promise<string> {
         const files = await FsPromises.readdir(root);
         if (!files.includes('CHANGELOG.md')) {
             return ' ';
@@ -233,19 +386,8 @@ export default class Releaser {
         return changelog;
     }
 
-    private async getProjectInfo(id: string, target: ProductTarget = ProductTarget.Ts): Promise<ITsScriptInfo> {
-        let url: string;
-        switch (target) {
-            case ProductTarget.Ts:
-            default:
-                url = TS_INFO_URL;
-                break;
-            case ProductTarget.Ent:
-                url = TS_ENT_INFO_URL;
-                break;
-            case ProductTarget.App:
-                url = TS_APP_INFO_URL;
-        }
+    private async getProjectInfo(id: string, target: ProductTarget = ProductTarget.Ts): Promise<ScriptInfo> {
+        const url = getProjectInfoUrl(target);
 
         const resp = await this.updater.get(url, { params: { id: id } });
         if (resp.data.code !== 200 || resp.data.msg !== '查询成功') {
@@ -282,40 +424,19 @@ export default class Releaser {
 
     private async uploadProject(
         zip: string,
-        info: ITsScriptInfo,
+        info: ScriptInfo,
         target: ProductTarget = ProductTarget.Ts,
     ): Promise<string> {
         const zipStream = Fs.createReadStream(zip);
-        const formData = new FormData();
-        let url: string;
-
-        switch (target) {
-            case ProductTarget.Ts:
-            default:
-                formData.append('ScriptUpload[file]', zipStream);
-                url = TS_UPLOAD_URL;
-                break;
-            case ProductTarget.Ent:
-                formData.append('file', zipStream);
-                formData.append('script_id', info.id);
-                url = TS_ENT_UPLOAD_URL;
-                break;
-            case ProductTarget.App:
-                const filename = Path.basename(zip);
-                const stats = await FsPromises.stat(zip);
-                formData.append('qqfile', zipStream);
-                formData.append('qquuid', info.uuid);
-                formData.append('qqfilename', filename);
-                formData.append('qqtotalfilesize', stats.size);
-                url = TS_APP_UPLOAD_URL;
-                break;
-        }
-
+        const filename = Path.basename(zip);
+        const stats = await FsPromises.stat(zip);
+        const size = stats.size;
+        const url = getUploadProjectUrl(target);
+        const formData = genUploadProjectPayload(target, info, zipStream, filename, size);
         const formHeaders = formData.getHeaders();
+        const config = { headers: formHeaders };
 
-        const resp = await this.updater.post(url, formData, {
-            headers: formHeaders,
-        });
+        const resp = await this.updater.post(url, formData, config);
         if (resp.data.code !== 200 || (resp.data.msg !== '上传成功' && resp.data.msg !== '查询成功')) {
             throw new Error(resp.data.msg ?? resp.data.code ?? '上传失败');
         }
@@ -329,47 +450,24 @@ export default class Releaser {
     }
 
     private async updateProject(
-        info: ITsScriptInfo,
+        info: ScriptInfo,
         version: string,
         changelog: string,
         uploadKey: string,
         target: ProductTarget = ProductTarget.Ts,
     ) {
-        const formData = new FormData();
-        formData.append('is_default', 'true');
-        formData.append('default', '1');
-        formData.append('script_id', info.id);
-        formData.append('version', version);
-        formData.append('encrypt_mode', info.encrypt);
-        formData.append('updated_logs', changelog);
-        formData.append('upload_log', changelog);
-        formData.append('key', uploadKey);
-        formData.append('md5', uploadKey);
+        const url = getUpdateProjectUrl(target);
+        const formData = genUpdateProjectPayload(target, info, version, changelog, uploadKey);
         const formHeaders = formData.getHeaders();
+        const config = { headers: formHeaders };
 
-        let url: string;
-        switch (target) {
-            case ProductTarget.Ts:
-            default:
-                url = TS_UPDATE_URL;
-                break;
-            case ProductTarget.Ent:
-                url = TS_ENT_UPDATE_URL;
-                break;
-            case ProductTarget.App:
-                url = TS_APP_UPDATE_URL;
-                break;
-        }
-
-        const resp = await this.updater.post(url, formData, {
-            headers: formHeaders,
-        });
+        const resp = await this.updater.post(url, formData, config);
         if (resp.data.code !== 200 || (resp.data.msg !== '版本上传成功' && resp.data.msg !== '上传成功')) {
             throw new Error(resp.data.msg ?? resp.data.code ?? '更新版本失败');
         }
     }
 
-    public async handleRelease(): Promise<void> {
+    async handleRelease() {
         const doing = StatusBar.doing('发布工程中');
         try {
             const projector = new Projector(this.storage, undefined, ProjectMode.zip);
@@ -382,41 +480,31 @@ export default class Releaser {
             }
 
             const luaconfig = await this.loadLuaconfig(root);
-            if (!luaconfig.ID && !luaconfig.ID_ENT && !luaconfig.ID_APP) {
-                throw new Error('请先设置配置文件字段 `ID/ID_ENT/ID_APP`');
+            if (
+                luaconfig.ID === null &&
+                luaconfig.ID_ENT === null &&
+                luaconfig.ID_APP === null &&
+                luaconfig.ID_APP_TS === null
+            ) {
+                throw new Error('请先设置配置文件字段 `ID/ID_ENT/ID_APP/ID_APP_TS`');
             }
-            if (!luaconfig.VERSION) {
+            if (luaconfig.VERSION === null) {
                 throw new Error('请先设置配置文件字段 `VERSION`');
             }
 
-            const changelog = await this.getChangelog(root, luaconfig.VERSION);
+            const changelog = await this.loadChangelog(root, luaconfig.VERSION);
 
             await this.login();
 
-            const releaseInfos: ReleaseInfo[] = [];
-            if (luaconfig.ID) {
-                const ids = luaconfig.ID.split(',');
-                const infos = ids.map(it => ({ id: it, name: '', productTarget: ProductTarget.Ts }));
-                releaseInfos.push(...infos);
-            }
-            if (luaconfig.ID_ENT) {
-                const ids = luaconfig.ID_ENT.split(',');
-                const infos = ids.map(it => ({ id: it, name: '企业版', productTarget: ProductTarget.Ent }));
-                releaseInfos.push(...infos);
-            }
-            if (luaconfig.ID_APP) {
-                const ids = luaconfig.ID_APP.split(',');
-                const infos = ids.map(it => ({ id: it, name: '小精灵', productTarget: ProductTarget.App }));
-                releaseInfos.push(...infos);
-            }
+            const releaseInfos = toReleaseInfos.call(luaconfig);
 
             for (const info of releaseInfos) {
                 Output.println(`准备发布${info.name}工程:`, info.id);
 
-                const oldInfo = await this.getProjectInfo(info.id, info.productTarget);
-                const uploadKey = await this.uploadProject(zip, oldInfo, info.productTarget);
-                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, info.productTarget);
-                const newInfo = await this.getProjectInfo(info.id, info.productTarget);
+                const oldInfo = await this.getProjectInfo(info.id, info.target);
+                const uploadKey = await this.uploadProject(zip, oldInfo, info.target);
+                await this.updateProject(oldInfo, luaconfig.VERSION, changelog, uploadKey, info.target);
+                const newInfo = await this.getProjectInfo(info.id, info.target);
 
                 Output.println(
                     `发布工程${info.name}成功:`,

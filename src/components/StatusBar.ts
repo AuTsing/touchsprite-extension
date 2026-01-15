@@ -91,7 +91,7 @@ export default class StatusBar implements Vscode.Disposable {
 
     private readonly statusBarItem: Vscode.StatusBarItem;
     private readonly statusItems: StatusItem[];
-    private refresher: NodeJS.Timer;
+    private refresher: NodeJS.Timeout;
     private runningStatusItem: StatusItem;
 
     constructor() {
