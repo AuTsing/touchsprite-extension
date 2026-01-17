@@ -186,6 +186,8 @@ function genUpdateProjectPayload(
             formData.append('version', version);
             formData.append('encrypt_mode', info.encrypt);
             formData.append('upload_log', changelog);
+            formData.append('package_name', '0');
+            formData.append('type', '2');
             break;
         case ProductTarget.AppTs:
             formData.append('md5', uploadKey);
@@ -193,6 +195,7 @@ function genUpdateProjectPayload(
             formData.append('version', version);
             formData.append('encrypt_mode', info.encrypt);
             formData.append('upload_log', changelog);
+            formData.append('package_name', '0');
             formData.append('type', '1');
             break;
     }
@@ -515,7 +518,9 @@ export default class Releaser {
 
             const releaseInfos = toReleaseInfos.call(luaconfig);
 
-            await Promise.all(releaseInfos.map(it => this.releaseProject(zip, luaconfig.VERSION!!, changelog, it)));
+            for (const info of releaseInfos) {
+                await this.releaseProject(zip, luaconfig.VERSION, changelog, info);
+            }
         } catch (e) {
             Output.eprintln('发布工程失败:', (e as Error).message ?? e);
             Output.elogln((e as Error).stack ?? e);
