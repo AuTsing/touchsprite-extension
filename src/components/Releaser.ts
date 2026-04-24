@@ -1,10 +1,11 @@
-import * as Path from 'path';
-import * as FsPromises from 'fs/promises';
-import * as Fs from 'fs';
+import * as Path from 'node:path';
+import * as FsPromises from 'node:fs/promises';
+import * as Fs from 'node:fs';
 import * as FormData from 'form-data';
 import Axios, { AxiosInstance } from 'axios';
 import * as Luaparse from 'luaparse';
 import * as ChanglogParser from 'changelog-parser';
+import * as semver from 'semver';
 import Projector, { ProjectMode } from './Projector';
 import Zipper from './Zipper';
 import Storage, { Configurations } from './Storage';
@@ -127,6 +128,7 @@ function genUploadProjectPayload(
     filename: string,
     size: number,
 ): FormData {
+    // @ts-ignore
     const formData = new FormData();
 
     switch (target) {
@@ -161,6 +163,7 @@ function genUpdateProjectPayload(
     changelog: string,
     uploadKey: string,
 ): FormData {
+    // @ts-ignore
     const formData = new FormData();
 
     switch (target) {
@@ -472,6 +475,10 @@ export default class Releaser {
             Output.println(`准备发布${info.name}工程:`, info.id);
 
             const oldInfo = await this.getProjectInfo(info.id, info.target);
+            if (semver.lte(version, oldInfo.version)) {
+                throw Error('发布版本号必须大于当前版本号');
+            }
+
             const uploadKey = await this.uploadProject(zip, oldInfo, info.target);
             await this.updateProject(oldInfo, version, changelog, uploadKey, info.target);
             const newInfo = await this.getProjectInfo(info.id, info.target);
