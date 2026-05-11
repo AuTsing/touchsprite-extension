@@ -1,29 +1,36 @@
-import * as Vscode from 'vscode';
+import { Disposable } from 'vscode';
+import * as http from 'node:http';
 import * as Express from 'express';
 import * as Cors from 'cors';
-import * as Http from 'http';
 import Touchsprite from './Touchsprite';
 
-export default class Server implements Vscode.Disposable {
+export interface Api {
+    title: string;
+    url: string;
+}
+
+export default class Server implements Disposable {
     private readonly touchsprite: Touchsprite;
-    private server: Http.Server | null;
+    private server: http.Server | null;
     private port: number;
 
     constructor(touchsprite: Touchsprite) {
         this.touchsprite = touchsprite;
         this.server = null;
-        this.port = 26001;
+        this.port = 26000;
         this.up();
     }
 
     async up() {
         const express = Express();
         express.use(Cors());
-        express.get('/api/ping', (req, res) => {
-            res.send('pong');
-        });
-        express.get('/api/title', (req, res) => {
-            res.send(`从 触动插件 端口: ${this.port} 加载`);
+        express.get('/get-api', (req, res) => {
+            console.log(req);
+
+            res.json({
+                title: `从 触动插件 端口: ${this.port} 加载`,
+                url: `http://${req.host}/api/snap`,
+            } satisfies Api);
         });
         express.get('/api/snap', async (req, res) => {
             try {

@@ -176,7 +176,7 @@
     },
     "devDependencies": {
         "@types/cors": "^2.8.13",
-        "@types/express": "^4.17.25",
+        "@types/express": "^5.0.0",
         "@types/glob": "^7.2.0",
         "@types/node": "^22.19.6",
         "@types/vscode": "^1.73.0",
@@ -187,7 +187,7 @@
         "changelog-parser": "^2.8.1",
         "cors": "^2.8.5",
         "eslint": "^8.39.0",
-        "express": "^4.22.1",
+        "express": "^5.0.0",
         "form-data": "^4.0.0",
         "glob": "^7.2.0",
         "jszip": "^3.10.1",
