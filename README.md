@@ -1,3 +1,5 @@
+
+
 # TouchSprite Extension
 
 ![license](https://img.shields.io/github/license/AuTsing/touchsprite-extension)
@@ -45,13 +47,15 @@ TouchSprite Extension ( 触动精灵开发插件 ) 是基于触动精灵官方�
 
 ## 初始化
 
-以下功能需要先在设置中填写开发者 AccessKey 项，如果你不使用以下功能，请忽略。
+以下功能需要先在 VSCode 设置中填写开发者 AccessKey 项，如果你不使用以下功能，请忽略。
 
 -   运行工程, 运行测试工程, 运行当前脚本, 停止运行, 上传文件, 清空脚本, 取色器截图
 
 以下功能需要先在设置中填写开发者后台 Cookie 项，如果你不使用以下功能，请忽略。
 
 -   发布工程
+
+> **提示**：打开 VSCode 设置（<kbd>Ctrl</kbd>+<kbd>,</kbd> 或 <kbd>Cmd</kbd>+<kbd>,</kbd>），搜索 `touchsprite-extension` 即可快速定位 `开发者AccessKey` 与 `登陆Cookie` 等配置项。
 
 ## 开始使用
 
