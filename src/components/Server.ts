@@ -25,12 +25,15 @@ export default class Server implements Disposable {
         const express = Express();
         express.use(Cors());
         express.get('/get-api', (req, res) => {
-            console.log(req);
-
-            res.json({
-                title: `从 触动插件 端口: ${this.port} 加载`,
-                url: `http://${req.host}/api/snap`,
-            } satisfies Api);
+            const respData = {
+                code: 0,
+                message: 'ok',
+                data: {
+                    title: `从 触动插件 端口: ${this.port} 加载`,
+                    url: `http://${req.host}/api/snap`,
+                } satisfies Api,
+            };
+            res.json(respData);
         });
         express.get('/api/snap', async (req, res) => {
             try {
